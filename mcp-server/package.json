@@ -1,0 +1,29 @@
+{
+  "name": "@thetanuts/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Thetanuts SDK - Read-only queries and data",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "thetanuts-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@thetanuts/thetanuts-client": "file:..",
+    "ethers": "^6.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
