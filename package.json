@@ -42,9 +42,10 @@
   ],
   "author": "Thetanuts Finance",
   "license": "MIT",
+  "homepage": "https://github.com/goheesheng/thetanuts-sdk",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thetanuts/sdk.git"
+    "url": "https://github.com/goheesheng/thetanuts-sdk.git"
   },
   "engines": {
     "node": ">=18.0.0"
