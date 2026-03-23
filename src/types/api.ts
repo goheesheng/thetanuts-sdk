@@ -155,6 +155,20 @@ export interface Position {
   explicitClose: boolean;
   /** Settlement details (present when settled/closed) */
   settlement?: PositionSettlement;
+  /** Option lifecycle status */
+  optionStatus?: OptionStatusType;
+  /** Structured PnL entries for this user */
+  pnlEntries?: PositionPnL[];
+  /** PnL in USD (8 decimals) */
+  pnlUsd?: string | null;
+  /** PnL percentage */
+  pnlPct?: string | null;
+  /** Implementation name (e.g. PUT, INVERSE_CALL) */
+  implementationName?: string;
+  /** Implementation type */
+  implementationType?: string;
+  /** Book address (for book positions) */
+  bookAddress?: string;
 }
 
 /**
