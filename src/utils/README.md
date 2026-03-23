@@ -34,7 +34,7 @@ const DECIMALS = {
 Convert a human-readable number to bigint with decimals.
 
 ```typescript
-import { toBigInt, DECIMALS } from '@thetanuts/thetanuts-client';
+import { toBigInt, DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 // Convert 100.5 USDC to raw value
 const rawUsdc = toBigInt('100.5', DECIMALS.USDC);
@@ -50,7 +50,7 @@ const rawEth = toBigInt('1.5', DECIMALS.WETH);
 Convert a raw bigint to human-readable string.
 
 ```typescript
-import { fromBigInt, DECIMALS } from '@thetanuts/thetanuts-client';
+import { fromBigInt, DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 // Convert raw USDC to human-readable
 const usdc = fromBigInt(100500000n, DECIMALS.USDC);
@@ -66,7 +66,7 @@ const eth = fromBigInt(1500000000000000000n, DECIMALS.WETH);
 Scale a value from one decimal precision to another.
 
 ```typescript
-import { scaleDecimals, DECIMALS } from '@thetanuts/thetanuts-client';
+import { scaleDecimals, DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 // Scale from USDC (6) to WETH (18) decimals
 const scaled = scaleDecimals(1000000n, DECIMALS.USDC, DECIMALS.WETH);
@@ -82,7 +82,7 @@ const downscaled = scaleDecimals(1000000000000000000n, DECIMALS.WETH, DECIMALS.U
 Format a bigint for display with optional decimal places.
 
 ```typescript
-import { formatAmount, DECIMALS } from '@thetanuts/thetanuts-client';
+import { formatAmount, DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 const formatted = formatAmount(123456789n, DECIMALS.USDC, 2);
 // Result: '123.46'
@@ -93,7 +93,7 @@ const formatted = formatAmount(123456789n, DECIMALS.USDC, 2);
 Parse a string amount to bigint.
 
 ```typescript
-import { parseAmount, DECIMALS } from '@thetanuts/thetanuts-client';
+import { parseAmount, DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 const parsed = parseAmount('100.50', DECIMALS.USDC);
 // Result: 100500000n
@@ -108,7 +108,7 @@ const parsed = parseAmount('100.50', DECIMALS.USDC);
 Create a typed `ThetanutsError`.
 
 ```typescript
-import { createError } from '@thetanuts/thetanuts-client';
+import { createError } from '@thetanuts-finance/thetanuts-client';
 
 throw createError('ORDER_EXPIRED', 'Order has expired');
 
@@ -124,7 +124,7 @@ throw createError('INVALID_PARAMS', 'Invalid amount', null, { amount: -1 });
 Wrap an unknown error as `ThetanutsError`.
 
 ```typescript
-import { wrapError } from '@thetanuts/thetanuts-client';
+import { wrapError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   await someOperation();
@@ -139,7 +139,7 @@ try {
 Type guard to check if an error is a `ThetanutsError`.
 
 ```typescript
-import { isThetanutsError } from '@thetanuts/thetanuts-client';
+import { isThetanutsError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   await client.optionBook.fillOrder(order, signature);
@@ -159,7 +159,7 @@ try {
 Map HTTP/Axios errors to `ThetanutsError`.
 
 ```typescript
-import { mapHttpError } from '@thetanuts/thetanuts-client';
+import { mapHttpError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   await axios.get('/api/orders');
@@ -174,7 +174,7 @@ try {
 Map ethers.js contract errors to `ThetanutsError`.
 
 ```typescript
-import { mapContractError } from '@thetanuts/thetanuts-client';
+import { mapContractError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   await contract.approve(spender, amount);
@@ -193,7 +193,7 @@ try {
 A no-op logger that does nothing (default).
 
 ```typescript
-import { noopLogger } from '@thetanuts/thetanuts-client';
+import { noopLogger } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,
@@ -207,7 +207,7 @@ const client = new ThetanutsClient({
 A logger that outputs to console.
 
 ```typescript
-import { consoleLogger } from '@thetanuts/thetanuts-client';
+import { consoleLogger } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,
@@ -225,7 +225,7 @@ const client = new ThetanutsClient({
 Create your own logger implementation.
 
 ```typescript
-import type { ThetanutsLogger } from '@thetanuts/thetanuts-client';
+import type { ThetanutsLogger } from '@thetanuts-finance/thetanuts-client';
 
 const myLogger: ThetanutsLogger = {
   debug: (msg, meta) => winston.debug(msg, meta),
@@ -250,7 +250,7 @@ const client = new ThetanutsClient({
 Validate an Ethereum address.
 
 ```typescript
-import { validateAddress } from '@thetanuts/thetanuts-client';
+import { validateAddress } from '@thetanuts-finance/thetanuts-client';
 
 validateAddress('0x1234...', 'tokenAddress');
 // Throws ThetanutsError with code 'INVALID_PARAMS' if invalid
@@ -261,7 +261,7 @@ validateAddress('0x1234...', 'tokenAddress');
 Check if an order will expire soon.
 
 ```typescript
-import { validateOrderExpiry } from '@thetanuts/thetanuts-client';
+import { validateOrderExpiry } from '@thetanuts-finance/thetanuts-client';
 
 const expiryTimestamp = Math.floor(Date.now() / 1000) + 60; // 60 seconds
 
@@ -274,7 +274,7 @@ validateOrderExpiry(expiryTimestamp, 120);
 Validate fill size against available amount.
 
 ```typescript
-import { validateFillSize } from '@thetanuts/thetanuts-client';
+import { validateFillSize } from '@thetanuts-finance/thetanuts-client';
 
 validateFillSize(
   1000000n,     // requested
@@ -290,7 +290,7 @@ validateFillSize(
 Validate actual price doesn't exceed max for buys.
 
 ```typescript
-import { validateBuySlippage } from '@thetanuts/thetanuts-client';
+import { validateBuySlippage } from '@thetanuts-finance/thetanuts-client';
 
 validateBuySlippage(
   105n,  // actual price
@@ -304,7 +304,7 @@ validateBuySlippage(
 Validate actual price meets minimum for sells.
 
 ```typescript
-import { validateSellSlippage } from '@thetanuts/thetanuts-client';
+import { validateSellSlippage } from '@thetanuts-finance/thetanuts-client';
 
 validateSellSlippage(
   95n,   // actual price
@@ -318,7 +318,7 @@ validateSellSlippage(
 Calculate price with slippage applied.
 
 ```typescript
-import { calculateSlippagePrice } from '@thetanuts/thetanuts-client';
+import { calculateSlippagePrice } from '@thetanuts-finance/thetanuts-client';
 
 // For buy: price * (1 + slippage)
 const maxBuyPrice = calculateSlippagePrice(1000000n, 50, true);
@@ -343,7 +343,7 @@ import {
   validateAddress,
   validateFillSize,
   consoleLogger,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 // Convert amounts
 const usdcAmount = toBigInt('1000', DECIMALS.USDC);

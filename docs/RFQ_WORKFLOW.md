@@ -970,7 +970,7 @@ The RFQ system uses ECDH (Elliptic Curve Diffie-Hellman) key pairs for encryptin
 ### Key Persistence Example
 
 ```typescript
-import { ThetanutsClient, FileStorageProvider } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, FileStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 // Default: Keys automatically persist based on environment
 const client = new ThetanutsClient({ chainId: 8453, provider });
@@ -998,7 +998,7 @@ const client = new ThetanutsClient({
 Implement `KeyStorageProvider` for custom storage (database, cloud, etc.):
 
 ```typescript
-import { KeyStorageProvider } from '@thetanuts/thetanuts-client';
+import { KeyStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 class MyCustomStorage implements KeyStorageProvider {
   async get(keyId: string): Promise<string | null> {
@@ -1127,7 +1127,7 @@ const quotation = await client.optionFactory.getQuotation(rfqId);
 ### Creating an RFQ (BUY Position)
 
 ```typescript
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({ chainId: 8453 });
 
@@ -1233,7 +1233,7 @@ Spreads use **2 strikes** instead of 1. The SDK automatically:
 ```typescript
 import 'dotenv/config';
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 async function createSpreadRFQ() {
   // Setup
@@ -1522,7 +1522,7 @@ Physical options involve actual delivery of the underlying asset rather than cas
 ### Creating a Physical PUT RFQ
 
 ```typescript
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({ chainId: 8453, provider, signer });
 const keyPair = await client.rfqKeys.getOrCreateKeyPair();

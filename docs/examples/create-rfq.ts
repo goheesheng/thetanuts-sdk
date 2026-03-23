@@ -9,7 +9,7 @@
  */
 
 import { ethers } from 'ethers';
-import { ThetanutsClient, FileStorageProvider } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, FileStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 // =============================================================================
 // Configuration

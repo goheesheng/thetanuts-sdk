@@ -5,13 +5,13 @@
 ## Installation
 
 ```bash
-npm install @thetanuts/thetanuts-client
+npm install @thetanuts-finance/thetanuts-client
 ```
 
 ## Initialization
 
 ```typescript
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Read-only client
 const client = new ThetanutsClient({ chainId: 8453 });
@@ -612,14 +612,14 @@ import type {
   EncryptedOffer,
   DecryptedOffer,
   KeyStorageProvider,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 // Storage Providers (classes)
 import {
   FileStorageProvider,
   LocalStorageProvider,
   MemoryStorageProvider,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 ```
 
 ---
@@ -683,7 +683,7 @@ import {
   isPhysicalProduct,
   calculateNumContracts,
   calculateCollateralRequired,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 // Check if a product is physical
 isPhysicalProduct('PHYSICAL_CALL');  // true

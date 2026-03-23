@@ -16,7 +16,7 @@ The main client class for interacting with Thetanuts Finance.
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 
@@ -34,7 +34,7 @@ const balance = await client.erc20.getBalance(tokenAddress, userAddress);
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const signer = new ethers.Wallet(privateKey, provider);
@@ -54,7 +54,7 @@ await client.optionBook.fillOrder(order, signature);
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Get provider from MetaMask
 const provider = new ethers.BrowserProvider(window.ethereum);
@@ -170,7 +170,7 @@ const signer = client.requireSigner();
 Pass a custom logger for debugging:
 
 ```typescript
-import { ThetanutsClient, consoleLogger } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, consoleLogger } from '@thetanuts-finance/thetanuts-client';
 
 // Use built-in console logger
 const client = new ThetanutsClient({
@@ -212,7 +212,7 @@ const client = new ThetanutsClient({
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient, consoleLogger } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, consoleLogger } from '@thetanuts-finance/thetanuts-client';
 
 async function main() {
   // Setup provider and signer
@@ -252,7 +252,7 @@ main().catch(console.error);
 The client throws `ThetanutsError` for various conditions:
 
 ```typescript
-import { isThetanutsError } from '@thetanuts/thetanuts-client';
+import { isThetanutsError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   const address = await client.getSignerAddress();

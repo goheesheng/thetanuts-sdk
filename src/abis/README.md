@@ -16,7 +16,7 @@ An ABI defines how to interact with a smart contract - it specifies:
 Standard ERC20 token interface for USDC, WETH, and other tokens.
 
 ```typescript
-import { ERC20_ABI } from '@thetanuts/thetanuts-client';
+import { ERC20_ABI } from '@thetanuts-finance/thetanuts-client';
 ```
 
 **Methods:**
@@ -43,7 +43,7 @@ import { ERC20_ABI } from '@thetanuts/thetanuts-client';
 Main trading contract for filling and canceling orders.
 
 ```typescript
-import { OPTION_BOOK_ABI } from '@thetanuts/thetanuts-client';
+import { OPTION_BOOK_ABI } from '@thetanuts-finance/thetanuts-client';
 ```
 
 **Key Structs:**
@@ -92,7 +92,7 @@ struct Order {
 Request for Quotation (RFQ) system for creating custom options.
 
 ```typescript
-import { OPTION_FACTORY_ABI } from '@thetanuts/thetanuts-client';
+import { OPTION_FACTORY_ABI } from '@thetanuts-finance/thetanuts-client';
 ```
 
 **Methods:**
@@ -118,7 +118,7 @@ import { OPTION_FACTORY_ABI } from '@thetanuts/thetanuts-client';
 Individual option position management. Exported as both `OPTION_ABI` and `BASE_OPTION_ABI`.
 
 ```typescript
-import { OPTION_ABI, BASE_OPTION_ABI } from '@thetanuts/thetanuts-client';
+import { OPTION_ABI, BASE_OPTION_ABI } from '@thetanuts-finance/thetanuts-client';
 ```
 
 **View Functions:**
@@ -180,7 +180,7 @@ import { OPTION_ABI, BASE_OPTION_ABI } from '@thetanuts/thetanuts-client';
 
 ```typescript
 import { ethers } from 'ethers';
-import { ERC20_ABI, OPTION_BOOK_ABI, BASE_OPTION_ABI } from '@thetanuts/thetanuts-client';
+import { ERC20_ABI, OPTION_BOOK_ABI, BASE_OPTION_ABI } from '@thetanuts-finance/thetanuts-client';
 
 // Create contract instance for reading
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');

@@ -24,7 +24,7 @@ The main client class for interacting with the Thetanuts protocol.
 ### Constructor
 
 ```typescript
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,              // Required: Chain ID (Base = 8453)
@@ -496,7 +496,7 @@ The method validates that:
 ### Physical Option RFQ Example
 
 ```typescript
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 import { ethers } from 'ethers';
 
 const client = new ThetanutsClient({ chainId: 8453, provider, signer });
@@ -1382,7 +1382,7 @@ const payout = client.utils.calculatePayout({
 ### Decimal Constants
 
 ```typescript
-import { DECIMALS } from '@thetanuts/thetanuts-client';
+import { DECIMALS } from '@thetanuts-finance/thetanuts-client';
 
 DECIMALS.USDC   // 6
 DECIMALS.WETH   // 18
@@ -1584,7 +1584,7 @@ The SDK provides storage providers for persisting RFQ encryption keys across ses
 File-based storage for Node.js environments. This is the **default** for Node.js applications.
 
 ```typescript
-import { FileStorageProvider, ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { FileStorageProvider, ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Default location: ./.thetanuts-keys/
 const client = new ThetanutsClient({
@@ -1623,7 +1623,7 @@ const client = new ThetanutsClient({
 Browser localStorage-based storage. This is the **default** for browser environments.
 
 ```typescript
-import { LocalStorageProvider, ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { LocalStorageProvider, ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Auto-selected in browser
 const client = new ThetanutsClient({
@@ -1650,7 +1650,7 @@ const client = new ThetanutsClient({
 In-memory storage for testing or ephemeral use.
 
 ```typescript
-import { MemoryStorageProvider, ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { MemoryStorageProvider, ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const storage = new MemoryStorageProvider();
 const client = new ThetanutsClient({
@@ -1673,7 +1673,7 @@ const client = new ThetanutsClient({
 Implement the `KeyStorageProvider` interface for custom storage backends:
 
 ```typescript
-import type { KeyStorageProvider } from '@thetanuts/thetanuts-client';
+import type { KeyStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 class DatabaseStorageProvider implements KeyStorageProvider {
   async get(keyId: string): Promise<string | null> {
@@ -1843,6 +1843,62 @@ interface Position {
 
   // Settlement (present when settled)
   settlement?: PositionSettlement;
+
+  // Book position fields and PnL tracking (optional)
+  optionStatus?: OptionStatusType;    // Option lifecycle status
+  pnlEntries?: PositionPnL[];         // Structured PnL entries
+  pnlUsd?: string | null;             // PnL in USD (8 decimals)
+  pnlPct?: string | null;             // PnL percentage (e.g., "5.50" = 5.50%)
+  implementationName?: string;        // e.g., "PUT", "INVERSE_CALL", "CALL_SPREAD"
+  implementationType?: string;        // Implementation type identifier
+  bookAddress?: string;               // OptionBook contract address (book positions only)
+}
+```
+
+### OptionStatusType
+
+Option lifecycle status enum.
+
+```typescript
+type OptionStatusType =
+  | 'active'                      // Option is active and tradeable
+  | 'closed'                      // Position was closed via trade
+  | 'expired-awaiting-settlement' // Expired, waiting for settlement
+  | 'settled-itm'                 // Settled in-the-money
+  | 'settled-otm';                // Settled out-of-the-money
+```
+
+### PositionPnL
+
+Detailed PnL entry for position tracking. Supports both cash-settled and physical-settled options.
+
+```typescript
+interface PositionPnL {
+  side: 'buyer' | 'seller';
+  entryRfqId: string;
+  exitType: 'rfq' | 'settled-itm' | 'settled-otm' | 'active' | 'closed' | 'expired-awaiting-settlement';
+  exitRfqId: string | null;
+
+  // Cash-settled fields (null for physical options)
+  cost: string | null;              // Entry cost
+  value: string | null;             // Current/exit value
+  pnl: string | null;               // Realized PnL
+
+  // Physical-settled fields (null for cash options)
+  collateralToken: string | null;   // Collateral token address
+  collateralCost: string | null;    // Collateral cost
+  collateralValue: string | null;   // Collateral value
+  collateralPnl: string | null;     // Collateral PnL
+  deliveryToken: string | null;     // Delivery token address
+  deliveryCost: string | null;      // Delivery cost
+  deliveryValue: string | null;     // Delivery value
+  deliveryPnl: string | null;       // Delivery PnL
+
+  // USD totals (always present when PnL is calculable)
+  costUsd: string | null;           // Cost in USD (8 decimals)
+  valueUsd: string | null;          // Value in USD (8 decimals)
+  pnlUsd: string | null;            // PnL in USD (8 decimals)
+  pnlPct: string | null;            // PnL percentage
 }
 ```
 
@@ -1870,6 +1926,20 @@ for (const position of positions) {
   if (position.settlement) {
     console.log(`  Settlement Price: ${position.settlement.settlementPrice}`);
     console.log(`  Exercised: ${position.settlement.exercised}`);
+  }
+
+  // PnL tracking (new fields)
+  if (position.optionStatus) {
+    console.log(`  Option Status: ${position.optionStatus}`);
+  }
+  if (position.pnlUsd) {
+    console.log(`  PnL USD: $${Number(position.pnlUsd) / 1e8}`);
+  }
+  if (position.pnlPct) {
+    console.log(`  PnL %: ${position.pnlPct}%`);
+  }
+  if (position.implementationName) {
+    console.log(`  Implementation: ${position.implementationName}`);
   }
 }
 ```
@@ -2002,7 +2072,7 @@ import type {
   FileStorageProvider,
   LocalStorageProvider,
   MemoryStorageProvider,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 ```
 
 ---

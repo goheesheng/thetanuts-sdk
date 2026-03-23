@@ -6,7 +6,7 @@
  */
 
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // =============================================================================
 // Configuration

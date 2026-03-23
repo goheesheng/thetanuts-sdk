@@ -116,7 +116,7 @@ const baseMainnet: ChainConfig = {
 Get the full chain configuration for a given chain ID.
 
 ```typescript
-import { getChainConfigById } from '@thetanuts/thetanuts-client';
+import { getChainConfigById } from '@thetanuts-finance/thetanuts-client';
 
 const config = getChainConfigById(8453);
 console.log(config.name); // 'Base'
@@ -128,7 +128,7 @@ console.log(config.contracts.optionBook); // '0xd58b814...'
 Get token configuration for a specific chain and token symbol.
 
 ```typescript
-import { getTokenConfigById } from '@thetanuts/thetanuts-client';
+import { getTokenConfigById } from '@thetanuts-finance/thetanuts-client';
 
 const usdc = getTokenConfigById(8453, 'USDC');
 console.log(usdc.address);  // '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
@@ -140,7 +140,7 @@ console.log(usdc.decimals); // 6
 Get list of all supported tokens for a chain.
 
 ```typescript
-import { getSupportedTokensById } from '@thetanuts/thetanuts-client';
+import { getSupportedTokensById } from '@thetanuts-finance/thetanuts-client';
 
 const tokens = getSupportedTokensById(8453);
 // Returns: ['USDC', 'WETH', 'cbBTC']
@@ -151,7 +151,7 @@ const tokens = getSupportedTokensById(8453);
 Check if a chain ID is supported.
 
 ```typescript
-import { isChainIdSupported } from '@thetanuts/thetanuts-client';
+import { isChainIdSupported } from '@thetanuts-finance/thetanuts-client';
 
 isChainIdSupported(8453);  // true
 isChainIdSupported(1);     // false (Ethereum mainnet not supported)

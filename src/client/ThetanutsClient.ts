@@ -24,7 +24,7 @@ import { MMPricingModule } from '../modules/mmPricing.js';
  *
  * @example
  * ```typescript
- * import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+ * import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
  * import { ethers } from 'ethers';
  *
  * const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');

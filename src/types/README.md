@@ -1044,7 +1044,7 @@ class MemoryStorageProvider implements KeyStorageProvider {
 **Usage Example:**
 
 ```typescript
-import { FileStorageProvider, ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { FileStorageProvider, ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Default (uses ./.thetanuts-keys/)
 const client = new ThetanutsClient({ chainId: 8453, provider });
@@ -1071,7 +1071,7 @@ import type {
   Greeks,
   ThetanutsError,
   WebSocketState,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 // Type-safe configuration
 const config: ThetanutsClientConfig = {

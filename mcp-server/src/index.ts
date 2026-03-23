@@ -36,7 +36,7 @@ import {
   buildTicker,
   // Types
   type ProductName,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 // ============ Configuration ============
 const RPC_URL = process.env.THETANUTS_RPC_URL || 'https://mainnet.base.org';

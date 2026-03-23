@@ -31,7 +31,7 @@ import {
   isPhysicalProduct,
   type ProductName,
   type DeliveryResult,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 ```
 
 ## Core Functions

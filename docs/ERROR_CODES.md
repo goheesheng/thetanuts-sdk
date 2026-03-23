@@ -28,7 +28,7 @@ import {
   InvalidKeyError,
   EncryptionError,
   DecryptionError,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 try {
   await client.optionBook.fillOrder(order);
@@ -379,7 +379,7 @@ console.log('Public Key:', keyPair.compressedPublicKey);
 
 // If using MemoryStorageProvider (non-persistent), keys are lost on restart
 // Switch to FileStorageProvider for Node.js
-import { FileStorageProvider, ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { FileStorageProvider, ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,
@@ -463,7 +463,7 @@ try {
 
 ```typescript
 // 1. Check if the key file exists and is readable
-import { FileStorageProvider } from '@thetanuts/thetanuts-client';
+import { FileStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 const storage = new FileStorageProvider('./.thetanuts-keys');
 const keyId = `rfq-key-8453`;  // Pattern: rfq-key-{chainId}
@@ -532,7 +532,7 @@ if (prefix !== '02' && prefix !== '03') {
 ### 1. Enable Debug Logging
 
 ```typescript
-import { consoleLogger } from '@thetanuts/thetanuts-client';
+import { consoleLogger } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,

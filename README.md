@@ -1,4 +1,4 @@
-# @thetanuts/thetanuts-client
+# @thetanuts-finance/thetanuts-client
 
 TypeScript SDK for Thetanuts Finance V4 - Options trading on EVM chains.
 
@@ -41,19 +41,19 @@ TypeScript SDK for Thetanuts Finance V4 - Options trading on EVM chains.
 
 Using npm:
 ```bash
-npm install @thetanuts/thetanuts-client ethers
+npm install @thetanuts-finance/thetanuts-client
 ```
 
 Using yarn:
 ```bash
-yarn add @thetanuts/thetanuts-client ethers
+yarn add @thetanuts-finance/thetanuts-client
 ```
 
 ## Quick Start
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Initialize with provider (read-only)
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
@@ -147,7 +147,7 @@ For **SELL positions**, you must separately approve tokens for the OptionFactory
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 // Initialize with signer for write operations
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
@@ -272,7 +272,7 @@ console.log('Public Key:', keyPair.compressedPublicKey);
 ### Custom Storage Location (Node.js)
 
 ```typescript
-import { ThetanutsClient, FileStorageProvider } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, FileStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 // Custom storage directory
 const customStorage = new FileStorageProvider('./my-keys');
@@ -290,7 +290,7 @@ const client = new ThetanutsClient({
 ### Memory Storage (Testing Only)
 
 ```typescript
-import { ThetanutsClient, MemoryStorageProvider } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, MemoryStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 // ⚠️ WARNING: Keys are LOST when process exits!
 const client = new ThetanutsClient({
@@ -353,7 +353,7 @@ console.log(`Payoff: ${payoff}`);
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const signer = new ethers.Wallet(privateKey, provider);
@@ -392,7 +392,7 @@ console.log(`Trade executed: ${receipt.hash}`);
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const signer = new ethers.Wallet(privateKey, provider);
@@ -543,7 +543,7 @@ const receipt = await client.optionFactory.requestForQuotation(condorRequest);
 
 ```typescript
 import { ethers } from 'ethers';
-import { ThetanutsClient } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const client = new ThetanutsClient({ chainId: 8453, provider });
@@ -618,7 +618,7 @@ The `previewFillOrder()` method handles these calculations automatically for all
 All SDK methods throw `ThetanutsError` with typed error codes:
 
 ```typescript
-import { isThetanutsError } from '@thetanuts/thetanuts-client';
+import { isThetanutsError } from '@thetanuts-finance/thetanuts-client';
 
 try {
   await client.optionBook.fillOrder(orderWithSig);
@@ -670,7 +670,7 @@ import {
   ContractRevertError,
   InsufficientAllowanceError,
   OrderExpiredError,
-} from '@thetanuts/thetanuts-client';
+} from '@thetanuts-finance/thetanuts-client';
 
 try {
   await client.optionBook.fillOrder(order, 10_000000n);
@@ -695,7 +695,7 @@ try {
 ### Retry Pattern for Transient Errors
 
 ```typescript
-import { RateLimitError, ThetanutsError } from '@thetanuts/thetanuts-client';
+import { RateLimitError, ThetanutsError } from '@thetanuts-finance/thetanuts-client';
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -762,7 +762,7 @@ The SDK ships as both ESM and CJS with TypeScript declarations (`.d.ts`), built 
 Pass a custom logger for debugging:
 
 ```typescript
-import { ThetanutsClient, consoleLogger } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, consoleLogger } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,

@@ -758,7 +758,7 @@ The module auto-detects the environment:
 Custom storage can be configured:
 
 ```typescript
-import { ThetanutsClient, MemoryStorageProvider } from '@thetanuts/thetanuts-client';
+import { ThetanutsClient, MemoryStorageProvider } from '@thetanuts-finance/thetanuts-client';
 
 const client = new ThetanutsClient({
   chainId: 8453,
