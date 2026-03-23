@@ -863,4 +863,4 @@ MIT
 
 - [Thetanuts Finance](https://thetanuts.finance)
 - [Documentation](https://docs.thetanuts.finance)
-- [GitHub](https://github.com/thetanuts/sdk)
+- [GitHub](https://github.com/goheesheng/thetanuts-sdk)
