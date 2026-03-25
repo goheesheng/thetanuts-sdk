@@ -200,7 +200,8 @@ export class OptionBookModule {
    * Calculate maximum number of contracts that can be filled based on maker's collateral.
    *
    * For PUT options: maxContracts = maxCollateral / strike
-   * For CALL options (inverse): maxContracts = maxCollateral (1:1 with underlying)
+   * For CALL options: INVERSE_CALL maxContracts = maxCollateral / decimal_adjustment;
+   *                   LINEAR_CALL maxContracts = maxCollateral / strike (same as PUT)
    * For SPREADs: maxContracts = maxCollateral / spreadWidth
    *
    * @param orderWithSig - Order with signature containing rawApiData
@@ -229,17 +230,20 @@ export class OptionBookModule {
       return (maxCollateral * 100000000n) / strike;
     }
 
-    // For CALL options (inverse call): collateral is in underlying (e.g., WETH)
-    // 1 contract = 1 underlying token, so maxContracts = maxCollateral
-    // But we need to adjust for decimals (WETH is 18 decimals, numContracts is 6)
+    // For single-strike CALL options:
+    // - INVERSE_CALL (base collateral, e.g. WETH 18 dec): 1 contract = 1 underlying token
+    //   maxContracts = maxCollateral / 1e12 (convert 18-dec to 6-dec numContracts)
+    // - LINEAR_CALL (quote collateral, e.g. USDC 6 dec): same formula as PUT
+    //   maxContracts = (maxCollateral * 1e8) / strike
     if (isCall && strikes.length === 1) {
-      // For inverse calls, maxCollateral is in underlying token decimals (18 for WETH)
-      // numContracts is in 6 decimals
-      // 1 contract = 1e18 underlying, so maxContracts = maxCollateral / 1e12
-      // BUT: The API returns maxCollateralUsable in collateral decimals
-      // For WETH (18 dec), 1 contract needs 1 WETH = 1e18
-      // So maxContracts = maxCollateral / 1e12 (to convert 18 dec to 6 dec)
-      return maxCollateral / 1000000000000n;
+      const collateralDecimals = this.getCollateralDecimals(orderWithSig.rawApiData.collateral);
+      if (collateralDecimals >= 18) {
+        // INVERSE_CALL: collateral is base token (WETH/cbBTC), 1 contract = 1 token
+        return maxCollateral / (10n ** BigInt(collateralDecimals - 6));
+      }
+      // LINEAR_CALL: collateral is quote token (USDC), same as PUT
+      const strike = strikes[0]!;
+      return (maxCollateral * 100000000n) / strike;
     }
 
     // For SPREADS: collateral = spread_width * numContracts
@@ -1100,5 +1104,19 @@ export class OptionBookModule {
         gasLimitWithBuffer: 0n,
       };
     }
+  }
+
+  /**
+   * Look up collateral token decimals from chain config.
+   * Falls back to 18 if not found (safe default for INVERSE_CALL).
+   */
+  private getCollateralDecimals(collateralAddress: string): number {
+    const tokens = this.client.chainConfig.collateralTokens;
+    for (const token of Object.values(tokens)) {
+      if (token.address.toLowerCase() === collateralAddress.toLowerCase()) {
+        return token.decimals;
+      }
+    }
+    return 18;
   }
 }

@@ -680,7 +680,7 @@ export class APIModule {
       numContracts: BigInt(String(rawOrder['numContracts'] ?? rawOrder['num_contracts'] ?? '0')),
       price: BigInt(String(rawOrder['price'] ?? '0')),
       expiry: BigInt(String(rawOrder['expiry'] ?? '0')),
-      nonce: BigInt(String(rawOrder['nonce'] ?? '0')),
+      nonce: rawOrder['nonce'] != null ? BigInt(String(rawOrder['nonce'])) : 0n,
     };
 
     return {
@@ -725,7 +725,7 @@ export class APIModule {
       numContracts: BigInt(String(rawOrder['numContracts'] ?? '0')),
       price: BigInt(String(rawOrder['price'] ?? '0')),
       expiry: expiryTimestamp,
-      nonce: BigInt(String(raw['nonce'] ?? '0')),
+      nonce: raw['nonce'] != null ? BigInt(String(raw['nonce'])) : 0n,
       // Contract-required fields
       optionType: isCall ? 0 : 1, // 0 = call, 1 = put
       strikes: strikes.map((s) => BigInt(s)), // All strikes as bigint array
