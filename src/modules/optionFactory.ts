@@ -177,6 +177,115 @@ export class OptionFactoryModule {
   }
 
   /**
+   * Convert numContracts input to on-chain BigInt format.
+   *
+   * This utility handles the precision issue when closing positions by allowing
+   * users to pass the exact BigInt value from the chain, avoiding floating-point
+   * rounding errors.
+   *
+   * @param input - User input (number, bigint, or string)
+   *   - `number`: Human-readable (e.g., 1.5) - converted using token decimals
+   *   - `bigint`: On-chain format - used directly, no conversion
+   *   - `string`: Parsed as BigInt
+   * @param decimals - Token decimals (only used for number input)
+   * @returns BigInt in on-chain format
+   * @throws Error if input is invalid or not positive
+   *
+   * @example BigInt pass-through (for closing positions)
+   * ```typescript
+   * // Get exact numContracts from chain
+   * const position = await client.option.getNumContracts(optionAddress);
+   * // Pass directly - no conversion, no precision loss
+   * const onChain = this.toNumContractsOnChain(position, 18);
+   * // onChain === position (exact match)
+   * ```
+   *
+   * @example Number conversion (for new positions)
+   * ```typescript
+   * const onChain = this.toNumContractsOnChain(1.5, 18);
+   * // onChain === 1500000000000000000n
+   * ```
+   */
+  private toNumContractsOnChain(
+    input: number | bigint | string,
+    decimals: number
+  ): bigint {
+    // BigInt: use directly (already in on-chain format)
+    if (typeof input === 'bigint') {
+      if (input <= 0n) {
+        throw createError('INVALID_PARAMS', 'numContracts must be positive');
+      }
+      return input;
+    }
+
+    // String: parse as BigInt
+    if (typeof input === 'string') {
+      let parsed: bigint;
+      try {
+        parsed = BigInt(input);
+      } catch {
+        throw createError(
+          'INVALID_PARAMS',
+          `Invalid numContracts string: "${input}". Expected a valid integer string.`
+        );
+      }
+      if (parsed <= 0n) {
+        throw createError('INVALID_PARAMS', 'numContracts must be positive');
+      }
+      return parsed;
+    }
+
+    // Number: convert using string-based approach to avoid floating-point errors
+    if (typeof input === 'number') {
+      if (input <= 0) {
+        throw createError('INVALID_PARAMS', 'numContracts must be positive');
+      }
+      if (!Number.isFinite(input)) {
+        throw createError('INVALID_PARAMS', 'numContracts must be a finite number');
+      }
+      // Use string-based conversion to avoid floating-point precision issues
+      // This is the same approach as toBigInt in utils/decimals.ts
+      const str = input.toString();
+      const [whole, fraction = ''] = str.split('.');
+      const paddedFraction = fraction.padEnd(decimals, '0').slice(0, decimals);
+      return BigInt(whole + paddedFraction);
+    }
+
+    throw createError(
+      'INVALID_PARAMS',
+      'numContracts must be a number, bigint, or string'
+    );
+  }
+
+  /**
+   * Calculate reserve price handling both number and BigInt numContracts.
+   *
+   * @param reservePricePerContract - Reserve price per contract (human-readable)
+   * @param numContracts - Number of contracts (number, bigint, or string)
+   * @param decimals - Token decimals
+   * @returns Total reserve price in on-chain format
+   */
+  private calculateReservePrice(
+    reservePricePerContract: number,
+    numContracts: number | bigint | string,
+    decimals: number
+  ): bigint {
+    if (typeof numContracts === 'bigint') {
+      // Convert reservePrice to on-chain format, then multiply
+      // numContracts is already in decimals, so divide by 10**decimals to avoid double-scaling
+      const reserveInDecimals = BigInt(Math.round(reservePricePerContract * 10 ** decimals));
+      return (reserveInDecimals * numContracts) / BigInt(10 ** decimals);
+    }
+
+    if (typeof numContracts === 'string') {
+      return this.calculateReservePrice(reservePricePerContract, BigInt(numContracts), decimals);
+    }
+
+    // Number: use existing logic
+    return BigInt(Math.round(reservePricePerContract * numContracts * 10 ** decimals));
+  }
+
+  /**
    * Create a new Request for Quotation
    *
    * **IMPORTANT: collateralAmount must ALWAYS be 0**
@@ -1537,8 +1646,10 @@ export class OptionFactoryModule {
     );
 
     // Convert numContracts to on-chain format (collateral token decimals)
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // Calculate timestamps
@@ -1554,9 +1665,12 @@ export class OptionFactoryModule {
       );
     }
 
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
+
     return {
       requester: params.requester,
-      existingOptionAddress: '0x0000000000000000000000000000000000000000',
+      existingOptionAddress,
       collateral: tokenConfig.address,
       collateralPriceFeed: priceFeed,
       implementation,
@@ -1665,8 +1779,11 @@ export class OptionFactoryModule {
       }
       // Reserve price is total premium in collateral decimals
       // = reservePricePerContract * numContracts
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      // Uses calculateReservePrice to handle both number and BigInt numContracts
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
 
@@ -1908,8 +2025,10 @@ export class OptionFactoryModule {
     const strikeOnChain = this.client.utils.strikeToChain(params.strike);
 
     // 8. Convert numContracts to on-chain format
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // 9. Calculate timestamps
@@ -1929,16 +2048,21 @@ export class OptionFactoryModule {
     // 10. Calculate reserve price if provided
     let reservePrice = BigInt(0);
     if (params.reservePrice !== undefined && params.reservePrice > 0) {
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
+
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
 
     // 11. Build and return RFQRequest
     return {
       params: {
         requester: params.requester,
-        existingOptionAddress: '0x0000000000000000000000000000000000000000',
+        existingOptionAddress,
         collateral: tokenConfig.address,
         collateralPriceFeed: priceFeed,
         implementation,
@@ -2166,8 +2290,10 @@ export class OptionFactoryModule {
     const strikesOnChain = sortedStrikes.map(s => this.client.utils.strikeToChain(s));
 
     // Convert numContracts to on-chain format
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // Calculate timestamps
@@ -2186,15 +2312,20 @@ export class OptionFactoryModule {
     // Calculate reserve price
     let reservePrice = BigInt(0);
     if (params.reservePrice !== undefined && params.reservePrice > 0) {
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
+
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
 
     return {
       params: {
         requester: params.requester,
-        existingOptionAddress: '0x0000000000000000000000000000000000000000',
+        existingOptionAddress,
         collateral: tokenConfig.address,
         collateralPriceFeed: priceFeed,
         implementation,
@@ -2289,8 +2420,10 @@ export class OptionFactoryModule {
     const strikesOnChain = sortedStrikes.map(s => this.client.utils.strikeToChain(s));
 
     // Convert numContracts to on-chain format
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // Calculate timestamps
@@ -2309,15 +2442,20 @@ export class OptionFactoryModule {
     // Calculate reserve price
     let reservePrice = BigInt(0);
     if (params.reservePrice !== undefined && params.reservePrice > 0) {
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
+
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
 
     return {
       params: {
         requester: params.requester,
-        existingOptionAddress: '0x0000000000000000000000000000000000000000',
+        existingOptionAddress,
         collateral: tokenConfig.address,
         collateralPriceFeed: priceFeed,
         implementation,
@@ -2410,8 +2548,10 @@ export class OptionFactoryModule {
     const strikesOnChain = sortedStrikes.map(s => this.client.utils.strikeToChain(s));
 
     // Convert numContracts to on-chain format
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // Calculate timestamps
@@ -2430,15 +2570,20 @@ export class OptionFactoryModule {
     // Calculate reserve price
     let reservePrice = BigInt(0);
     if (params.reservePrice !== undefined && params.reservePrice > 0) {
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
+
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
 
     return {
       params: {
         requester: params.requester,
-        existingOptionAddress: '0x0000000000000000000000000000000000000000',
+        existingOptionAddress,
         collateral: tokenConfig.address,
         collateralPriceFeed: priceFeed,
         implementation,
@@ -2535,8 +2680,10 @@ export class OptionFactoryModule {
     const strikesOnChain = sortedStrikes.map(s => this.client.utils.strikeToChain(s));
 
     // Convert numContracts to on-chain format
-    const numContractsOnChain = BigInt(
-      Math.round(params.numContracts * 10 ** tokenConfig.decimals)
+    // Supports number (human-readable), bigint (on-chain), or string input
+    const numContractsOnChain = this.toNumContractsOnChain(
+      params.numContracts,
+      tokenConfig.decimals
     );
 
     // Calculate timestamps
@@ -2555,15 +2702,20 @@ export class OptionFactoryModule {
     // Calculate reserve price
     let reservePrice = BigInt(0);
     if (params.reservePrice !== undefined && params.reservePrice > 0) {
-      reservePrice = BigInt(
-        Math.round(params.reservePrice * params.numContracts * 10 ** tokenConfig.decimals)
+      reservePrice = this.calculateReservePrice(
+        params.reservePrice,
+        params.numContracts,
+        tokenConfig.decimals
       );
     }
+
+    // Use existingOptionAddress if provided, otherwise default to zero address
+    const existingOptionAddress = params.existingOptionAddress ?? '0x0000000000000000000000000000000000000000';
 
     return {
       params: {
         requester: params.requester,
-        existingOptionAddress: '0x0000000000000000000000000000000000000000',
+        existingOptionAddress,
         collateral: tokenConfig.address,
         collateralPriceFeed: priceFeed,
         implementation,

@@ -1560,6 +1560,109 @@ const receipt = await client.optionFactory.requestForQuotation(physicalPutRFQ);
 
 ---
 
+## Closing Existing Positions
+
+When closing an existing position via RFQ, precision is critical. The `numContracts` value must match **exactly** with the on-chain value. Floating-point arithmetic can introduce tiny errors that cause position closes to fail.
+
+### The Precision Problem
+
+```typescript
+// Problem: Floating-point conversion can lose precision
+const humanReadable = 1.5;
+const decimals = 18;
+
+// This may introduce tiny errors for 18-decimal tokens
+console.log(humanReadable * 10 ** decimals);
+// Could be: 1500000000000000000 or 1499999999999999999
+
+// If on-chain value is 1500000000000000000n but we send 1499999999999999999n
+// The position close FAILS because values don't match exactly!
+```
+
+### Solution: Use BigInt for Exact Precision
+
+The SDK accepts `numContracts` as `number | bigint | string`:
+
+| Input Type | Behavior | Use Case |
+|------------|----------|----------|
+| `number` | Converted using token decimals | New positions with human-readable values |
+| `bigint` | Used directly, no conversion | **Closing positions** - exact on-chain value |
+| `string` | Parsed as BigInt | API/JSON responses where value is a string |
+
+### Position Closing Example
+
+```typescript
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
+
+const client = new ThetanutsClient({ chainId: 8453, provider, signer });
+
+// Step 1: Get your existing position from the API
+const positions = await client.api.getUserPositions(walletAddress);
+const position = positions.find(p => p.optionAddress === targetOptionAddress);
+
+// position.numContracts is already a BigInt from the chain!
+console.log('Position numContracts:', position.numContracts);
+// e.g., 40n (BigInt)
+
+// Step 2: Generate keypair for the closing RFQ
+const keypair = client.rfqKeys.generateKeyPair();
+
+// Step 3: Build closing RFQ using EXACT BigInt from chain
+const closeRfq = client.optionFactory.buildRFQRequest({
+  requester: walletAddress,
+  underlying: 'ETH',
+  optionType: 'PUT',
+  strikes: position.strike,
+  expiry: position.expiry,
+
+  // CRITICAL: Pass BigInt directly - no precision loss!
+  numContracts: position.numContracts,
+
+  // To close a SELL position, you BUY it back
+  // To close a BUY position, you SELL it
+  isLong: !position.isBuyer,  // Opposite of original position
+
+  offerDeadlineMinutes: 30,
+  collateralToken: 'USDC',
+  requesterPublicKey: keypair.compressedPublicKey,
+
+  // IMPORTANT: Link to the existing option being closed
+  existingOptionAddress: position.optionAddress,
+});
+
+// Step 4: Submit the closing RFQ
+const { to, data } = client.optionFactory.encodeRequestForQuotation(closeRfq);
+const tx = await signer.sendTransaction({ to, data });
+await tx.wait();
+
+console.log('Closing RFQ created! Waiting for MM offers...');
+```
+
+### Key Points for Position Closing
+
+1. **Always use BigInt** for `numContracts` when closing positions
+2. **Set `existingOptionAddress`** to link the RFQ to the option being closed
+3. **Opposite direction**: Use `isLong: true` to close a short, `isLong: false` to close a long
+4. **Expiry must match**: Use the same expiry as the original option (must be 8:00 UTC for MM acceptance)
+
+### String Input (from API/JSON)
+
+If `numContracts` comes as a string from an API response:
+
+```typescript
+// From API response (JSON serializes BigInt as string)
+const apiResponse = { numContracts: "40000000" };
+
+// SDK handles string input correctly
+const closeRfq = client.optionFactory.buildRFQRequest({
+  // ...
+  numContracts: apiResponse.numContracts,  // String is parsed as BigInt
+  // ...
+});
+```
+
+---
+
 ## Summary
 
 1. **User creates RFQ** with option parameters and ECDH public key
