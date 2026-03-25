@@ -373,8 +373,27 @@ export interface RFQBuilderParams {
   strike?: number;
   /** Expiry timestamp (Unix seconds) */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 1.5 for 1.5 contracts) */
-  numContracts: number;
+  /**
+   * Number of contracts.
+   * - `number`: Human-readable (e.g., 1.5 for 1.5 contracts) - converted using token decimals
+   * - `bigint`: On-chain format (e.g., 1500000000000000000n) - used directly, no conversion
+   * - `string`: Parsed as BigInt if valid numeric string
+   *
+   * **Use `bigint` when closing positions** to ensure exact match with on-chain value.
+   * Floating-point conversion can introduce tiny rounding errors with 18-decimal tokens.
+   *
+   * @example New position (human-readable)
+   * ```typescript
+   * numContracts: 1.5  // Converted to on-chain format using token decimals
+   * ```
+   *
+   * @example Closing position (exact BigInt from chain)
+   * ```typescript
+   * const position = await client.option.getNumContracts(optionAddress);
+   * numContracts: position  // Use exact value from chain
+   * ```
+   */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /** Offer deadline in minutes from now */
@@ -396,6 +415,17 @@ export interface RFQBuilderParams {
    * Default: false (uses CALL_CONDOR or PUT_CONDOR based on optionType)
    */
   isIronCondor?: boolean;
+  /**
+   * Existing option address when closing a position.
+   * If provided, the RFQ will reference this existing option contract.
+   * If not provided, defaults to zero address (for new positions).
+   *
+   * @example Closing a position
+   * ```typescript
+   * existingOptionAddress: '0x1234...abcd'  // The option contract to close
+   * ```
+   */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -426,7 +456,8 @@ export interface SpreadRFQParams {
   /** Upper strike price - human-readable */
   upperStrike: number;
   expiry: number;
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   isLong: boolean;
   offerDeadlineMinutes: number;
   collateralToken: RFQCollateralToken;
@@ -434,6 +465,8 @@ export interface SpreadRFQParams {
   referralId?: bigint;
   eventCode?: bigint;
   requesterPublicKey?: string;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -467,7 +500,8 @@ export interface ButterflyRFQParams {
   /** Upper strike price - human-readable */
   upperStrike: number;
   expiry: number;
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   isLong: boolean;
   offerDeadlineMinutes: number;
   collateralToken: RFQCollateralToken;
@@ -475,6 +509,8 @@ export interface ButterflyRFQParams {
   referralId?: bigint;
   eventCode?: bigint;
   requesterPublicKey?: string;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -511,7 +547,8 @@ export interface CondorRFQParams {
   /** Fourth (highest) strike price - human-readable */
   strike4: number;
   expiry: number;
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   isLong: boolean;
   offerDeadlineMinutes: number;
   collateralToken: RFQCollateralToken;
@@ -519,6 +556,8 @@ export interface CondorRFQParams {
   referralId?: bigint;
   eventCode?: bigint;
   requesterPublicKey?: string;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -558,7 +597,8 @@ export interface IronCondorRFQParams {
   /** Fourth (highest) strike price - call spread upper leg */
   strike4: number;
   expiry: number;
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   isLong: boolean;
   offerDeadlineMinutes: number;
   collateralToken: RFQCollateralToken;
@@ -566,6 +606,8 @@ export interface IronCondorRFQParams {
   referralId?: bigint;
   eventCode?: bigint;
   requesterPublicKey?: string;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -629,8 +671,8 @@ export interface PhysicalOptionRFQParams {
   strike: number;
   /** Expiry timestamp (Unix seconds) - must be Friday 8:00 UTC */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 0.1 for 0.1 contracts) */
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /**
@@ -656,6 +698,8 @@ export interface PhysicalOptionRFQParams {
   referralId?: bigint;
   /** Event code (optional, defaults to 0) */
   eventCode?: bigint;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -701,8 +745,8 @@ export interface PhysicalSpreadRFQParams {
   upperStrike: number;
   /** Expiry timestamp (Unix seconds) - must be Friday 8:00 UTC */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 0.1 for 0.1 contracts) */
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /**
@@ -728,6 +772,8 @@ export interface PhysicalSpreadRFQParams {
   referralId?: bigint;
   /** Event code (optional, defaults to 0) */
   eventCode?: bigint;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -776,8 +822,8 @@ export interface PhysicalButterflyRFQParams {
   upperStrike: number;
   /** Expiry timestamp (Unix seconds) - must be Friday 8:00 UTC */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 0.1 for 0.1 contracts) */
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /**
@@ -803,6 +849,8 @@ export interface PhysicalButterflyRFQParams {
   referralId?: bigint;
   /** Event code (optional, defaults to 0) */
   eventCode?: bigint;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -854,8 +902,8 @@ export interface PhysicalCondorRFQParams {
   strike4: number;
   /** Expiry timestamp (Unix seconds) - must be Friday 8:00 UTC */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 0.1 for 0.1 contracts) */
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /**
@@ -881,6 +929,8 @@ export interface PhysicalCondorRFQParams {
   referralId?: bigint;
   /** Event code (optional, defaults to 0) */
   eventCode?: bigint;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
 
 /**
@@ -927,8 +977,8 @@ export interface PhysicalIronCondorRFQParams {
   strike4: number;
   /** Expiry timestamp (Unix seconds) - must be Friday 8:00 UTC */
   expiry: number;
-  /** Number of contracts - human-readable (e.g., 0.1 for 0.1 contracts) */
-  numContracts: number;
+  /** Number of contracts - number (human-readable), bigint (on-chain), or string */
+  numContracts: number | bigint | string;
   /** True for BUY (long), false for SELL (short) */
   isLong: boolean;
   /**
@@ -951,4 +1001,6 @@ export interface PhysicalIronCondorRFQParams {
   referralId?: bigint;
   /** Event code (optional, defaults to 0) */
   eventCode?: bigint;
+  /** Existing option address when closing a position */
+  existingOptionAddress?: `0x${string}`;
 }
