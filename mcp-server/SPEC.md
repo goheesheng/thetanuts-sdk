@@ -269,4 +269,14 @@ npx @modelcontextprotocol/inspector node dist/index.js
 |------|----------|---------|
 | USDC amounts | 6 | 1000 USDC = `1000000000` |
 | Prices (strike, settlement) | 8 | $3000 = `300000000000` |
-| Contract size | 18 | 1 contract = `1000000000000000000` |
+| numContracts | 6 | 1 contract = `1000000` |
+
+### Precision Notes
+
+**numContracts Precision:** When closing positions, use exact BigInt values from the chain to avoid precision loss. The SDK accepts `numContracts` as `number`, `bigint`, or `string`:
+
+- `number`: Human-readable (e.g., 1.5) - converted using decimals
+- `bigint`: On-chain format - used directly, no conversion (recommended for position closing)
+- `string`: Parsed as BigInt
+
+**Nonce Handling:** API responses may contain `null` nonce values. The SDK handles this gracefully by defaulting to `0n`.

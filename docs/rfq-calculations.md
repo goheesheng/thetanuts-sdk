@@ -408,6 +408,65 @@ calculateNumContracts({
 });
 ```
 
+## Max Contracts Calculation (OptionBook)
+
+When filling orders from the OptionBook, the `maxContracts` calculation determines how many contracts can be filled based on the maker's available collateral. The formula varies by option type.
+
+### Max Contracts by Option Type
+
+| Option Type | Collateral Type | Formula | Example (10,000 collateral, $2,500 strike) |
+|-------------|-----------------|---------|---------------------------------------------|
+| **PUT** | USDC (6 dec) | `(maxCollateral × 1e8) / strike` | `(10000 × 1e8) / 250000000000 = 4` contracts |
+| **INVERSE_CALL** | WETH (18 dec) | `maxCollateral / 1e12` | `10e18 / 1e12 = 10,000,000` (raw), `10` contracts |
+| **LINEAR_CALL** | USDC (6 dec) | `(maxCollateral × 1e8) / strike` | `(10000 × 1e8) / 250000000000 = 4` contracts |
+| **SPREAD** | USDC (6 dec) | `(maxCollateral × 1e8) / spreadWidth` | `(1000 × 1e8) / 10000000000 = 10` contracts |
+
+### INVERSE_CALL vs LINEAR_CALL
+
+The key difference is collateral type:
+
+- **INVERSE_CALL**: Uses base token (WETH/cbBTC) as collateral. 1 contract = 1 underlying token.
+- **LINEAR_CALL**: Uses quote token (USDC) as collateral. Same formula as PUT.
+
+The SDK's `getCollateralDecimals()` helper distinguishes between them:
+
+```typescript
+// In OptionBookModule
+private getCollateralDecimals(collateralAddress: string): number {
+  const tokens = this.client.chainConfig.collateralTokens;
+  for (const token of Object.values(tokens)) {
+    if (token.address.toLowerCase() === collateralAddress.toLowerCase()) {
+      return token.decimals;
+    }
+  }
+  return 18; // Safe default for INVERSE_CALL
+}
+
+// maxContracts logic for single-strike CALL:
+if (isCall && strikes.length === 1) {
+  const collateralDecimals = this.getCollateralDecimals(order.collateral);
+  if (collateralDecimals >= 18) {
+    // INVERSE_CALL: collateral is base token (WETH/cbBTC)
+    return maxCollateral / (10n ** BigInt(collateralDecimals - 6));
+  }
+  // LINEAR_CALL: collateral is quote token (USDC), same as PUT
+  return (maxCollateral * 100000000n) / strike;
+}
+```
+
+### Example: Filling Orders
+
+```typescript
+// INVERSE_CALL order with 5 WETH collateral
+// maxContracts = 5e18 / 1e12 = 5,000,000 (in 6 decimals) = 5 contracts
+
+// LINEAR_CALL order with 10,000 USDC collateral at $2,500 strike
+// maxContracts = (10000e6 × 1e8) / 2500e8 = 4,000,000 (in 6 decimals) = 4 contracts
+
+// PUT order with 10,000 USDC collateral at $2,500 strike
+// maxContracts = (10000e6 × 1e8) / 2500e8 = 4,000,000 (in 6 decimals) = 4 contracts
+```
+
 ## Related Documentation
 
 - [Product Types Reference](./product-types.md)

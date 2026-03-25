@@ -165,11 +165,12 @@ const condorParams = client.optionFactory.buildRFQParams({
 | `strikes` | `number \| number[]` | Strike price(s). Single for vanilla, array for multi-leg (auto-sorted ascending) |
 | `strike` | `number` | **Deprecated** - use `strikes` instead |
 | `expiry` | `number` | Expiry timestamp (Unix seconds) |
-| `numContracts` | `number` | Number of contracts |
+| `numContracts` | `number \| bigint \| string` | Number of contracts. Use `bigint` when closing positions to preserve exact on-chain precision. See [Position Closing](#position-closing-with-exact-precision) |
 | `isLong` | `boolean` | true = BUY, false = SELL |
 | `offerDeadlineMinutes` | `number` | How long MMs can respond |
 | `collateralToken` | `'USDC' \| 'WETH' \| 'cbBTC'` | Collateral token |
 | `isIronCondor` | `boolean` | Optional. Set to `true` to use `IRON_CONDOR` implementation (requires 4 strikes) |
+| `existingOptionAddress` | `` `0x${string}` `` | Optional. Address of existing option when closing a position. Defaults to zero address for new positions |
 
 **Strike Count to Implementation:**
 
