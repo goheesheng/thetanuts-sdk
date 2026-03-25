@@ -165,7 +165,7 @@ const condorParams = client.optionFactory.buildRFQParams({
 | `strikes` | `number \| number[]` | Strike price(s). Single for vanilla, array for multi-leg (auto-sorted ascending) |
 | `strike` | `number` | **Deprecated** - use `strikes` instead |
 | `expiry` | `number` | Expiry timestamp (Unix seconds) |
-| `numContracts` | `number \| bigint \| string` | Number of contracts. Use `bigint` when closing positions to preserve exact on-chain precision. See [Position Closing](#position-closing-with-exact-precision) |
+| `numContracts` | `number \| bigint \| string` | Number of contracts. Use `bigint` when closing positions to preserve exact on-chain precision. See [Closing Existing Positions](RFQ_WORKFLOW.md#closing-existing-positions) |
 | `isLong` | `boolean` | true = BUY, false = SELL |
 | `offerDeadlineMinutes` | `number` | How long MMs can respond |
 | `collateralToken` | `'USDC' \| 'WETH' \| 'cbBTC'` | Collateral token |
