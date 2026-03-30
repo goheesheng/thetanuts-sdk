@@ -15,6 +15,8 @@ import type {
   SwapAndCallParams,
   Eip712DomainResult,
   RFQBuilderParams,
+  RFQUnderlying,
+  RFQCollateralToken,
   SpreadRFQParams,
   ButterflyRFQParams,
   CondorRFQParams,
@@ -2104,13 +2106,24 @@ export class OptionFactoryModule {
    */
   private inferPhysicalCollateral(
     optionType: 'CALL' | 'PUT',
-    underlying: 'ETH' | 'BTC'
-  ): 'USDC' | 'WETH' | 'cbBTC' {
+    underlying: RFQUnderlying
+  ): RFQCollateralToken {
     if (optionType === 'PUT') {
       return 'USDC';
     }
     // CALL requires underlying as collateral
-    return underlying === 'ETH' ? 'WETH' : 'cbBTC';
+    const underlyingToCollateral: Partial<Record<RFQUnderlying, RFQCollateralToken>> = {
+      ETH: 'WETH',
+      BTC: 'cbBTC',
+    };
+    const collateral = underlyingToCollateral[underlying];
+    if (!collateral) {
+      throw createError(
+        'INVALID_PARAMS',
+        `Physical CALL not supported for underlying: ${underlying}. Provide collateralToken explicitly.`
+      );
+    }
+    return collateral;
   }
 
   /**
@@ -2124,11 +2137,15 @@ export class OptionFactoryModule {
   private validatePhysicalCollateral(
     optionType: 'CALL' | 'PUT',
     collateral: string,
-    underlying: 'ETH' | 'BTC'
+    underlying: RFQUnderlying
   ): void {
     if (optionType === 'CALL') {
-      const expected = underlying === 'ETH' ? 'WETH' : 'cbBTC';
-      if (collateral !== expected) {
+      const underlyingToCollateral: Partial<Record<RFQUnderlying, string>> = {
+        ETH: 'WETH',
+        BTC: 'cbBTC',
+      };
+      const expected = underlyingToCollateral[underlying];
+      if (expected && collateral !== expected) {
         throw createError(
           'INVALID_PARAMS',
           `PHYSICAL_CALL requires ${expected} collateral for ${underlying} underlying. Got: ${collateral}`
