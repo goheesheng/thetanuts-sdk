@@ -280,7 +280,7 @@ export interface RevealOfferResult {
 /**
  * Supported underlying assets for RFQ builder
  */
-export type RFQUnderlying = 'ETH' | 'BTC';
+export type RFQUnderlying = 'ETH' | 'BTC' | 'SOL' | 'DOGE' | 'XRP' | 'BNB' | 'PAXG' | 'AVAX';
 
 /**
  * Supported option types for RFQ builder
@@ -290,7 +290,7 @@ export type RFQOptionType = 'CALL' | 'PUT';
 /**
  * Supported collateral tokens for RFQ builder
  */
-export type RFQCollateralToken = 'USDC' | 'WETH' | 'cbBTC';
+export type RFQCollateralToken = 'USDC' | 'WETH' | 'cbBTC' | 'aBasWETH' | 'aBascbBTC' | 'aBasUSDC' | 'cbDOGE' | 'cbXRP';
 
 /**
  * High-level parameters for building RFQ requests.
