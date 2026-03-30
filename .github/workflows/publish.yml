@@ -53,6 +53,15 @@ jobs:
 
       - name: Publish with Yarn
         if: steps.detect-pm.outputs.manager == 'yarn'
-        run: yarn npm publish --access public
+        run: |
+          # Detect Yarn version and use appropriate publish command
+          YARN_VERSION=$(yarn --version)
+          if [[ "$YARN_VERSION" == 1.* ]]; then
+            # Yarn Classic (v1): uses 'yarn publish'
+            yarn publish --access public --non-interactive
+          else
+            # Yarn Berry (v2+): uses 'yarn npm publish'
+            yarn npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
