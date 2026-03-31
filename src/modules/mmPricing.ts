@@ -19,6 +19,7 @@ import type {
 } from '../types/mmPricing.js';
 import { COLLATERAL_APR, DEFAULT_CARRY_RATE, FEE_MULTIPLIER } from '../types/mmPricing.js';
 import { mapHttpError } from '../utils/errors.js';
+import { floatToBigInt, FLOAT_SCALE } from '../utils/decimals.js';
 
 /**
  * Month abbreviation to number mapping for ticker parsing
@@ -558,31 +559,37 @@ export class MMPricingModule {
 
     // Determine decimals for collateral token
     const decimals = params.collateralToken === 'USDC' ? 6 : params.collateralToken === 'WETH' ? 18 : 8;
+    const decimalScale = 10n ** BigInt(decimals);
 
-    // numContracts is raw contract count (e.g., 6 for 6 contracts)
-    const numContractsRaw = Number(params.numContracts);
+    /* 
+      Scale float API values to bigint early to avoid float precision loss
+      FLOAT_SCALE (1e12) gives 12 decimal places — sufficient for pricing
+    */
+    const numContractsBig = BigInt(params.numContracts);
+    const collateralPerContractScaled = floatToBigInt(collPricing.collateralAmount);
+    const collateralCostPerUnitScaled = floatToBigInt(collPricing.collateralCostPerUnit);
+    const underlyingPriceScaled = floatToBigInt(vanilla.underlyingPrice);
 
-    // Calculate collateral required (in collateral token's smallest unit)
-    // collateralPerContract is in underlying terms (e.g., 1800 for a $1800 strike put with USD collateral)
-    const collateralPerContract = collPricing.collateralAmount;
-    const collateralRequired = BigInt(
-      Math.floor(collateralPerContract * numContractsRaw * 10 ** decimals)
-    );
+    /*
+      Calculate collateral required (in collateral token's smallest unit)
+      collateralPerContract is in underlying terms (e.g., 1800 for a $1800 strike put with USD collateral)
+      Formula: collateralPerContract * numContracts * 10^decimals
+      All math in bigint to prevent float overflow for large numContracts or high decimals
+    */
+    const collateralRequired = (collateralPerContractScaled * numContractsBig * decimalScale) / FLOAT_SCALE;
 
     // Calculate collateral cost (in collateral token's smallest unit)
     // collateralCostPerUnit is dimensionless (fraction of underlying)
-    const collateralCostPerUnit = collPricing.collateralCostPerUnit;
-    const collateralCost = BigInt(
-      Math.floor(collateralCostPerUnit * numContractsRaw * vanilla.underlyingPrice * 10 ** decimals)
-    );
+    const collateralCost = (collateralCostPerUnitScaled * numContractsBig * underlyingPriceScaled * decimalScale) / (FLOAT_SCALE * FLOAT_SCALE);
 
     // Calculate base premium (in collateral token's smallest unit)
     // basePrice is dimensionless (fraction of underlying)
     // For long position (user buying), use ask price; for short, use bid
     const basePrice = params.isLong ? vanilla.feeAdjustedAsk : vanilla.feeAdjustedBid;
-    const basePremium = BigInt(
-      Math.floor(basePrice * numContractsRaw * vanilla.underlyingPrice * 10 ** decimals)
-    );
+    const basePriceScaled = floatToBigInt(basePrice);
+    const basePremium =
+      (basePriceScaled * numContractsBig * underlyingPriceScaled * decimalScale)
+      / (FLOAT_SCALE * FLOAT_SCALE);
 
     // Total price
     let totalPrice: bigint;
@@ -667,9 +674,10 @@ export class MMPricingModule {
     // For transparency, return the ask-side spread price (most common use case)
     const netSpreadPrice = netSpreadPriceAsk;
 
-    // Calculate collateral required
+    // Calculate collateral required — pure bigint to avoid float overflow
     const numContracts = params.numContracts ?? BigInt(10 ** 18);
-    const collateral = BigInt(Math.floor(widthUsd * Number(numContracts) / 10 ** 12));
+    const widthScaled = floatToBigInt(widthUsd);
+    const collateral = (widthScaled * numContracts) / (FLOAT_SCALE * (10n ** 12n));
 
     return {
       nearLeg: near,
@@ -763,9 +771,10 @@ export class MMPricingModule {
     const netMmAskPrice = (buyNet + spreadCCPerUnderlying) * FEE_MULTIPLIER;
     const netMmBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
 
-    // Calculate collateral
+    // Calculate collateral — pure bigint to avoid float overflow
     const numContracts = params.numContracts ?? BigInt(10 ** 18);
-    const collateral = BigInt(Math.floor(widthUsd * Number(numContracts) / 10 ** 12));
+    const widthScaled = floatToBigInt(widthUsd);
+    const collateral = (widthScaled * numContracts) / (FLOAT_SCALE * (10n ** 12n));
 
     let condorType: 'call_condor' | 'put_condor' | 'iron_condor';
     if (params.type === 'iron') {
@@ -845,9 +854,10 @@ export class MMPricingModule {
     const netMmAskPrice = (buyNet + spreadCCPerUnderlying) * FEE_MULTIPLIER;
     const netMmBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
 
-    // Calculate collateral (width between middle and outer)
+    // Calculate collateral (width between middle and outer) — pure bigint to avoid float overflow
     const numContracts = params.numContracts ?? BigInt(10 ** 18);
-    const collateral = BigInt(Math.floor(widthUsd * Number(numContracts) / 10 ** 12));
+    const widthScaled = floatToBigInt(widthUsd);
+    const collateral = (widthScaled * numContracts) / (FLOAT_SCALE * (10n ** 12n));
 
     return {
       legs,
