@@ -19,6 +19,7 @@ import type {
 } from '../types/mmPricing.js';
 import { COLLATERAL_APR, DEFAULT_CARRY_RATE, FEE_MULTIPLIER } from '../types/mmPricing.js';
 import { mapHttpError } from '../utils/errors.js';
+import { NotFoundError } from '../types/errors.js';
 
 /**
  * Month abbreviation to number mapping for ticker parsing
@@ -505,12 +506,24 @@ export class MMPricingModule {
     const rawData = data.data[parsed.underlying as 'ETH' | 'BTC'];
 
     if (!rawData || !rawData[ticker]) {
-      throw new Error(`Ticker not found: ${ticker}`);
+      this.client.logger.warn('Ticker pricing data not found', {
+        ticker,
+        availableTickers: rawData ? Object.keys(rawData).slice(0, 20) : [],
+      });
+      throw new NotFoundError(
+        `Ticker not found in pricing data: ${ticker}. The exchange may not list this strike/expiry.`,
+        undefined,
+        { ticker },
+      );
     }
 
     const pricing = this.toMMVanillaPricing(ticker, rawData[ticker]);
     if (!pricing) {
-      throw new Error(`Option expired or invalid: ${ticker}`);
+      throw new NotFoundError(
+        `Option expired or invalid: ${ticker}`,
+        undefined,
+        { ticker },
+      );
     }
 
     return pricing;
@@ -628,10 +641,22 @@ export class MMPricingModule {
     const ticker2 = buildTicker(params.underlying, params.expiry, strike2Num, params.isCall);
 
     // Fetch pricing for both legs
-    const [near, far] = await Promise.all([
-      this.getTickerPricing(ticker1),
-      this.getTickerPricing(ticker2),
-    ]);
+    let near: MMVanillaPricing;
+    let far: MMVanillaPricing;
+    try {
+      [near, far] = await Promise.all([
+        this.getTickerPricing(ticker1),
+        this.getTickerPricing(ticker2),
+      ]);
+    } catch (error) {
+      this.client.logger.error('Failed to get pricing for spread leg', {
+        tickers: [ticker1, ticker2],
+        strikes: [strike1Num, strike2Num],
+        isCall: params.isCall,
+        underlying: params.underlying,
+      });
+      throw error;
+    }
 
     // Calculate spread width (max loss) in USD
     const widthUsd = Math.abs(strike2Num - strike1Num);
@@ -662,7 +687,13 @@ export class MMPricingModule {
     // ASK: (price + CC) * FEE_MULTIPLIER (user pays more when buying long)
     // BID: (price - CC) / FEE_MULTIPLIER (user receives less when selling short)
     const netMmAskPrice = (netSpreadPriceAsk + spreadCCPerUnderlying) * FEE_MULTIPLIER;
-    const netMmBidPrice = (netSpreadPriceBid - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const rawBidPrice = (netSpreadPriceBid - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const netMmBidPrice = Math.max(0, rawBidPrice);
+    if (rawBidPrice < 0) {
+      this.client.logger.debug('Spread bid price floored to 0', {
+        rawBidPrice, netSpreadPriceBid, spreadCCPerUnderlying, ticker1, ticker2,
+      });
+    }
 
     // For transparency, return the ask-side spread price (most common use case)
     const netSpreadPrice = netSpreadPriceAsk;
@@ -730,12 +761,23 @@ export class MMPricingModule {
     }
 
     // Fetch pricing for all legs
-    const legs = await Promise.all(tickers.map((t) => this.getTickerPricing(t))) as [
-      MMVanillaPricing,
-      MMVanillaPricing,
-      MMVanillaPricing,
-      MMVanillaPricing,
-    ];
+    let legs: [MMVanillaPricing, MMVanillaPricing, MMVanillaPricing, MMVanillaPricing];
+    try {
+      legs = await Promise.all(tickers.map((t) => this.getTickerPricing(t))) as [
+        MMVanillaPricing,
+        MMVanillaPricing,
+        MMVanillaPricing,
+        MMVanillaPricing,
+      ];
+    } catch (error) {
+      this.client.logger.error('Failed to get pricing for condor leg(s)', {
+        tickers,
+        strikes: [strike1, strike2, strike3, strike4],
+        type: params.type,
+        underlying: params.underlying,
+      });
+      throw error;
+    }
 
     // Calculate spread-level collateral cost (NOT per-leg!)
     const spreadCollateralCostUsd = calculateSpreadCollateralCost(widthUsd, legs[0].timeToExpiryYears);
@@ -761,7 +803,13 @@ export class MMPricingModule {
 
     // Apply CC + FEE_MULTIPLIER (matches v4-webapp calculateCallCondorParams.ts)
     const netMmAskPrice = (buyNet + spreadCCPerUnderlying) * FEE_MULTIPLIER;
-    const netMmBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const rawBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const netMmBidPrice = Math.max(0, rawBidPrice);
+    if (rawBidPrice < 0) {
+      this.client.logger.debug('Condor bid price floored to 0', {
+        rawBidPrice, sellNet, spreadCCPerUnderlying, tickers,
+      });
+    }
 
     // Calculate collateral
     const numContracts = params.numContracts ?? BigInt(10 ** 18);
@@ -815,11 +863,22 @@ export class MMPricingModule {
     );
 
     // Fetch pricing for all legs
-    const legs = await Promise.all(tickers.map((t) => this.getTickerPricing(t))) as [
-      MMVanillaPricing,
-      MMVanillaPricing,
-      MMVanillaPricing,
-    ];
+    let legs: [MMVanillaPricing, MMVanillaPricing, MMVanillaPricing];
+    try {
+      legs = await Promise.all(tickers.map((t) => this.getTickerPricing(t))) as [
+        MMVanillaPricing,
+        MMVanillaPricing,
+        MMVanillaPricing,
+      ];
+    } catch (error) {
+      this.client.logger.error('Failed to get pricing for butterfly leg(s)', {
+        tickers,
+        strikes: [strike1, strike2, strike3],
+        isCall: params.isCall,
+        underlying: params.underlying,
+      });
+      throw error;
+    }
 
     // Calculate spread-level collateral cost (NOT per-leg!)
     const spreadCollateralCostUsd = calculateSpreadCollateralCost(widthUsd, legs[0].timeToExpiryYears);
@@ -843,7 +902,13 @@ export class MMPricingModule {
 
     // Apply CC + FEE_MULTIPLIER (matches v4-webapp)
     const netMmAskPrice = (buyNet + spreadCCPerUnderlying) * FEE_MULTIPLIER;
-    const netMmBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const rawBidPrice = (sellNet - spreadCCPerUnderlying) / FEE_MULTIPLIER;
+    const netMmBidPrice = Math.max(0, rawBidPrice);
+    if (rawBidPrice < 0) {
+      this.client.logger.debug('Butterfly bid price floored to 0', {
+        rawBidPrice, sellNet, spreadCCPerUnderlying, tickers,
+      });
+    }
 
     // Calculate collateral (width between middle and outer)
     const numContracts = params.numContracts ?? BigInt(10 ** 18);
