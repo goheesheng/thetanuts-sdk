@@ -1,0 +1,67 @@
+name: Publish Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f yarn.lock ]; then
+            echo "manager=yarn" >> $GITHUB_OUTPUT
+            echo "install=yarn install --frozen-lockfile" >> $GITHUB_OUTPUT
+          else
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "install=npm ci" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@thetanuts-finance'
+          cache: ${{ steps.detect-pm.outputs.manager }}
+
+      - name: Install dependencies
+        run: ${{ steps.detect-pm.outputs.install }}
+
+      - name: Build
+        run: |
+          if [ "${{ steps.detect-pm.outputs.manager }}" = "yarn" ]; then
+            yarn build
+          else
+            npm run build
+          fi
+
+      - name: Publish with npm
+        if: steps.detect-pm.outputs.manager == 'npm'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish with Yarn
+        if: steps.detect-pm.outputs.manager == 'yarn'
+        run: |
+          # Detect Yarn version and use appropriate publish command
+          YARN_VERSION=$(yarn --version)
+          if [[ "$YARN_VERSION" == 1.* ]]; then
+            # Yarn Classic (v1): uses 'yarn publish'
+            yarn publish --access public --non-interactive
+          else
+            # Yarn Berry (v2+): uses 'yarn npm publish'
+            yarn npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

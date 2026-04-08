@@ -807,22 +807,43 @@ See [src/README.md](src/README.md) for detailed source documentation.
 ```bash
 # Install dependencies
 npm install
+# or
+yarn install
 
 # Build
 npm run build
+# or
+yarn build
 
 # Run mainnet integration tests (requires network access)
 npm test
+# or
+yarn test
 
 # Run indexer benchmark
 npm run test:benchmark
+# or
+yarn test:benchmark
 
 # Lint
 npm run lint
+# or
+yarn lint
 
 # Type check
 npm run typecheck
+# or
+yarn typecheck
 ```
+
+### Package Manager Support
+
+This project supports both **npm** and **Yarn** (including Yarn Berry/v2+). The CI pipeline automatically detects which package manager to use based on the lock file present:
+
+- If `yarn.lock` exists: Uses `yarn install --frozen-lockfile` and `yarn <script>`
+- If only `package-lock.json` exists: Uses `npm ci` and `npm run <script>`
+
+**For contributors**: Please use the same package manager consistently to avoid lock file conflicts. If you're adding dependencies, ensure the lock file you're using is committed.
 
 ## Documentation
 
