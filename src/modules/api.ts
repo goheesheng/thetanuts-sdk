@@ -18,6 +18,8 @@ import type {
   FactoryStats,
   FactoryOptionDetail,
   BookOptionDetail,
+  ProtocolStatsResponse,
+  DailyStatsResponse,
 } from '../types/api.js';
 import type {
   StateApiResponse,
@@ -55,8 +57,8 @@ function deriveUnderlyingFromPriceFeed(priceFeed: string): string {
  *
  * Provides methods for fetching orders, positions, history, and stats.
  * Methods are organized by data source:
- * - **Indexer API** (optionbook-indexer.thetanuts.finance): `*FromIndexer` suffix
- * - **State/RFQ API** (state.thetanuts.finance): `*FromRfq` suffix
+ * - **Book API** (indexer.thetanuts.finance/api/v1/book): `*FromIndexer` suffix
+ * - **Factory/State API** (indexer.thetanuts.finance): `*FromRfq` suffix
  *
  * @example
  * ```typescript
@@ -456,7 +458,14 @@ export class APIModule {
 
     const statusParam = status ? `?status=${status}` : '';
     const response = await this.stateRequest<{ data: StateRfq[] }>(`/api/v1/factory/rfqs${statusParam}`);
-    return response.data;
+    const data = response.data;
+
+    // Client-side re-filter: indexer may return RFQs whose is_active flag
+    // disagrees with their derived status (e.g. cancelled RFQ with is_active=true)
+    if (status) {
+      return data.filter((rfq) => rfq.status === status);
+    }
+    return data;
   }
 
   /** @deprecated Use `getFactoryRfqs()` instead */
@@ -664,6 +673,119 @@ export class APIModule {
       `/api/v1/book/option/${optionAddress}`
     );
     return response.data;
+  }
+
+  // ============================================================
+  // Protocol Stats Methods (unified indexer)
+  // ============================================================
+
+  /**
+   * Get book (OptionBook) protocol statistics with time windows and implementation breakdowns
+   *
+   * @returns Book protocol stats including 24h/7d/30d windows, per-token volumes, and per-implementation breakdowns
+   *
+   * @example
+   * ```typescript
+   * const stats = await client.api.getBookProtocolStats();
+   * console.log('Total volume:', stats.stats.totalVolumeUsd);
+   * console.log('24h positions:', stats.stats['24h'].positions);
+   * ```
+   */
+  async getBookProtocolStats(): Promise<ProtocolStatsResponse> {
+    this.client.logger.debug('Fetching book protocol stats');
+    return this.stateRequest<ProtocolStatsResponse>('/api/v1/book/stats/protocol');
+  }
+
+  /**
+   * Get factory (OptionFactory/RFQ) protocol statistics with time windows
+   *
+   * Includes factory-specific fields like avgTimeToFill and avgOffersPerRfq.
+   *
+   * @returns Factory protocol stats
+   *
+   * @example
+   * ```typescript
+   * const stats = await client.api.getFactoryProtocolStats();
+   * console.log('Total RFQs:', stats.stats.totalPositions);
+   * console.log('Avg time to fill:', stats.stats.avgTimeToFill);
+   * ```
+   */
+  async getFactoryProtocolStats(): Promise<ProtocolStatsResponse> {
+    this.client.logger.debug('Fetching factory protocol stats');
+    return this.stateRequest<ProtocolStatsResponse>('/api/v1/factory/stats/protocol');
+  }
+
+  /**
+   * Get combined book + factory protocol statistics
+   *
+   * Returns merged totals across both trading mechanisms.
+   *
+   * @returns Combined protocol stats
+   *
+   * @example
+   * ```typescript
+   * const stats = await client.api.getProtocolStats();
+   * console.log('Total positions:', stats.stats.totalPositions);
+   * console.log('Total volume:', stats.stats.totalVolumeUsd);
+   * ```
+   */
+  async getProtocolStats(): Promise<ProtocolStatsResponse> {
+    this.client.logger.debug('Fetching combined protocol stats');
+    return this.stateRequest<ProtocolStatsResponse>('/api/v1/stats/protocol');
+  }
+
+  // ============================================================
+  // Daily Stats Methods (unified indexer)
+  // ============================================================
+
+  /**
+   * Get book (OptionBook) daily trading time series
+   *
+   * @returns Daily entries with trades, volume, premium, fees per day (by token + USD)
+   *
+   * @example
+   * ```typescript
+   * const daily = await client.api.getBookDailyStats();
+   * for (const day of daily.daily) {
+   *   console.log(`${day.date}: ${day.trades} trades, $${day.volumeUsd} volume`);
+   * }
+   * ```
+   */
+  async getBookDailyStats(): Promise<DailyStatsResponse> {
+    this.client.logger.debug('Fetching book daily stats');
+    return this.stateRequest<DailyStatsResponse>('/api/v1/book/stats/daily');
+  }
+
+  /**
+   * Get factory (OptionFactory/RFQ) daily trading time series
+   *
+   * @returns Daily entries with trades, volume, premium, fees per day
+   *
+   * @example
+   * ```typescript
+   * const daily = await client.api.getFactoryDailyStats();
+   * console.log(`${daily.daily.length} days of factory data`);
+   * ```
+   */
+  async getFactoryDailyStats(): Promise<DailyStatsResponse> {
+    this.client.logger.debug('Fetching factory daily stats');
+    return this.stateRequest<DailyStatsResponse>('/api/v1/factory/stats/daily');
+  }
+
+  /**
+   * Get combined book + factory daily trading time series
+   *
+   * @returns Daily entries with merged trades, volume, premium, fees per day
+   *
+   * @example
+   * ```typescript
+   * const daily = await client.api.getDailyStats();
+   * console.log(`${daily.daily.length} days of combined data`);
+   * ```
+   */
+  async getDailyStats(): Promise<DailyStatsResponse> {
+    this.client.logger.debug('Fetching combined daily stats');
+    return this.stateRequest<DailyStatsResponse>('/api/v1/stats/daily');
   }
 
   /**

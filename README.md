@@ -37,6 +37,23 @@ TypeScript SDK for Thetanuts Finance V4 - Options trading on EVM chains.
 - **Modular Design**: Use only what you need
 - **ESM and CJS builds**: Maximum compatibility
 
+### OptionBook vs RFQ (Factory)
+
+The SDK supports two trading systems. Choose based on your use case:
+
+| | **OptionBook** | **RFQ (Factory)** |
+|---|---|---|
+| **What** | Fill existing market-maker orders | Create custom options via sealed-bid auction |
+| **When to use** | Quick trades on listed options | Custom strikes, expiries, multi-leg structures |
+| **Structures** | Vanilla only | Vanilla, spread, butterfly, condor, iron condor |
+| **Key methods** | `fillOrder()`, `previewFillOrder()` | `buildRFQRequest()`, `requestForQuotation()` |
+| **Pricing** | Order prices from `fetchOrders()` | MM pricing from `getAllPricing()` |
+| **Data source** | Book indexer (`/api/v1/book/`) | Factory indexer (`/api/v1/factory/`) |
+| **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
+| **Stats** | `getBookProtocolStats()`, `getBookDailyStats()` | `getFactoryProtocolStats()`, `getFactoryDailyStats()` |
+| **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
+| **Settlement** | Cash only | Cash or physical |
+
 ## Installation
 
 Using npm:
@@ -349,7 +366,7 @@ console.log(`Payoff: ${payoff}`);
 
 ## Common Workflows
 
-### Workflow 1: Browse and Fill an Order
+### OptionBook: Browse and Fill an Order
 
 ```typescript
 import { ethers } from 'ethers';
@@ -388,7 +405,7 @@ const receipt = await client.optionBook.fillOrder(order, 10_000000n);
 console.log(`Trade executed: ${receipt.hash}`);
 ```
 
-### Workflow 2: Create a Custom Option via RFQ
+### RFQ: Create a Custom Option
 
 ```typescript
 import { ethers } from 'ethers';
@@ -429,7 +446,7 @@ console.log(`RFQ created: ${tx.hash}`);
 
 See [RFQ Workflow Guide](docs/RFQ_WORKFLOW.md) for the complete RFQ lifecycle including MM offers, reveal phase, and settlement.
 
-### Workflow 2b: Create a Butterfly RFQ
+### RFQ: Create a Butterfly
 
 ```typescript
 // Butterfly uses 3 strikes: lower, middle, upper
@@ -455,7 +472,7 @@ await client.erc20.ensureAllowance(USDC, factoryAddress, 100000n); // 0.1 USDC
 const receipt = await client.optionFactory.requestForQuotation(butterflyRequest);
 ```
 
-### Workflow 2c: Early Settlement (Accept MM Offer Before Deadline)
+### RFQ: Early Settlement (Accept MM Offer Before Deadline)
 
 ```typescript
 // After MM submits an encrypted offer, decrypt and accept it early
@@ -497,7 +514,7 @@ console.log('Early settlement TX:', tx.hash);
 - Early Settle: 04:07:09 UTC (3 min before deadline)
 - TX: `0x105f75cdfb64a3796100f6d667bc4f7fec3836d2b5aa5c43b66073a1b40964ee`
 
-### Workflow 2d: Create a Condor RFQ
+### RFQ: Create a Condor
 
 ```typescript
 // Condor uses 4 strikes
@@ -539,7 +556,7 @@ const receipt = await client.optionFactory.requestForQuotation(condorRequest);
 | Butterfly | 3 | PUT_FLY / CALL_FLY | PUT: desc, CALL: asc |
 | Condor | 4 | PUT_CONDOR / CALL_CONDOR | Always ascending |
 
-### Workflow 3: Monitor Positions with WebSocket
+### Both: Monitor Positions with WebSocket
 
 ```typescript
 import { ethers } from 'ethers';

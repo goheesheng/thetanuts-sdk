@@ -1006,59 +1006,50 @@ export class OptionModule {
       sequential: options?.sequential ?? false,
     });
 
-    try {
-      if (options?.sequential) {
-        // Sequential calls for RPC providers with batch limits
-        const info = await this.getOptionInfo(optionAddress);
-        const buyer = await this.getBuyer(optionAddress);
-        const seller = await this.getSeller(optionAddress);
-        const isExpired = await this.isExpired(optionAddress);
-        const isSettled = await this.isSettled(optionAddress);
-        const numContracts = await this.getNumContracts(optionAddress);
-        const collateralAmount = await this.getCollateralAmount(optionAddress);
+    const safeCall = <T>(fn: () => Promise<T>): Promise<T | null> =>
+      fn().catch((err) => {
+        this.client.logger.debug('Option sub-call failed', { optionAddress, error: err.message });
+        return null;
+      });
 
-        return {
-          info,
-          buyer,
-          seller,
-          isExpired,
-          isSettled,
-          numContracts,
-          collateralAmount,
-        };
-      }
+    let info: OptionInfo | null;
+    let buyer: string | null;
+    let seller: string | null;
+    let isExpired: boolean | null;
+    let isSettled: boolean | null;
+    let numContracts: bigint | null;
+    let collateralAmount: bigint | null;
 
+    if (options?.sequential) {
+      // Sequential calls for RPC providers with batch limits
+      info = await safeCall(() => this.getOptionInfo(optionAddress));
+      buyer = await safeCall(() => this.getBuyer(optionAddress));
+      seller = await safeCall(() => this.getSeller(optionAddress));
+      isExpired = await safeCall(() => this.isExpired(optionAddress));
+      isSettled = await safeCall(() => this.isSettled(optionAddress));
+      numContracts = await safeCall(() => this.getNumContracts(optionAddress));
+      collateralAmount = await safeCall(() => this.getCollateralAmount(optionAddress));
+    } else {
       // Parallel calls (default) for better performance
-      const [
-        info,
-        buyer,
-        seller,
-        isExpired,
-        isSettled,
-        numContracts,
-        collateralAmount,
-      ] = await Promise.all([
-        this.getOptionInfo(optionAddress),
-        this.getBuyer(optionAddress),
-        this.getSeller(optionAddress),
-        this.isExpired(optionAddress),
-        this.isSettled(optionAddress),
-        this.getNumContracts(optionAddress),
-        this.getCollateralAmount(optionAddress),
-      ]);
-
-      return {
-        info,
-        buyer,
-        seller,
-        isExpired,
-        isSettled,
-        numContracts,
-        collateralAmount,
-      };
-    } catch (error) {
-      this.client.logger.error('Failed to get full option info', { error, optionAddress });
-      throw mapContractError(error);
+      [info, buyer, seller, isExpired, isSettled, numContracts, collateralAmount] =
+        await Promise.all([
+          safeCall(() => this.getOptionInfo(optionAddress)),
+          safeCall(() => this.getBuyer(optionAddress)),
+          safeCall(() => this.getSeller(optionAddress)),
+          safeCall(() => this.isExpired(optionAddress)),
+          safeCall(() => this.isSettled(optionAddress)),
+          safeCall(() => this.getNumContracts(optionAddress)),
+          safeCall(() => this.getCollateralAmount(optionAddress)),
+        ]);
     }
+
+    // If nothing at all responds, the contract is completely incompatible
+    if (info === null && buyer === null && seller === null) {
+      throw mapContractError(
+        new Error(`Option contract ${optionAddress} does not respond to any known functions`)
+      );
+    }
+
+    return { info, buyer, seller, isExpired, isSettled, numContracts, collateralAmount };
   }
 }

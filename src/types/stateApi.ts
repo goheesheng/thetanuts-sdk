@@ -205,13 +205,31 @@ export interface StateProtocolStats {
 }
 
 /**
+ * A single referral execution record
+ */
+export interface ReferralExecution {
+  /** Quotation ID that used this referral */
+  quotationId: string;
+  /** Fee amount earned (as string) */
+  amount: string;
+  /** Block number where execution occurred */
+  executedBlock: number;
+}
+
+/**
  * Referral entry from the State API
  */
 export interface StateReferral {
-  /** Referral owner address */
-  owner: string;
-  /** Fee rate (as string) */
-  feeRate: string;
-  /** Whether the referral is active */
-  isActive: boolean;
+  /** Referral ID */
+  id: string;
+  /** Referrer address */
+  referrer: string;
+  /** Creation timestamp (unix seconds) */
+  createdAt: number;
+  /** Creation transaction hash */
+  createdTx: string;
+  /** Creation block number */
+  createdBlock: number;
+  /** Executions of this referral across RFQs */
+  executed: ReferralExecution[];
 }

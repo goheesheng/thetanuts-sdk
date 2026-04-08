@@ -326,21 +326,256 @@ export interface MarketDataResponse {
   metadata: MarketDataMetadata;
 }
 
+// ============================================================
+// Token Amounts & Time Window Stats (shared by protocol stats + referrer summary)
+// ============================================================
+
+/**
+ * Token amounts keyed by symbol (e.g. { "USDC": "3637.61", "WETH": "134021.97" })
+ */
+export type TokenAmounts = Record<string, string>;
+
+/**
+ * Stats for a time window (24h, 7d, 30d)
+ */
+export interface TimeWindowStats {
+  /** Number of positions in this window */
+  positions: number;
+  /** Number of settled positions in this window */
+  settled?: number;
+  /** Volume by token */
+  volume: TokenAmounts;
+  /** Premium by token */
+  premium: TokenAmounts;
+  /** Fees by token */
+  fees: TokenAmounts;
+  /** Referral fees by token */
+  referralFees?: TokenAmounts;
+  /** Total volume in USD */
+  volumeUsd: string;
+  /** Total premium in USD */
+  premiumUsd: string;
+  /** Total fees in USD */
+  feesUsd: string;
+}
+
+/**
+ * Stats breakdown for an implementation type (e.g. INVERSE_CALL, PUT, PUT_SPREAD)
+ */
+export interface ImplementationTypeStats {
+  /** Total positions */
+  count: number;
+  /** Settled positions */
+  settled: number;
+  /** Active positions */
+  active: number;
+  /** Number of buyer wins */
+  buyerWins: number;
+  /** Contract addresses */
+  implementations: string[];
+  /** Volume by token */
+  volume: TokenAmounts;
+  /** Premium by token */
+  premium: TokenAmounts;
+  /** Total volume in USD */
+  volumeUsd: string;
+  /** Total premium in USD */
+  premiumUsd: string;
+  /** 24h window */
+  '24h': { positions: number; volume: TokenAmounts; premium: TokenAmounts; volumeUsd: string; premiumUsd: string };
+  /** 7d window */
+  '7d': { positions: number; volume: TokenAmounts; premium: TokenAmounts; volumeUsd: string; premiumUsd: string };
+  /** 30d window */
+  '30d': { positions: number; volume: TokenAmounts; premium: TokenAmounts; volumeUsd: string; premiumUsd: string };
+  /** Buyer win rate percentage */
+  buyerWinRate: string;
+}
+
+// ============================================================
+// Referrer Summary (new field from unified indexer)
+// ============================================================
+
+/**
+ * Rich summary statistics for a referrer from the unified indexer.
+ * Includes volume, premium, fees broken down by token and USD,
+ * time windows (24h/7d/30d), and per-implementation-type breakdowns.
+ */
+export interface ReferrerSummary {
+  /** Total referred positions */
+  totalPositions: number;
+  /** Total settled positions */
+  totalSettled: number;
+  /** Total active positions */
+  totalActive: number;
+  /** Number of unique referred users */
+  uniqueUsers: number;
+  /** Timestamp of first referred trade */
+  firstTradeTimestamp: number;
+  /** Timestamp of most recent referred trade */
+  lastTradeTimestamp: number;
+  /** Total volume by token */
+  totalVolume: TokenAmounts;
+  /** Total premium by token */
+  totalPremium: TokenAmounts;
+  /** Total fees by token */
+  totalFees: TokenAmounts;
+  /** Total referral fees by token */
+  totalReferralFees: TokenAmounts;
+  /** Total volume in USD */
+  totalVolumeUsd: string;
+  /** Total premium in USD */
+  totalPremiumUsd: string;
+  /** Total fees in USD */
+  totalFeesUsd: string;
+  /** 24-hour window stats */
+  '24h': TimeWindowStats;
+  /** 7-day window stats */
+  '7d': TimeWindowStats;
+  /** 30-day window stats */
+  '30d': TimeWindowStats;
+  /** Breakdown by implementation type */
+  byImplementationType: Record<string, ImplementationTypeStats>;
+  /** Overall exercise rate percentage */
+  exerciseRate: string;
+  /** Average premium ratio percentage */
+  avgPremiumRatio: string;
+  /** New unique users by time window */
+  uniqueUsersNew: { '24h': number; '7d': number; '30d': number };
+}
+
 /**
  * Referrer statistics from indexer API
  *
- * Contains aggregated data for positions referred by an address.
+ * Contains positions referred by an address with full position data,
+ * and a summary with volume/premium/fees breakdowns.
+ *
+ * The new unified indexer returns rich position objects (30+ fields with
+ * settlement and PnL data) and a summary field. Clients can derive
+ * per-user daily metrics and top trades from the position data.
  */
 export interface ReferrerStats {
   /** Referrer address */
   referrer: string;
   /** Positions referred by this referrer, indexed by option address */
   positions: Record<string, Record<string, unknown>>;
-  /** User daily metrics */
-  userDailyMetrics: Record<string, unknown>;
-  /** Top profitable trades */
-  topProfitableTrades: Array<Record<string, unknown>>;
+  /** Rich summary stats from unified indexer (volume, premium, fees, time windows, impl breakdown) */
+  summary?: ReferrerSummary;
   /** Last update timestamp (unix seconds) */
+  lastUpdateTimestamp: number;
+  /** @deprecated Not populated by new indexer. Derive from positions data instead. */
+  userDailyMetrics?: Record<string, unknown>;
+  /** @deprecated Not populated by new indexer. Derive from positions PnL data instead. */
+  topProfitableTrades?: Array<Record<string, unknown>>;
+}
+
+// ============================================================
+// Protocol Stats (new unified indexer endpoints)
+// ============================================================
+
+/**
+ * Detailed protocol statistics with time windows and implementation breakdowns.
+ * Shared shape for book, factory, and combined protocol stats.
+ */
+export interface ProtocolStatsDetail {
+  /** Total positions */
+  totalPositions: number;
+  /** Total settled positions (book/combined only) */
+  totalSettled?: number;
+  /** Total active positions (book/combined only) */
+  totalActive?: number;
+  /** Number of unique users */
+  uniqueUsers: number;
+  /** Timestamp of first trade */
+  firstTradeTimestamp: number;
+  /** Timestamp of most recent trade */
+  lastTradeTimestamp: number;
+  /** Total volume by token */
+  totalVolume: TokenAmounts;
+  /** Total premium by token */
+  totalPremium: TokenAmounts;
+  /** Total fees by token */
+  totalFees: TokenAmounts;
+  /** Total referral fees by token */
+  totalReferralFees?: TokenAmounts;
+  /** Total volume in USD */
+  totalVolumeUsd: string;
+  /** Total premium in USD */
+  totalPremiumUsd: string;
+  /** Total fees in USD */
+  totalFeesUsd: string;
+  /** 24-hour window stats */
+  '24h': TimeWindowStats;
+  /** 7-day window stats */
+  '7d': TimeWindowStats;
+  /** 30-day window stats */
+  '30d': TimeWindowStats;
+  /** Breakdown by implementation type */
+  byImplementationType?: Record<string, ImplementationTypeStats>;
+  /** Overall exercise rate percentage */
+  exerciseRate?: string;
+  /** Average premium ratio percentage */
+  avgPremiumRatio?: string;
+  /** Average time to fill in seconds (factory only) */
+  avgTimeToFill?: number;
+  /** Average offers per RFQ (factory only) */
+  avgOffersPerRfq?: number;
+  /** Total offers (factory only) */
+  totalOffers?: number;
+  /** New unique users by time window */
+  uniqueUsersNew?: { '24h': number; '7d': number; '30d': number };
+}
+
+/**
+ * Protocol stats response from unified indexer.
+ * Returned by /api/v1/book/stats/protocol, /api/v1/factory/stats/protocol, /api/v1/stats/protocol
+ */
+export interface ProtocolStatsResponse {
+  /** Chain ID */
+  chainId: number;
+  /** Indexed book addresses (book stats only) */
+  indexedBookAddresses?: string[];
+  /** Indexed factory addresses (factory stats only) */
+  indexedFactoryAddresses?: string[];
+  /** Protocol statistics */
+  stats: ProtocolStatsDetail;
+  /** Last update timestamp */
+  lastUpdateTimestamp?: number;
+}
+
+// ============================================================
+// Daily Stats (new unified indexer endpoints)
+// ============================================================
+
+/**
+ * A single day's trading statistics
+ */
+export interface DailyStatsEntry {
+  /** Date string (YYYY-MM-DD) */
+  date: string;
+  /** Number of trades */
+  trades: number;
+  /** Volume by token */
+  volume: TokenAmounts;
+  /** Premium by token */
+  premium: TokenAmounts;
+  /** Fees by token */
+  fees: TokenAmounts;
+  /** Total volume in USD */
+  volumeUsd: string;
+  /** Total premium in USD */
+  premiumUsd: string;
+  /** Total fees in USD */
+  feesUsd: string;
+}
+
+/**
+ * Daily stats response from unified indexer.
+ * Returned by /api/v1/book/stats/daily, /api/v1/factory/stats/daily, /api/v1/stats/daily
+ */
+export interface DailyStatsResponse {
+  /** Array of daily entries */
+  daily: DailyStatsEntry[];
+  /** Last update timestamp */
   lastUpdateTimestamp: number;
 }
 
