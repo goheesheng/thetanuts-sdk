@@ -114,6 +114,7 @@ export type {
   MarketDataPrices,
   MarketDataMetadata,
   ReferrerStats,
+  ReferrerSummary,
   IndexerHealth,
   FactoryStats,
   PositionPnL,
@@ -121,6 +122,13 @@ export type {
   FactoryOptionDetail,
   BookOptionDetail,
   OptionStatusType,
+  TokenAmounts,
+  TimeWindowStats,
+  ImplementationTypeStats,
+  ProtocolStatsDetail,
+  ProtocolStatsResponse,
+  DailyStatsEntry,
+  DailyStatsResponse,
 } from './types/api.js';
 
 // ============ Types — OptionFactory ============
@@ -219,6 +227,7 @@ export type {
   StateOption,
   StateProtocolStats,
   StateReferral,
+  ReferralExecution,
 } from './types/stateApi.js';
 
 // ============ Types — Common ============

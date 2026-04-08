@@ -29,6 +29,7 @@ import type {
 } from '../types/optionFactory.js';
 import type { CallStaticResult } from '../types/callStatic.js';
 import { createError, mapContractError } from '../utils/errors.js';
+import { NotFoundError } from '../types/errors.js';
 import { validateAddress } from '../utils/validation.js';
 
 /**
@@ -565,7 +566,16 @@ export class OptionFactoryModule {
       const [params, state] = await contract.quotations(quotationId);
 
       return { params, state };
-    } catch (error) {
+    } catch (error: any) {
+      // Detect Solidity Panic(0x32) = array/index out of bounds
+      const errorMsg = error?.message ?? '';
+      if (errorMsg.includes('ARRAY_RANGE_ERROR') || errorMsg.includes('Panic due to')) {
+        throw new NotFoundError(
+          `Quotation ID ${quotationId} not found (out of range)`,
+          error,
+          { quotationId: quotationId.toString() },
+        );
+      }
       this.client.logger.error('Failed to get quotation', { error, quotationId: quotationId.toString() });
       throw mapContractError(error);
     }

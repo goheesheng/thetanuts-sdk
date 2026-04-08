@@ -59,8 +59,25 @@ export class EventsModule {
   /** Cached contract instances */
   private optionBookContract: Contract | null = null;
   private optionFactoryContract: Contract | null = null;
+  /** Cached latest block number (refreshed every 30s) */
+  private cachedBlockNumber: number | null = null;
+  private blockNumberCacheExpiry = 0;
 
   constructor(private readonly client: ThetanutsClient) {}
+
+  /**
+   * Get the latest block number with short-lived caching to avoid redundant RPC calls
+   * when multiple event queries run in sequence.
+   */
+  private async getLatestBlockNumber(): Promise<number> {
+    const now = Date.now();
+    if (this.cachedBlockNumber !== null && now < this.blockNumberCacheExpiry) {
+      return this.cachedBlockNumber;
+    }
+    this.cachedBlockNumber = await this.client.provider.getBlockNumber();
+    this.blockNumberCacheExpiry = now + 30_000; // 30s cache
+    return this.cachedBlockNumber;
+  }
 
   /**
    * Get the OptionBook contract instance
@@ -98,6 +115,61 @@ export class EventsModule {
   }
 
   /**
+   * Query events with automatic block range chunking to respect RPC limits.
+   *
+   * When no fromBlock is provided, searches backward from the latest block
+   * (most events are recent). When fromBlock is provided, chunks forward.
+   * Ranges ≤ MAX_BLOCK_RANGE are queried in a single call.
+   */
+  private async queryFilterChunked(
+    contract: Contract,
+    eventFilter: ReturnType<Contract['filters'][string]>,
+    fromBlock: number | undefined,
+    toBlock: number | string | undefined,
+  ): Promise<(Log | EventLog)[]> {
+    const MAX_BLOCK_RANGE = 10_000;
+    const deploymentBlock = this.client.chainConfig.deploymentBlock;
+    const maxChunks = 10; // ~100K blocks (~2 days on Base) when no fromBlock specified
+
+    // Resolve toBlock
+    let toBlockNum: number;
+    if (toBlock === undefined || toBlock === 'latest') {
+      toBlockNum = await this.getLatestBlockNumber();
+    } else {
+      toBlockNum = typeof toBlock === 'string' ? parseInt(toBlock, 10) : toBlock;
+    }
+
+    const startFrom = fromBlock ?? deploymentBlock;
+
+    // If range fits in one query, just do it
+    if (toBlockNum - startFrom <= MAX_BLOCK_RANGE) {
+      return contract.queryFilter(eventFilter, startFrom, toBlockNum);
+    }
+
+    // If user provided explicit fromBlock, chunk forward (they want a specific range)
+    if (fromBlock !== undefined) {
+      const allLogs: (Log | EventLog)[] = [];
+      for (let start = fromBlock; start <= toBlockNum; start += MAX_BLOCK_RANGE) {
+        const end = Math.min(start + MAX_BLOCK_RANGE - 1, toBlockNum);
+        const logs = await contract.queryFilter(eventFilter, start, end);
+        allLogs.push(...logs);
+      }
+      return allLogs;
+    }
+
+    // No fromBlock → search backward from latest (most events are recent)
+    const allLogs: (Log | EventLog)[] = [];
+    let chunksSearched = 0;
+    for (let end = toBlockNum; end >= deploymentBlock && chunksSearched < maxChunks; end -= MAX_BLOCK_RANGE) {
+      const start = Math.max(end - MAX_BLOCK_RANGE + 1, deploymentBlock);
+      const logs = await contract.queryFilter(eventFilter, start, end);
+      allLogs.unshift(...logs); // prepend to maintain block order
+      chunksSearched++;
+    }
+    return allLogs;
+  }
+
+  /**
    * Parse event logs into typed events
    */
   private isEventLog(log: Log | EventLog): log is EventLog {
@@ -125,8 +197,8 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionBookContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       // Query OrderFilled events
       const eventFilter = contract.filters['OrderFilled']?.();
@@ -134,7 +206,7 @@ export class EventsModule {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OrderFillEvent[] = [];
       for (const log of logs) {
@@ -180,15 +252,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionBookContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OrderCancelled']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OrderCancelledEvent[] = [];
       for (const log of logs) {
@@ -234,8 +306,8 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionCreated']?.();
       if (!eventFilter) {
@@ -243,7 +315,7 @@ export class EventsModule {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionCreatedEvent[] = [];
       for (const log of logs) {
@@ -289,15 +361,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['QuotationRequested']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: QuotationRequestedEvent[] = [];
       for (const log of logs) {
@@ -335,15 +407,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OfferMade']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OfferMadeEvent[] = [];
       for (const log of logs) {
@@ -381,15 +453,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OfferRevealed']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OfferRevealedEvent[] = [];
       for (const log of logs) {
@@ -429,15 +501,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['QuotationSettled']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: QuotationSettledEvent[] = [];
       for (const log of logs) {
@@ -482,15 +554,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['PositionClosed']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: PositionClosedEvent[] = [];
       for (const log of logs) {
@@ -533,15 +605,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['PositionTransferred']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: PositionTransferredEvent[] = [];
       for (const log of logs) {
@@ -590,15 +662,15 @@ export class EventsModule {
 
     try {
       const contract = this.getOptionFactoryContract();
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['QuotationCancelled']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: QuotationCancelledEvent[] = [];
       for (const log of logs) {
@@ -644,20 +716,14 @@ export class EventsModule {
     this.client.logger.debug('Getting RFQ history', { quotationId: quotationId.toString(), filters });
 
     try {
-      // Fetch all event types in parallel
-      const [
-        requestedEvents,
-        offerMadeEvents,
-        offerRevealedEvents,
-        settledEvents,
-        cancelledEvents,
-      ] = await Promise.all([
-        this.getQuotationRequestedEvents(filters),
-        this.getOfferMadeEvents(filters),
-        this.getOfferRevealedEvents(filters),
-        this.getQuotationSettledEvents(filters),
-        this.getQuotationCancelledEvents(filters),
-      ]);
+      // Run event queries sequentially to avoid rate limiting on public RPCs.
+      // Each query may chunk across many blocks, so parallel execution can
+      // trigger "over rate limit" errors on free-tier RPC providers.
+      const requestedEvents = await this.getQuotationRequestedEvents(filters);
+      const offerMadeEvents = await this.getOfferMadeEvents(filters);
+      const offerRevealedEvents = await this.getOfferRevealedEvents(filters);
+      const settledEvents = await this.getQuotationSettledEvents(filters);
+      const cancelledEvents = await this.getQuotationCancelledEvents(filters);
 
       // Filter events for this quotation ID
       const requested = requestedEvents.find((e) => e.quotationId === quotationId) ?? null;
@@ -764,15 +830,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['CollateralReturned']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: CollateralReturnedEvent[] = [];
       for (const log of logs) {
@@ -817,15 +883,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionClosed']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionClosedEvent[] = [];
       for (const log of logs) {
@@ -870,15 +936,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionExpired']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionExpiredEvent[] = [];
       for (const log of logs) {
@@ -921,15 +987,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionPayout']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionPayoutEvent[] = [];
       for (const log of logs) {
@@ -974,15 +1040,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionSettlementFailed']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionSettlementFailedEvent[] = [];
       for (const log of logs) {
@@ -1017,15 +1083,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['OptionSplit']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: OptionSplitEvent[] = [];
       for (const log of logs) {
@@ -1069,15 +1135,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['RoleTransferred']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: RoleTransferredEvent[] = [];
       for (const log of logs) {
@@ -1124,15 +1190,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['TransferApproval']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: TransferApprovalEvent[] = [];
       for (const log of logs) {
@@ -1179,15 +1245,15 @@ export class EventsModule {
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
-      const fromBlock = filters?.fromBlock ?? 0;
-      const toBlock = filters?.toBlock ?? 'latest';
+      const fromBlock = filters?.fromBlock;
+      const toBlock = filters?.toBlock;
 
       const eventFilter = contract.filters['ERC20Rescued']?.();
       if (!eventFilter) {
         return [];
       }
 
-      const logs = await contract.queryFilter(eventFilter, fromBlock, toBlock);
+      const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
       const events: ERC20RescuedEvent[] = [];
       for (const log of logs) {

@@ -121,20 +121,20 @@ export interface UnpackedOptionType {
  * Useful for displaying all option details without making 6+ separate calls.
  */
 export interface FullOptionInfo {
-  /** Basic option info (optionType, strikes, expiry, collateralToken) */
-  info: OptionInfo;
-  /** Current buyer address */
-  buyer: string;
-  /** Current seller address */
-  seller: string;
-  /** Whether the option has expired */
-  isExpired: boolean;
-  /** Whether the option has been settled */
-  isSettled: boolean;
-  /** Number of contracts */
-  numContracts: bigint;
-  /** Collateral amount locked */
-  collateralAmount: bigint;
+  /** Basic option info (optionType, strikes, expiry, collateralToken). Null if contract ABI incompatible. */
+  info: OptionInfo | null;
+  /** Current buyer address. Null if contract ABI incompatible. */
+  buyer: string | null;
+  /** Current seller address. Null if contract ABI incompatible. */
+  seller: string | null;
+  /** Whether the option has expired. Null if contract ABI incompatible. */
+  isExpired: boolean | null;
+  /** Whether the option has been settled. Null if contract ABI incompatible. */
+  isSettled: boolean | null;
+  /** Number of contracts. Null if contract ABI incompatible. */
+  numContracts: bigint | null;
+  /** Collateral amount locked. Null if contract ABI incompatible. */
+  collateralAmount: bigint | null;
 }
 
 /**
