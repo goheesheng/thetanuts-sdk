@@ -1,3 +1,4 @@
+// Workflow: RFQ (Factory) — Fetch MM pricing for RFQ price discovery
 /**
  * MM Pricing Example
  *

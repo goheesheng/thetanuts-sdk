@@ -12,6 +12,7 @@ Complete API documentation for the Thetanuts SDK.
 - [Utils Module](#utils-module)
 - [ERC20 Module](#erc20-module)
 - [API Module](#api-module)
+- [Events Module](#events-module)
 - [Key Storage Providers](#key-storage-providers)
 - [Data Types](#data-types)
 
@@ -723,6 +724,8 @@ Get quotation details by ID.
 const quotation = await client.optionFactory.getQuotation(quotationId);
 ```
 
+> **Note:** Throws `NotFoundError` for out-of-range quotation IDs.
+
 **Returns:** `Quotation`
 
 ### getQuotationCount()
@@ -963,6 +966,8 @@ Manages option positions and queries option state.
 ### getFullOptionInfo()
 
 Get complete option information in a single call.
+
+> **Note:** Returns nullable fields (`| null`) for proxy contracts with incompatible ABI versions. Returns partial data instead of crashing.
 
 ```typescript
 const info = await client.option.getFullOptionInfo(optionAddress);
@@ -1573,6 +1578,119 @@ Get referrer statistics.
 ```typescript
 const stats = await client.api.getReferrerStatsFromIndexer(referrerAddress);
 ```
+
+### getBookProtocolStats()
+
+Get book protocol statistics with 24h/7d/30d windows, per-token volumes, and exercise rate.
+
+```typescript
+const stats = await client.api.getBookProtocolStats();
+```
+
+**Returns:** `ProtocolStatsResponse`
+
+### getFactoryProtocolStats()
+
+Get factory protocol statistics including `avgTimeToFill` and `avgOffersPerRfq`.
+
+```typescript
+const stats = await client.api.getFactoryProtocolStats();
+```
+
+**Returns:** `ProtocolStatsResponse`
+
+### getProtocolStats()
+
+Get combined book and factory protocol statistics.
+
+```typescript
+const stats = await client.api.getProtocolStats();
+```
+
+**Returns:** `ProtocolStatsResponse`
+
+### getBookDailyStats()
+
+Get book daily time series data. Each entry includes date, trades, volume, premium, fees, and volumeUsd.
+
+```typescript
+const stats = await client.api.getBookDailyStats();
+
+for (const day of stats.daily) {
+  console.log(day.date);       // '2025-03-15'
+  console.log(day.trades);     // Number of trades
+  console.log(day.volume);     // Volume
+  console.log(day.premium);    // Premium collected
+  console.log(day.fees);       // Fees collected
+  console.log(day.volumeUsd);  // Volume in USD
+}
+```
+
+**Returns:** `DailyStatsResponse`
+
+### getFactoryDailyStats()
+
+Get factory daily time series data.
+
+```typescript
+const stats = await client.api.getFactoryDailyStats();
+```
+
+**Returns:** `DailyStatsResponse`
+
+### getDailyStats()
+
+Get combined daily time series data for both book and factory.
+
+```typescript
+const stats = await client.api.getDailyStats();
+```
+
+**Returns:** `DailyStatsResponse`
+
+### getFactoryOption()
+
+Get a single factory option with PnL details.
+
+```typescript
+const option = await client.api.getFactoryOption(optionAddress);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `optionAddress` | `string` | Address of the factory option contract |
+
+**Returns:** `FactoryOptionDetail`
+
+### getBookOption()
+
+Get a single book option with PnL details.
+
+```typescript
+const option = await client.api.getBookOption(optionAddress);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `optionAddress` | `string` | Address of the book option contract |
+
+**Returns:** `BookOptionDetail`
+
+---
+
+## Events Module
+
+Query blockchain events from the Thetanuts protocol. Access via `client.events`.
+
+> **Note:** Event queries now auto-chunk block ranges into 10K-block segments. No manual splitting needed.
+
+> **Note:** When no `fromBlock` is specified, searches backward from the latest block (most recent events found first).
+
+> **Note:** `getRfqHistory()` runs sub-queries sequentially to avoid rate limiting.
 
 ---
 

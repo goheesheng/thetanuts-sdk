@@ -181,7 +181,7 @@ console.log('Trade executed:', result.txHash);
 
 Fetch data from the Thetanuts APIs. All methods are read-only except `triggerIndexerUpdate()`.
 
-All data comes from the unified indexer at `indexer.thetanuts.finance`. All list endpoints return complete arrays.
+All data comes from the unified indexer at `indexer.thetanuts.finance`. Book endpoints use `/api/v1/book/*`, factory endpoints use `/api/v1/factory/*`.
 
 ### Health
 
@@ -245,6 +245,48 @@ const ref = await client.api.getReferrerStatsFromIndexer('0x...');
 await client.api.triggerIndexerUpdate();
 ```
 
+### Protocol Stats (Book, Factory, Combined)
+
+```typescript
+// Book (OptionBook) protocol stats with 24h/7d/30d windows
+const bookStats = await client.api.getBookProtocolStats();
+// → { stats: { totalPositions, totalVolumeUsd, '24h': {...}, '7d': {...}, '30d': {...}, exerciseRate } }
+
+// Factory (RFQ) protocol stats — includes avgTimeToFill, avgOffersPerRfq
+const factoryStats = await client.api.getFactoryProtocolStats();
+// → { stats: { totalPositions, totalVolumeUsd, avgTimeToFill, avgOffersPerRfq, '24h': {...} } }
+
+// Combined book + factory stats
+const combined = await client.api.getProtocolStats();
+// → { stats: { totalPositions, totalVolumeUsd, ... } }
+```
+
+### Daily Stats (Time Series)
+
+```typescript
+// Book daily trading stats (all history)
+const bookDaily = await client.api.getBookDailyStats();
+// → { daily: [{ date, trades, volume, premium, fees, volumeUsd, premiumUsd, feesUsd }, ...] }
+
+// Factory daily trading stats
+const factoryDaily = await client.api.getFactoryDailyStats();
+
+// Combined book + factory daily stats
+const allDaily = await client.api.getDailyStats();
+```
+
+### Single Option Detail (with PnL)
+
+```typescript
+// Factory option detail (RFQ-created)
+const factoryOpt = await client.api.getFactoryOption('0x...');
+// → { rfqs, events, status, settlement, pnl, ... }
+
+// Book option detail (OptionBook-created)
+const bookOpt = await client.api.getBookOption('0x...');
+// → { position, events, status, settlement, pnl, ... }
+```
+
 ### Orders & Market Data (Odette API)
 
 ```typescript
@@ -296,6 +338,7 @@ const receipt = await client.optionFactory.cancelOfferForQuotation(quotationId);
 
 ```typescript
 // Get quotation by ID (returns params + state)
+// Throws NotFoundError for out-of-range IDs
 const quotation = await client.optionFactory.getQuotation(quotationId);
 
 // Get total quotation count
@@ -356,6 +399,18 @@ const owner = await client.optionFactory.getReferralOwner(referralId);
 const params = await client.optionFactory.getReferralParameters(referralId);
 ```
 
+**Note:** The `StateReferral` type from the State API has this shape:
+```typescript
+interface StateReferral {
+  id: string;
+  referrer: string;       // Referrer address
+  createdAt: number;      // Unix timestamp
+  createdTx: string;      // Creation tx hash
+  createdBlock: number;
+  executed: ReferralExecution[];  // { quotationId, amount, executedBlock }
+}
+```
+
 ### Write Methods — Referral & Swap (requires signer)
 
 ```typescript
@@ -411,6 +466,12 @@ const result = await client.option.rescueERC20(optionAddress, tokenAddress);
 ### Read Methods (read-only)
 
 ```typescript
+// Get all option data in one call (fields are nullable for incompatible proxy contracts)
+const fullInfo = await client.option.getFullOptionInfo(optionAddress);
+// → { info, buyer, seller, isExpired, isSettled, numContracts, collateralAmount }
+// Use { sequential: true } for RPC providers with batch limits
+const fullInfo = await client.option.getFullOptionInfo(optionAddress, { sequential: true });
+
 // Get option info (strikes, expiry, collateral, type)
 const info = await client.option.getOptionInfo(optionAddress);
 
@@ -473,6 +534,8 @@ client.option.clearCache();
 ## EventsModule
 
 Query blockchain events from contracts.
+
+**Block range handling:** Event queries automatically chunk large block ranges into 10K-block segments to work with any RPC provider (public free-tier, Alchemy, Infura, custom nodes). When no `fromBlock` is specified, queries search backward from the latest block — most recent events are found first. `getRfqHistory()` runs its sub-queries sequentially to avoid rate limiting.
 
 ### OptionBook / OptionFactory Events (read-only)
 
@@ -884,8 +947,11 @@ const butterfly = await client.mmPricing.getButterflyPricing({
 
 MM pricing includes:
 1. **Fee adjustment**: `min(0.0004, price * 0.125)`
-2. **Collateral cost**: Based on APR rates (USD: 8%, BTC: 2%, ETH: 3%)
+2. **Collateral cost**: Based on APR rates (USD: 7%, BTC: 1%, ETH: 4%)
 3. **Buffered prices**: Additional safety margin for execution
+4. **Bid price floor**: Multi-leg bid prices (spread, butterfly, condor) are floored to 0 — prevents negative pricing when collateral cost exceeds net premium
+
+**Error handling:** `getTickerPricing()` throws `NotFoundError` when a ticker is not found in exchange data. The error log includes the first 20 available tickers for diagnosis.
 
 ---
 

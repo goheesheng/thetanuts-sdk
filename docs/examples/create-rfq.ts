@@ -1,3 +1,4 @@
+// Workflow: RFQ (Factory) — Create custom options via sealed-bid auction
 /**
  * RFQ Creation Example
  *
