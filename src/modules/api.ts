@@ -14,6 +14,7 @@ import type {
   MarketPrice,
   MarketDataResponse,
   ReferrerStats,
+  FactoryReferrerStats,
   IndexerHealth,
   FactoryStats,
   FactoryOptionDetail,
@@ -658,6 +659,36 @@ export class APIModule {
       `/api/v1/factory/option/${optionAddress}`
     );
     return response.data;
+  }
+
+  /**
+   * Get referrer statistics scoped to the factory/RFQ side.
+   *
+   * Returns all RFQs credited to this referrer, the referral IDs used,
+   * and a factory protocol stats snapshot.
+   *
+   * This is the factory counterpart to `getReferrerStatsFromIndexer()`,
+   * which targets the book API. The response shapes differ: factory is
+   * RFQ-centric (`rfqs` + `protocolStats`), book is position-centric
+   * (`positions` + `summary`).
+   *
+   * @param address - Referrer address
+   * @returns Factory referrer stats (rfqs, referralIds, protocolStats)
+   *
+   * @example
+   * ```typescript
+   * const stats = await client.api.getFactoryReferrerStats('0x...');
+   * console.log('RFQs referred:', Object.keys(stats.rfqs).length);
+   * console.log('Referral IDs:', stats.referralIds);
+   * ```
+   */
+  async getFactoryReferrerStats(address: string): Promise<FactoryReferrerStats> {
+    validateAddress(address, 'address');
+    this.client.logger.debug('Fetching factory referrer stats', { address });
+
+    return this.stateRequest<FactoryReferrerStats>(
+      `/api/v1/factory/referrer/${address}/state`
+    );
   }
 
   /**

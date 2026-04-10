@@ -1573,11 +1573,31 @@ const rfq = await client.api.getRFQFromRfq(quotationId);
 
 ### getReferrerStatsFromIndexer()
 
-Get referrer statistics.
+Get referrer statistics for the book (OptionBook) side. Returns positions referred by this address plus an optional summary with volume, premium, and fees broken down by token and time window.
 
 ```typescript
 const stats = await client.api.getReferrerStatsFromIndexer(referrerAddress);
 ```
+
+**Returns:** `ReferrerStats`
+
+### getFactoryReferrerStats()
+
+Get referrer statistics scoped to the factory/RFQ side. Returns all RFQs credited to this referrer, the referral IDs used, and a factory-wide protocol stats snapshot. Counterpart to `getReferrerStatsFromIndexer()`, which targets the book side. The response shapes differ: factory is RFQ-centric (`rfqs` + `protocolStats`), book is position-centric (`positions` + `summary`).
+
+```typescript
+const stats = await client.api.getFactoryReferrerStats(referrerAddress);
+console.log('RFQs referred:', Object.keys(stats.rfqs).length);
+console.log('Referral IDs:', stats.referralIds);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `address` | `string` | Referrer address |
+
+**Returns:** `FactoryReferrerStats`
 
 ### getBookProtocolStats()
 
