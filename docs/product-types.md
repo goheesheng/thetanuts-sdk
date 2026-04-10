@@ -286,4 +286,4 @@ const collateral = calculateCollateralRequired(5, 'RANGER', [1900, 2000, 2100, 2
 - [RFQ Calculations Guide](./rfq-calculations.md)
 - [Validation Functions](./validation.md)
 - [MM Pricing Guide](./mm-pricing.md)
-- [RFQ Workflow](./rfq-workflow.md)
+- [RFQ Pricing Integration Guide](./rfq-pricing-integration.md)

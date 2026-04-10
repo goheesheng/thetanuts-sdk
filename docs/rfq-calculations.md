@@ -472,4 +472,4 @@ if (isCall && strikes.length === 1) {
 - [Product Types Reference](./product-types.md)
 - [Validation Functions](./validation.md)
 - [MM Pricing Guide](./mm-pricing.md)
-- [RFQ Workflow](./rfq-workflow.md)
+- [RFQ Pricing Integration Guide](./rfq-pricing-integration.md)

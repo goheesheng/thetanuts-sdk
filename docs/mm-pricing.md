@@ -337,4 +337,4 @@ finalBid = rawBid - feeAdjustment - collateralCost
 
 - [RFQ Calculations Guide](./rfq-calculations.md)
 - [Product Types Reference](./product-types.md)
-- [RFQ Workflow](./rfq-workflow.md)
+- [RFQ Pricing Integration Guide](./rfq-pricing-integration.md)

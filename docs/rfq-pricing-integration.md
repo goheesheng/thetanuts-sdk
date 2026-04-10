@@ -1,6 +1,8 @@
-# RFQ Workflow Guide
+# RFQ Pricing Integration Guide
 
-This guide shows how to use the RFQ calculations and MM pricing modules together to build a complete RFQ workflow.
+This guide shows how to use the `rfqCalculations` and `mmPricing` modules together with `optionFactory` to build a complete RFQ workflow: validate strikes, fetch indicative MM prices, size the position, set a reserve price, and submit the RFQ.
+
+> For the full RFQ lifecycle (request → offer → reveal → settlement), see [RFQ_WORKFLOW.md](./RFQ_WORKFLOW.md). This guide focuses specifically on how the pricing and sizing modules fit into that lifecycle.
 
 ## Table of Contents
 

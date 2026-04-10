@@ -5,6 +5,7 @@ Complete API documentation for the Thetanuts SDK.
 ## Table of Contents
 
 - [ThetanutsClient](#thetanutsclient)
+- [OptionBook Module](#optionbook-module)
 - [OptionFactory Module](#optionfactory-module)
 - [RFQKeyManager Module](#rfqkeymanager-module)
 - [Option Module](#option-module)
@@ -110,6 +111,252 @@ config.priceFeeds.BTC  // Chainlink BTC/USD feed
 config.contracts.optionFactory
 config.contracts.optionBook
 ```
+
+---
+
+## OptionBook Module
+
+Fills, cancels, and inspects orders on the OptionBook contract. Use this module when you want to trade vanilla options against existing maker orders (the "book" side of the protocol). For custom options with sealed-bid pricing, use the [OptionFactory Module](#optionfactory-module) instead.
+
+The core user-facing flow is:
+
+1. `client.api.fetchOrders()` → find an order you want.
+2. `previewFillOrder(order, amount)` → see exactly how many contracts you'll get.
+3. `client.erc20.ensureAllowance(...)` → approve collateral.
+4. `fillOrder(order, amount)` → execute the trade.
+
+### previewFillOrder()
+
+Dry-run a fill without sending a transaction. Returns the computed parameters so you can inspect costs, confirm contract counts, and show the user what they're committing to before calling `fillOrder()`. Safe to call without a signer.
+
+```typescript
+const preview = client.optionBook.previewFillOrder(order, 10_000000n); // 10 USDC
+
+console.log(`Contracts: ${preview.numContracts}`);
+console.log(`Max available: ${preview.maxContracts}`);
+console.log(`Collateral token: ${preview.collateralToken}`);
+console.log(`Price per contract: ${preview.pricePerContract}`);
+console.log(`Total cost: ${preview.totalCollateral}`);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orderWithSig` | `OrderWithSignature` | Order returned from `client.api.fetchOrders()` |
+| `usdcAmount` | `bigint?` | Collateral to spend (6 decimals). Omit to preview a max fill |
+| `referrer` | `string?` | Referrer address. Falls back to client-level referrer or zero address |
+
+**Returns:** `{ numContracts, maxContracts, collateralToken, pricePerContract, totalCollateral, referrer, maker, expiry, isCall, strikes }`
+
+**Why you should always call this first:** For PUT/SPREAD/CALL orders, `numContracts` is **not** the same as the premium you pay — it depends on the maker's collateral budget and the option's collateral formula. A $10k collateral budget at a $95k strike gives you ~0.105 contracts, not 10,000. `previewFillOrder()` runs the exact formula the contract will use.
+
+### fillOrder()
+
+Execute a fill against an existing maker order. Requires a signer.
+
+```typescript
+const receipt = await client.optionBook.fillOrder(
+  order,
+  10_000000n,                               // 10 USDC
+  '0xYourReferrerAddress',                  // optional
+);
+console.log(`Trade executed: ${receipt.hash}`);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orderWithSig` | `OrderWithSignature` | Order returned from `client.api.fetchOrders()` |
+| `usdcAmount` | `bigint?` | Collateral to spend (6 decimals). Omit to fill max available |
+| `referrer` | `string?` | Referrer address. Falls back to client-level referrer or zero address |
+
+**Returns:** `TransactionReceipt`
+
+**Throws:**
+- `ORDER_EXPIRED` — order has already expired
+- `INVALID_ORDER` — order is missing `rawApiData` (re-fetch from the API)
+- `SIGNER_REQUIRED` — no signer configured on the client
+- `INSUFFICIENT_ALLOWANCE` — approve the collateral token first via `client.erc20.ensureAllowance()`
+- `CONTRACT_REVERT` — on-chain revert (check `error.cause` for details)
+
+**Full flow:**
+
+```typescript
+const orders = await client.api.fetchOrders();
+const order = orders.find((o) => o.order.expiry > BigInt(Math.floor(Date.now() / 1000)));
+if (!order) throw new Error('No active orders');
+
+// Preview first so you know what you're paying for
+const preview = client.optionBook.previewFillOrder(order, 10_000000n);
+
+// Approve collateral (no-op if already approved)
+const usdc = client.chainConfig.tokens.USDC.address;
+await client.erc20.ensureAllowance(
+  usdc,
+  client.chainConfig.contracts.optionBook,
+  preview.totalCollateral,
+);
+
+// Execute
+const receipt = await client.optionBook.fillOrder(order, 10_000000n);
+```
+
+### encodeFillOrder()
+
+Encode a `fillOrder` transaction for use with any wallet library (viem, wagmi, Account Abstraction wallets, Safe, etc.) instead of the built-in ethers signer.
+
+```typescript
+const { to, data } = client.optionBook.encodeFillOrder(
+  order,
+  10_000000n,
+  '0xYourReferrerAddress',
+);
+
+// With viem/wagmi
+const hash = await walletClient.sendTransaction({ to, data });
+
+// With ethers.js
+const tx = await signer.sendTransaction({ to, data });
+```
+
+**Parameters:** same as `fillOrder()`.
+
+**Returns:** `{ to: string; data: string }` — the target contract address and encoded calldata. No transaction is sent.
+
+**Use this when:** you're using viem/wagmi, your wallet is an AA wallet (Coinbase Smart Wallet, Safe), or you need custom gas estimation / nonce management.
+
+### calculateNumContracts()
+
+Calculate the number of contracts a given premium buys, at a specific price per contract. Pure utility — no chain calls.
+
+```typescript
+const contracts = client.optionBook.calculateNumContracts(
+  10_000000n,  // 10 USDC (6 decimals)
+  5_00000000n, // $5.00 per contract (8 decimals)
+);
+// contracts = 2_000000n (2 contracts, 6 decimals)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `usdcAmount` | `bigint` | Premium to spend (6 decimals) |
+| `pricePerContract` | `bigint` | Price per contract (8 decimals) |
+
+**Returns:** `bigint` — number of contracts (6 decimals).
+
+**Throws:** `INVALID_PARAMS` if `pricePerContract` is zero.
+
+> In most cases you want `previewFillOrder()` instead — it handles PUT/CALL/SPREAD collateral formulas correctly. `calculateNumContracts()` is a simple premium-to-contracts division used under the hood.
+
+### swapAndFillOrder()
+
+Fill an order while swapping from a different source token in the same transaction (atomic swap-and-fill). Useful when the user holds WETH but the order requires USDC collateral.
+
+```typescript
+const receipt = await client.optionBook.swapAndFillOrder(
+  order,
+  swapRouterAddress,       // e.g. 1inch, 0x, Odos
+  swapSrcTokenAddress,     // token user is holding
+  swapSrcAmount,           // amount to swap
+  swapCalldata,            // pre-encoded swap calldata from your aggregator of choice
+  '0xYourReferrerAddress', // optional
+);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orderWithSig` | `OrderWithSignature` | Order returned from `client.api.fetchOrders()` |
+| `swapRouter` | `string` | Swap router contract address |
+| `swapSrcToken` | `string` | Source token address to swap from |
+| `swapSrcAmount` | `bigint` | Amount of source token to swap |
+| `swapData` | `string` | Encoded swap calldata (from your aggregator) |
+| `referrer` | `string?` | Referrer address |
+
+**Returns:** `TransactionReceipt`
+
+**Note:** You must still approve the swap router to spend the source token before calling this method. The encoded swap calldata must match `swapRouter`, `swapSrcToken`, and `swapSrcAmount` exactly.
+
+### encodeSwapAndFillOrder()
+
+Encoded variant of `swapAndFillOrder()` for viem/wagmi/AA wallets. Same parameters, returns `{ to: string; data: string }`.
+
+### cancelOrder()
+
+Cancel an existing order. Only the original maker can cancel their own orders.
+
+```typescript
+const receipt = await client.optionBook.cancelOrder(order);
+console.log(`Cancelled: ${receipt.hash}`);
+```
+
+**Parameters:** `orderWithSig: OrderWithSignature`
+
+**Returns:** `TransactionReceipt`
+
+**Throws:** `INVALID_ORDER` if the order is missing `rawApiData`. Contract reverts if the caller is not the original maker.
+
+### getFees()
+
+Query accumulated referrer fees for a given token and referrer address. Read-only.
+
+```typescript
+const feeAmount = await client.optionBook.getFees(usdcAddress, referrerAddress);
+console.log(`Accumulated: ${ethers.formatUnits(feeAmount, 6)} USDC`);
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `token` | `string` | Token address |
+| `referrer` | `string` | Referrer address |
+
+**Returns:** `bigint` — fee amount in the token's native decimals.
+
+### claimFees()
+
+Claim accumulated referrer fees. Transfers fees to the connected signer.
+
+```typescript
+const receipt = await client.optionBook.claimFees(usdcAddress);
+```
+
+**Parameters:** `token: string`
+
+**Returns:** `TransactionReceipt`
+
+**Throws:** `SIGNER_REQUIRED` if no signer is configured.
+
+### getReferrerFeeSplit()
+
+Query the fee split (in basis points) for a specific referrer. Read-only.
+
+```typescript
+const bps = await client.optionBook.getReferrerFeeSplit('0xYourReferrerAddress');
+console.log(`Fee split: ${bps} bps`); // e.g. 2500 = 25%
+```
+
+**Parameters:** `referrer: string`
+
+**Returns:** `bigint` — fee split in basis points (10000 = 100%).
+
+### getAmountFilled()
+
+Check how much of a given order nonce has already been filled. Useful for partial fill tracking.
+
+```typescript
+const filled = await client.optionBook.getAmountFilled(orderNonce);
+```
+
+**Parameters:** `nonce: bigint`
+
+**Returns:** `bigint` — amount already filled.
 
 ---
 

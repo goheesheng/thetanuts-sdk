@@ -67,20 +67,58 @@ const client = new ThetanutsClient({
 
 ### APIModule (Data fetching)
 
-| Method | Description | Signer |
-|--------|-------------|--------|
-| `fetchOrders()` | Fetch all orders | No |
-| `filterOrders(criteria)` | Filter orders | No |
-| `getMarketData()` | Get prices (BTC, ETH, SOL, etc.) | No |
-| `getMarketPrices()` | Get all market prices | No |
-| `getStatsFromIndexer()` | Protocol stats | No |
-| `getUserPositionsFromIndexer(address)` | User positions | No |
-| `getUserHistoryFromIndexer(address)` | Trade history | No |
-| `getReferrerStatsFromIndexer(address)` | Referrer stats (book side) | No |
-| `getFactoryReferrerStats(address)` | Referrer stats (factory/RFQ side) | No |
-| `getRfq(id)` | Get RFQ by ID | No |
-| `getUserRfqs(address)` | Get user's RFQs | No |
-| `getUserOffersFromRfq(address)` | Get user's offers | No |
+All methods are read-only. No signer required.
+
+**Markets & prices:**
+
+| Method | Description |
+|--------|-------------|
+| `getMarketData()` | Aggregated market data (prices, feeds, metadata) |
+| `getMarketPrices()` | Raw price feed values for BTC, ETH, etc. |
+| `getHealth()` | Indexer health check (lag, last indexed block) |
+
+**OptionBook (book) endpoints:**
+
+| Method | Description |
+|--------|-------------|
+| `fetchOrders()` | Fetch all available orders |
+| `filterOrders(criteria)` | Fetch orders matching filter criteria |
+| `getUserPositionsFromIndexer(address)` | User positions on the book side |
+| `getUserHistoryFromIndexer(address)` | Trade history on the book side |
+| `getBookOption(optionAddress)` | Book option detail with PnL |
+| `getReferrerStatsFromIndexer(address)` | Referrer stats (book side) |
+| `getStatsFromIndexer()` | Legacy protocol totals (uniqueUsers, openPositions, totalOptionsTracked) |
+| `getBookState()` | Raw book state snapshot |
+
+**OptionFactory (RFQ) endpoints:**
+
+| Method | Description |
+|--------|-------------|
+| `getStateFromRfq()` | Full RFQ state snapshot (all RFQs, offers, options, stats) |
+| `getRfq(id)` | Get a single RFQ by ID |
+| `getFactoryRfqs(status?)` | RFQs, optionally filtered by status |
+| `getAllFactoryRfqs(status?)` | Paginated fetch of all RFQs |
+| `getFactoryOffers()` | All offers across all RFQs |
+| `getAllFactoryOffers()` | Paginated fetch of all offers |
+| `getFactoryOptions()` | All options created via RFQs |
+| `getAllFactoryOptions()` | Paginated fetch of all factory options |
+| `getFactoryOption(optionAddress)` | Single factory option with RFQs, events, PnL |
+| `getFactoryStats()` | Factory indexer stats |
+| `getUserRfqs(address)` | RFQs created by a user |
+| `getUserOffersFromRfq(address)` | Offers made by a user |
+| `getUserOptionsFromRfq(address)` | Options held by a user from RFQs |
+| `getFactoryReferrerStats(address)` | Referrer stats (factory/RFQ side) |
+
+**Protocol stats (time windows, per-implementation breakdowns):**
+
+| Method | Description |
+|--------|-------------|
+| `getBookProtocolStats()` | Rich OptionBook stats with 24h/7d/30d windows |
+| `getFactoryProtocolStats()` | Rich factory/RFQ stats with 24h/7d/30d windows |
+| `getProtocolStats()` | Combined book + factory stats |
+| `getBookDailyStats()` | OptionBook daily time series |
+| `getFactoryDailyStats()` | Factory daily time series |
+| `getDailyStats()` | Combined daily time series |
 
 ### OptionFactoryModule (RFQ lifecycle)
 
@@ -552,16 +590,20 @@ const { to, data } = client.erc20.encodeApprove(token, spender, amount);
 const orders = await client.api.fetchOrders();
 const filtered = await client.api.filterOrders({ isCall: true });
 
-// User data (Indexer API)
-const positions = await client.api.getUserPositions(address);
-const history = await client.api.getUserHistory(address);
+// User data (Indexer API - OptionBook side)
+const positions = await client.api.getUserPositionsFromIndexer(address);
+const history = await client.api.getUserHistoryFromIndexer(address);
 
-// Protocol stats
-const stats = await client.api.getStats();
+// Protocol stats (legacy totals)
+const stats = await client.api.getStatsFromIndexer();
+
+// Richer protocol stats with 24h/7d/30d windows
+const bookStats = await client.api.getBookProtocolStats();
+const factoryStats = await client.api.getFactoryProtocolStats();
 
 // RFQ data (State/RFQ API)
-const rfqs = await client.api.getUserRFQs(address);
-const rfq = await client.api.getRFQ(quotationId);
+const rfqs = await client.api.getUserRfqs(address);
+const rfq = await client.api.getRfq(quotationId);
 ```
 
 ---
