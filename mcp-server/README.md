@@ -17,7 +17,10 @@ Read-only MCP (Model Context Protocol) server for the Thetanuts SDK.
 | `get_stats` | Protocol statistics (from Indexer API) |
 | `get_user_positions` | User's option positions (from Indexer API) |
 | `get_user_history` | User's trade history (from Indexer API) |
-| `get_referrer_stats` | Aggregated stats for a referrer address (from Indexer API) |
+| `get_referrer_stats` | Aggregated stats for a referrer address (book side, from Indexer API) |
+| `get_factory_referrer_stats` | Referrer stats scoped to factory/RFQ side (RFQs, referral IDs, protocol stats) |
+| `get_fees` | Accumulated referrer fees for a specific token on OptionBook |
+| `get_all_claimable_fees` | All claimable fees across every collateral token for a referrer |
 
 #### State/RFQ API Tools
 | Tool | Description |

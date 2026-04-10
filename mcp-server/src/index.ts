@@ -391,6 +391,54 @@ const tools: Tool[] = [
       required: ['address'],
     },
   },
+  {
+    name: 'get_factory_referrer_stats',
+    description: 'Get referrer statistics scoped to the factory/RFQ side. Returns RFQs credited to this referrer, referral IDs, and factory-wide protocol stats.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'string',
+          description: 'Referrer wallet address',
+        },
+      },
+      required: ['address'],
+    },
+  },
+
+  // === OptionBook Fee Queries ===
+  {
+    name: 'get_fees',
+    description: 'Get accumulated referrer fees for a specific token on the OptionBook. Returns the claimable amount in the token\'s native decimals.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: {
+          type: 'string',
+          description: 'Token contract address (e.g., USDC, WETH, cbBTC)',
+        },
+        referrer: {
+          type: 'string',
+          description: 'Referrer wallet address',
+        },
+      },
+      required: ['token', 'referrer'],
+    },
+  },
+  {
+    name: 'get_all_claimable_fees',
+    description: 'Check all claimable referrer fees across every configured collateral token (USDC, WETH, cbBTC, etc.) in one call. Returns only tokens with non-zero balances.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'string',
+          description: 'Referrer wallet address',
+        },
+      },
+      required: ['address'],
+    },
+  },
 
   // === MM Pricing ===
   {
@@ -1586,6 +1634,36 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
           positionsCount: Object.keys(stats.positions).length,
           lastUpdateTimestamp: stats.lastUpdateTimestamp,
         }, null, 2);
+      }
+
+      case 'get_factory_referrer_stats': {
+        const stats = await c.api.getFactoryReferrerStats(args.address as string);
+        return JSON.stringify({
+          referrer: stats.referrer,
+          referralIds: stats.referralIds,
+          rfqCount: Object.keys(stats.rfqs).length,
+          protocolStats: stats.protocolStats,
+          lastUpdateTimestamp: stats.lastUpdateTimestamp,
+        }, null, 2);
+      }
+
+      // === OptionBook Fee Queries ===
+      case 'get_fees': {
+        const amount = await c.optionBook.getFees(
+          args.token as string,
+          args.referrer as string
+        );
+        return JSON.stringify({ amount: amount.toString() }, null, 2);
+      }
+
+      case 'get_all_claimable_fees': {
+        const claimable = await c.optionBook.getAllClaimableFees(args.address as string);
+        return JSON.stringify(claimable.map(fee => ({
+          token: fee.token,
+          symbol: fee.symbol,
+          decimals: fee.decimals,
+          amount: fee.amount.toString(),
+        })), null, 2);
       }
 
       // === MM Pricing ===
