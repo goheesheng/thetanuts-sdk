@@ -57,13 +57,15 @@ const client = new ThetanutsClient({
 | `previewFillOrder(order, amount?, referrer?)` | Dry-run fill preview | No |
 | `calculateNumContracts(usdc, price)` | Calculate contracts from USDC | No |
 | `encodeFillOrder(order, amount?, referrer?)` | Encode for viem/wagmi | No |
-| `getFees(token, referrer)` | Get accumulated fees | No |
+| `getFees(token, referrer)` | Get accumulated fees for one token | No |
+| `getAllClaimableFees(address)` | Check all claimable fees across tokens | No |
 | `getAmountFilled(nonce)` | Get filled amount for nonce | No |
 | `getReferrerFeeSplit(address)` | Get referrer fee % (bps) | No |
 | `fillOrder(order, amount?, referrer?)` | Execute fill | Yes |
 | `swapAndFillOrder(order, swapParams)` | Fill with swap | Yes |
 | `cancelOrder(order)` | Cancel order | Yes |
-| `claimFees(token)` | Claim accumulated fees | Yes |
+| `claimFees(token)` | Claim fees for one token | Yes |
+| `claimAllFees(address?)` | Claim all non-zero fee balances | Yes |
 
 ### APIModule (Data fetching)
 

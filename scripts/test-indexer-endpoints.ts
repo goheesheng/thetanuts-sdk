@@ -298,6 +298,36 @@ async function runTests() {
     fail('getBookOption()', e as Error);
   }
 
+  // ========== OptionBook Fee Helpers ==========
+  log('\n--- OptionBook Fee Helpers ---');
+
+  try {
+    // Test with a known referrer that may have fees
+    const claimable = await client.optionBook.getAllClaimableFees(TEST_ADDRESSES.REFERRER);
+    if (!Array.isArray(claimable)) throw new Error('Expected array');
+    // Each element should have the correct shape
+    for (const fee of claimable) {
+      if (typeof fee.token !== 'string') throw new Error('fee.token not a string');
+      if (typeof fee.symbol !== 'string') throw new Error('fee.symbol not a string');
+      if (typeof fee.decimals !== 'number') throw new Error('fee.decimals not a number');
+      if (typeof fee.amount !== 'bigint') throw new Error('fee.amount not a bigint');
+      if (fee.amount <= 0n) throw new Error('fee.amount should be > 0 (non-zero only)');
+    }
+    pass('getAllClaimableFees()', `${claimable.length} token${claimable.length !== 1 ? 's' : ''} with claimable fees${claimable.length > 0 ? ': ' + claimable.map(f => f.symbol).join(', ') : ''}`);
+  } catch (e) {
+    fail('getAllClaimableFees()', e as Error);
+  }
+
+  try {
+    // Test with a zero-balance address — should return empty array, not throw
+    const empty = await client.optionBook.getAllClaimableFees('0x0000000000000000000000000000000000000001');
+    if (!Array.isArray(empty)) throw new Error('Expected array');
+    if (empty.length !== 0) throw new Error(`Expected empty array for zero-balance address, got ${empty.length}`);
+    pass('getAllClaimableFees(zero-balance)', 'returned empty array as expected');
+  } catch (e) {
+    fail('getAllClaimableFees(zero-balance)', e as Error);
+  }
+
   // ========== Suite 3: Protocol Stats (new) ==========
   log('\n--- 3. Protocol Stats (new) ---');
 

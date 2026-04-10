@@ -910,6 +910,7 @@ Detailed guides and references:
 Copy-paste ready examples in `docs/examples/`:
 
 - [`fill-order.ts`](docs/examples/fill-order.ts) - Complete OptionBook fill flow with preview, approval, and error handling
+- [`claim-fees.ts`](docs/examples/claim-fees.ts) - Check and claim referrer fees across all collateral tokens
 - [`create-rfq.ts`](docs/examples/create-rfq.ts) - Complete RFQ creation flow (BUY and SELL)
 - [`physical-option-rfq.ts`](docs/examples/physical-option-rfq.ts) - Physically settled option RFQ (vanilla only)
 - [`fetch-pricing.ts`](docs/examples/fetch-pricing.ts) - MM pricing with filters

@@ -321,17 +321,76 @@ console.log(`Accumulated: ${ethers.formatUnits(feeAmount, 6)} USDC`);
 
 ### claimFees()
 
-Claim accumulated referrer fees. Transfers fees to the connected signer.
+Claim accumulated referrer fees for a specific token. Transfers fees to the connected signer.
 
 ```typescript
 const receipt = await client.optionBook.claimFees(usdcAddress);
 ```
 
-**Parameters:** `token: string`
+**Parameters:** `token: string` — the collateral token address (e.g., USDC, WETH, cbBTC)
 
 **Returns:** `TransactionReceipt`
 
 **Throws:** `SIGNER_REQUIRED` if no signer is configured.
+
+**Note:** Fees accrue per collateral token. If you referred fills on both PUT orders (USDC collateral) and CALL orders (WETH collateral), you need to claim each token separately. Use `getAllClaimableFees()` to check which tokens have non-zero balances.
+
+### getAllClaimableFees()
+
+Check all claimable referrer fees across every configured collateral token in one call. Runs parallel RPC reads (via `Promise.allSettled`) so it returns in ~100ms regardless of how many tokens are configured.
+
+```typescript
+const claimable = await client.optionBook.getAllClaimableFees('0xMyReferrer');
+
+for (const fee of claimable) {
+  const formatted = ethers.formatUnits(fee.amount, fee.decimals);
+  console.log(`${fee.symbol}: ${formatted}`);
+}
+// Output:
+//   USDC: 12.50
+//   WETH: 0.003
+```
+
+**Parameters:** `address: string` — referrer address to check
+
+**Returns:** `ClaimableFee[]` — array of `{ token, symbol, decimals, amount }` for each non-zero balance. Empty array if no fees are claimable.
+
+No signer required (read-only).
+
+### claimAllFees()
+
+Claim all non-zero fee balances in one call. Finds claimable tokens via `getAllClaimableFees()`, then claims each one sequentially. Handles partial failures gracefully: if one token's claim fails, the error is recorded and remaining tokens are still claimed.
+
+```typescript
+const results = await client.optionBook.claimAllFees();
+
+for (const r of results) {
+  if (r.receipt) {
+    console.log(`Claimed ${r.symbol}: tx ${r.receipt.hash}`);
+  } else {
+    console.log(`Failed ${r.symbol}: ${r.error?.message}`);
+    // Retry individually: await client.optionBook.claimFees(tokenAddress)
+  }
+}
+```
+
+**Parameters:** `address?: string` — referrer address. If omitted, uses the signer's address.
+
+**Returns:** `ClaimFeeResult[]` — array of `{ symbol, amount, receipt?, error? }` for each token attempted. Each result has either a `receipt` (success) or `error` (failure).
+
+**Throws:** `SIGNER_REQUIRED` if no signer is configured and no address provided.
+
+### Referrer Fee Workflow
+
+The end-to-end flow for earning and claiming referrer fees on OptionBook:
+
+1. **Admin whitelists referrer** — `setReferrerFeeSplit(referrerAddress, 5000)` sets a 50% fee split (5000 bps). Only `factory.owner()` can call this.
+2. **Taker fills orders with referrer** — `fillOrder(order, amount, referrerAddress)` passes the referrer. The protocol fee is calculated as `min(0.06% of notional, 12.5% of premium)`, and the referrer's share (`fee * feeBps / 10000`) accrues in the on-chain `fees[token][referrer]` ledger.
+3. **Fees accumulate per token** — PUT fills accrue USDC fees, CALL fills accrue WETH or cbBTC fees. Each collateral token has its own balance.
+4. **Referrer checks balances** — `getAllClaimableFees(myAddress)` scans all tokens and returns non-zero balances.
+5. **Referrer claims** — `claimAllFees()` claims everything, or `claimFees(tokenAddress)` claims one token at a time.
+
+**OptionFactory (RFQ) fees are separate.** RFQ fees use the `referralId` system with a hardcoded 50/50 split. Only the contract owner can withdraw them via `withdrawFees()`. Referrers can check their balance with `getReferralFees(referralId)` but cannot self-claim.
 
 ### getReferrerFeeSplit()
 
