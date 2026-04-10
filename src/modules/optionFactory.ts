@@ -566,9 +566,9 @@ export class OptionFactoryModule {
       const [params, state] = await contract.quotations(quotationId);
 
       return { params, state };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Detect Solidity Panic(0x32) = array/index out of bounds
-      const errorMsg = error?.message ?? '';
+      const errorMsg = error instanceof Error ? error.message : '';
       if (errorMsg.includes('ARRAY_RANGE_ERROR') || errorMsg.includes('Panic due to')) {
         throw new NotFoundError(
           `Quotation ID ${quotationId} not found (out of range)`,

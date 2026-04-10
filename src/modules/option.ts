@@ -1007,8 +1007,9 @@ export class OptionModule {
     });
 
     const safeCall = <T>(fn: () => Promise<T>): Promise<T | null> =>
-      fn().catch((err) => {
-        this.client.logger.debug('Option sub-call failed', { optionAddress, error: err.message });
+      fn().catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.client.logger.debug('Option sub-call failed', { optionAddress, error: errorMessage });
         return null;
       });
 
