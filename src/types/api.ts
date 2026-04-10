@@ -468,6 +468,51 @@ export interface ReferrerStats {
   topProfitableTrades?: Array<Record<string, unknown>>;
 }
 
+/**
+ * Factory-side protocol stats snapshot included in a FactoryReferrerStats response.
+ *
+ * These are factory-wide totals at the time of the response, not scoped to the
+ * referrer. Uses the raw field names returned by the indexer.
+ */
+export interface FactoryReferrerProtocolStats {
+  /** Total RFQs indexed */
+  totalRFQs: number;
+  /** Total offers indexed */
+  totalOffers: number;
+  /** Total options indexed */
+  totalOptions: number;
+  /** Total volume by token */
+  totalVolume: TokenAmounts;
+  /** Total premium by token */
+  totalPremium: TokenAmounts;
+  /** Total fees by token */
+  totalFees: TokenAmounts;
+  /** Total referral fees (USD-denominated string) */
+  totalReferralFees: string;
+}
+
+/**
+ * Referrer statistics scoped to the factory/RFQ side of the indexer.
+ *
+ * Returned by GET /api/v1/factory/referrer/:address/state.
+ *
+ * Unlike the book `ReferrerStats`, this is RFQ-centric: it contains the
+ * full set of RFQs this referrer was credited on, the referral IDs used,
+ * and a factory protocol stats snapshot.
+ */
+export interface FactoryReferrerStats {
+  /** Referrer address */
+  referrer: string;
+  /** On-chain referral IDs associated with this referrer */
+  referralIds: number[];
+  /** RFQs referred by this address, keyed by RFQ id */
+  rfqs: Record<string, StateRfq>;
+  /** Factory protocol stats snapshot */
+  protocolStats: FactoryReferrerProtocolStats;
+  /** Last update timestamp (unix seconds) */
+  lastUpdateTimestamp: number;
+}
+
 // ============================================================
 // Protocol Stats (new unified indexer endpoints)
 // ============================================================

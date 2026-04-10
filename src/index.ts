@@ -115,6 +115,8 @@ export type {
   MarketDataMetadata,
   ReferrerStats,
   ReferrerSummary,
+  FactoryReferrerStats,
+  FactoryReferrerProtocolStats,
   IndexerHealth,
   FactoryStats,
   PositionPnL,

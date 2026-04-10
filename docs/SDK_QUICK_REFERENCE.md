@@ -76,7 +76,8 @@ const client = new ThetanutsClient({
 | `getStatsFromIndexer()` | Protocol stats | No |
 | `getUserPositionsFromIndexer(address)` | User positions | No |
 | `getUserHistoryFromIndexer(address)` | Trade history | No |
-| `getReferrerStatsFromIndexer(address)` | Referrer stats | No |
+| `getReferrerStatsFromIndexer(address)` | Referrer stats (book side) | No |
+| `getFactoryReferrerStats(address)` | Referrer stats (factory/RFQ side) | No |
 | `getRfq(id)` | Get RFQ by ID | No |
 | `getUserRfqs(address)` | Get user's RFQs | No |
 | `getUserOffersFromRfq(address)` | Get user's offers | No |
