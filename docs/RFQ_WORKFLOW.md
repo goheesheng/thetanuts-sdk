@@ -1127,9 +1127,14 @@ const quotation = await client.optionFactory.getQuotation(rfqId);
 ### Creating an RFQ (BUY Position)
 
 ```typescript
+import { ethers } from 'ethers';
 import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
-const client = new ThetanutsClient({ chainId: 8453 });
+// provider is required; signer is required for sending the RFQ transaction
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+const client = new ThetanutsClient({ chainId: 8453, provider, signer });
+const userAddress = await signer.getAddress();
 
 // Step 1: Generate ECDH keypair for encrypted offers
 const keyPair = await client.rfqKeys.getOrCreateKeyPair();
@@ -1155,12 +1160,16 @@ const { to, data } = client.optionFactory.encodeRequestForQuotation({
   requesterPublicKey: keyPair.compressedPublicKey,
 });
 
-const txHash = await walletClient.sendTransaction({ to, data });
+const tx = await signer.sendTransaction({ to, data });
+console.log(`RFQ created: ${tx.hash}`);
 ```
 
 ### Creating an RFQ (SELL Position)
 
 ```typescript
+// Assumes the client, signer, userAddress, and keyPair from the BUY example above.
+const USDC_ADDRESS = client.chainConfig.tokens.USDC.address;
+
 // Step 1: Calculate required collateral for approval
 const strike = 1850;
 const numContracts = 1.5;
@@ -1171,13 +1180,13 @@ const approvalAmount = BigInt(
   Math.round(strike * numContracts * 10 ** collateralDecimals)
 );
 
-// Step 2: Approve collateral tokens
-const approveData = client.erc20.encodeApprove(
+// Step 2: Approve collateral tokens. `ensureAllowance` is a no-op if
+// the current allowance already covers `approvalAmount`.
+await client.erc20.ensureAllowance(
   USDC_ADDRESS,
   client.optionFactory.contractAddress,
   approvalAmount
 );
-await walletClient.sendTransaction(approveData);
 
 // Step 3: Build RFQ params
 const quotationParams = client.optionFactory.buildRFQParams({
@@ -1192,13 +1201,16 @@ const quotationParams = client.optionFactory.buildRFQParams({
   collateralToken: 'USDC',
 });
 
-// Step 4: Create RFQ (same as buy)
+// Step 4: Encode and send the RFQ transaction (same shape as buy)
 const { to, data } = client.optionFactory.encodeRequestForQuotation({
   params: quotationParams,
   tracking: { referralId: BigInt(0), eventCode: BigInt(0) },
   reservePrice: BigInt(0),  // Or set min price
   requesterPublicKey: keyPair.compressedPublicKey,
 });
+
+const tx = await signer.sendTransaction({ to, data });
+console.log(`SELL RFQ created: ${tx.hash}`);
 ```
 
 ### Using buildRFQRequest (Complete Helper)
@@ -1592,12 +1604,16 @@ The SDK accepts `numContracts` as `number | bigint | string`:
 ### Position Closing Example
 
 ```typescript
+import { ethers } from 'ethers';
 import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 const client = new ThetanutsClient({ chainId: 8453, provider, signer });
+const walletAddress = await signer.getAddress();
 
 // Step 1: Get your existing position from the API
-const positions = await client.api.getUserPositions(walletAddress);
+const positions = await client.api.getUserPositionsFromIndexer(walletAddress);
 const position = positions.find(p => p.optionAddress === targetOptionAddress);
 
 // position.numContracts is already a BigInt from the chain!

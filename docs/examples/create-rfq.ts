@@ -53,6 +53,12 @@ async function createBuyRFQ(client: ThetanutsClient): Promise<string> {
   // Calculate expiry (7 days from now)
   const expiry = Math.floor(Date.now() / 1000) + 86400 * 7;
 
+  // Generate (or load) the ECDH keypair used to decrypt offers from market makers.
+  // Keys are automatically persisted to `.thetanuts-keys/` in Node.js; subsequent
+  // calls return the same keypair. BACK THIS UP — if you lose the private key,
+  // you cannot decrypt offers made to your public key.
+  const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
   // Build RFQ request using helper
   // This automatically:
   // - Sets collateralAmount = 0 (CRITICAL)
@@ -72,9 +78,8 @@ async function createBuyRFQ(client: ThetanutsClient): Promise<string> {
     // Optional: max price you're willing to pay per contract
     reservePrice: 0.015,         // $0.015 per contract (in USDC)
 
-    // ECDH public key for encrypted offers
-    // Generate with: client.rfqKeys.getOrCreateKeyPair()
-    requesterPublicKey: '0x04...',
+    // ECDH public key for encrypted offers (real key from above — never a placeholder)
+    requesterPublicKey: keyPair.compressedPublicKey,
   });
 
   // Encode the transaction
@@ -143,6 +148,8 @@ async function createSellRFQ(client: ThetanutsClient): Promise<string> {
   // Step 2: Create RFQ (collateralAmount is ALWAYS 0)
   // ==========================================================================
 
+  const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
   const request = client.optionFactory.buildRFQRequest({
     requester: userAddress,
     underlying: 'ETH',
@@ -157,7 +164,7 @@ async function createSellRFQ(client: ThetanutsClient): Promise<string> {
     // Optional: minimum price you're willing to receive per contract
     reservePrice: 0.010,         // $0.010 per contract minimum
 
-    requesterPublicKey: '0x04...',
+    requesterPublicKey: keyPair.compressedPublicKey,
   });
 
   // Note: collateralAmount in request.params is 0n (set by buildRFQRequest)
@@ -185,6 +192,7 @@ async function createSellRFQ(client: ThetanutsClient): Promise<string> {
  */
 async function createRFQWithParams(client: ThetanutsClient): Promise<void> {
   const userAddress = await client.signer!.getAddress();
+  const keyPair = await client.rfqKeys.getOrCreateKeyPair();
 
   // Build just the params
   const params = client.optionFactory.buildRFQParams({
@@ -210,7 +218,7 @@ async function createRFQWithParams(client: ThetanutsClient): Promise<void> {
       eventCode: BigInt(0),   // Or your event code
     },
     reservePrice: BigInt(15000), // 0.015 USDC in 6 decimals
-    requesterPublicKey: '0x04...',
+    requesterPublicKey: keyPair.compressedPublicKey,
   });
 
   console.log('Encoded transaction ready');
@@ -247,6 +255,8 @@ async function createCallRFQ(client: ThetanutsClient): Promise<void> {
     approvalAmount
   );
 
+  const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
   const request = client.optionFactory.buildRFQRequest({
     requester: userAddress,
     underlying: 'ETH',
@@ -257,7 +267,7 @@ async function createCallRFQ(client: ThetanutsClient): Promise<void> {
     isLong: false,               // SELL
     offerDeadlineMinutes: 60,
     collateralToken: 'WETH',     // WETH for CALL options
-    requesterPublicKey: '0x04...',
+    requesterPublicKey: keyPair.compressedPublicKey,
   });
 
   const { to, data } = client.optionFactory.encodeRequestForQuotation(request);

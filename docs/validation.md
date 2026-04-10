@@ -249,4 +249,4 @@ function prepareIronCondorRFQ(
 
 - [Product Types Reference](./product-types.md)
 - [RFQ Calculations Guide](./rfq-calculations.md)
-- [RFQ Workflow](./rfq-workflow.md)
+- [RFQ Pricing Integration Guide](./rfq-pricing-integration.md)

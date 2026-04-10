@@ -72,27 +72,39 @@ yarn add @thetanuts-finance/thetanuts-client
 import { ethers } from 'ethers';
 import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
 
-// Initialize with provider (read-only)
+// Initialize with provider (read-only — no signer needed for any of this)
 const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const client = new ThetanutsClient({
   chainId: 8453, // Base mainnet
   provider,
 });
 
-// Fetch available orders
+// 1. Fetch available orders from the book
 const orders = await client.api.fetchOrders();
 console.log(`Found ${orders.length} orders`);
 
-// Get market data
+// 2. Get market data
 const marketData = await client.api.getMarketData();
 console.log(`BTC: $${marketData.prices.BTC}`);
 console.log(`ETH: $${marketData.prices.ETH}`);
 
-// Get MM pricing for options
+// 3. Preview what a fill would actually cost (no transaction, no signer)
+//    For PUTs and spreads, contract count is NOT the same as premium —
+//    previewFillOrder runs the same collateral math the contract uses.
+if (orders.length > 0) {
+  const preview = client.optionBook.previewFillOrder(orders[0], 10_000000n); // 10 USDC
+  console.log(`Contracts: ${preview.numContracts}`);
+  console.log(`Collateral: ${preview.collateralToken}`);
+  console.log(`Price per contract: ${preview.pricePerContract}`);
+}
+
+// 4. Get MM pricing for custom RFQ options
 const pricing = await client.mmPricing.getAllPricing('ETH');
 const active = client.mmPricing.filterExpired(Object.values(pricing));
-console.log(`${active.length} active ETH options available`);
+console.log(`${active.length} active ETH options available for RFQ`);
 ```
+
+**Next step:** to actually execute a fill you need a signer. Jump to [OptionBook: Browse and Fill an Order](#optionbook-browse-and-fill-an-order), or to create a custom option jump to [RFQ: Create a Custom Option](#rfq-create-a-custom-option).
 
 ## Key Concepts
 
@@ -331,10 +343,16 @@ console.log(`Balance: ${ethers.formatUnits(balance, 6)} USDC`);
 ### Get Protocol Stats
 
 ```typescript
-const stats = await client.api.getStats();
+// Lightweight legacy stats: totals only
+const stats = await client.api.getStatsFromIndexer();
 console.log(`Unique Users: ${stats.uniqueUsers}`);
 console.log(`Open Positions: ${stats.openPositions}`);
 console.log(`Total Options Tracked: ${stats.totalOptionsTracked}`);
+
+// Richer protocol stats with time windows and per-implementation breakdowns:
+//   client.api.getBookProtocolStats()     // OptionBook side
+//   client.api.getFactoryProtocolStats()  // RFQ/Factory side
+//   client.api.getProtocolStats()         // Combined
 ```
 
 ### Subscribe to Real-time Updates
@@ -866,21 +884,37 @@ This project supports both **npm** and **Yarn** (including Yarn Berry/v2+). The 
 
 Detailed guides and references:
 
+**Core references:**
+
 | Document | Description |
 |----------|-------------|
-| [SDK Quick Reference](docs/SDK_QUICK_REFERENCE.md) | Quick reference for all SDK modules and methods |
+| [SDK Quick Reference](docs/SDK_QUICK_REFERENCE.md) | One-page cheatsheet: all modules and methods |
+| [API Reference](docs/API_REFERENCE.md) | Full API documentation with examples for every module |
 | [RFQ Workflow Guide](docs/RFQ_WORKFLOW.md) | Complete RFQ lifecycle from request to settlement |
-| [API Reference](docs/API_REFERENCE.md) | Full API documentation with examples |
-| [Migration Guide](docs/MIGRATION_GUIDE.md) | Guide for upgrading from previous versions |
+| [Migration Guide](docs/MIGRATION_GUIDE.md) | Upgrading from previous versions |
 | [Error Codes](docs/ERROR_CODES.md) | Error codes and troubleshooting |
+
+**Deep-dive guides:**
+
+| Document | Description |
+|----------|-------------|
+| [RFQ Pricing Integration Guide](docs/rfq-pricing-integration.md) | How `rfqCalculations`, `mmPricing`, and `optionFactory` fit together |
+| [RFQ Calculations Guide](docs/rfq-calculations.md) | Reserve price math, fee calculation, decimal-safe helpers |
+| [MM Pricing Guide](docs/mm-pricing.md) | How market maker pricing works (bid/ask, fees, carrying cost) |
+| [Product Types Reference](docs/product-types.md) | All supported option product types (PUT, CALL, spreads, etc.) |
+| [Validation Guide](docs/validation.md) | Input validation rules and error messages |
+| [Indexer Migration Notes](docs/indexer-migration-issues.md) | History of indexer field migrations (reference only) |
 
 ### Code Examples
 
 Copy-paste ready examples in `docs/examples/`:
 
+- [`fill-order.ts`](docs/examples/fill-order.ts) - Complete OptionBook fill flow with preview, approval, and error handling
 - [`create-rfq.ts`](docs/examples/create-rfq.ts) - Complete RFQ creation flow (BUY and SELL)
+- [`physical-option-rfq.ts`](docs/examples/physical-option-rfq.ts) - Physically settled option RFQ (vanilla only)
 - [`fetch-pricing.ts`](docs/examples/fetch-pricing.ts) - MM pricing with filters
 - [`option-management.ts`](docs/examples/option-management.ts) - Option queries and operations
+- [`query-stats.ts`](docs/examples/query-stats.ts) - Protocol and referrer statistics
 
 ## API Reference
 
