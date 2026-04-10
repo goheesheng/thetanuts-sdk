@@ -1,3 +1,4 @@
+import type { TransactionReceipt } from 'ethers';
 import type { Order } from './optionBook.js';
 import type { StateRfq } from './stateApi.js';
 
@@ -511,6 +512,42 @@ export interface FactoryReferrerStats {
   protocolStats: FactoryReferrerProtocolStats;
   /** Last update timestamp (unix seconds) */
   lastUpdateTimestamp: number;
+}
+
+// ============================================================
+// Fee Claiming Helpers
+// ============================================================
+
+/**
+ * A single claimable fee balance returned by getAllClaimableFees().
+ */
+export interface ClaimableFee {
+  /** Token contract address */
+  token: string;
+  /** Token symbol (e.g., 'USDC', 'WETH', 'cbBTC') */
+  symbol: string;
+  /** Token decimals for display formatting */
+  decimals: number;
+  /** Claimable amount in the token's native decimals */
+  amount: bigint;
+}
+
+/**
+ * Result of a single fee claim attempt within claimAllFees().
+ *
+ * Each result has either a `receipt` (success) or `error` (failure).
+ * The caller can inspect both to see exactly which claims worked
+ * and retry the failed ones individually via `claimFees()`.
+ */
+export interface ClaimFeeResult {
+  /** Token symbol */
+  symbol: string;
+  /** Amount that was claimable at check time */
+  amount: bigint;
+  /** Transaction receipt (present on success) */
+  receipt?: TransactionReceipt;
+  /** Error details (present on failure) */
+  error?: Error;
 }
 
 // ============================================================

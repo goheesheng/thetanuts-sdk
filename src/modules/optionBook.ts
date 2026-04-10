@@ -4,7 +4,7 @@ import type { TransactionReceipt, ContractTransactionResponse } from 'ethers';
 import type { ThetanutsClient } from '../client/ThetanutsClient.js';
 import { OPTION_BOOK_ABI } from '../abis/optionBook.js';
 import type { ContractOrder, Eip712Domain } from '../types/optionBook.js';
-import type { OrderWithSignature } from '../types/api.js';
+import type { OrderWithSignature, ClaimableFee, ClaimFeeResult } from '../types/api.js';
 import type { CallStaticResult } from '../types/callStatic.js';
 import { createError, mapContractError } from '../utils/errors.js';
 import { validateAddress } from '../utils/validation.js';
@@ -569,6 +569,50 @@ export class OptionBookModule {
   }
 
   /**
+   * Check all claimable referrer fees across every configured collateral token.
+   *
+   * Calls `getFees(token, address)` for each token in the chain config in parallel
+   * (via `Promise.allSettled`) and returns only tokens with a non-zero balance.
+   * Saves the caller from manually iterating USDC, WETH, cbBTC, etc.
+   *
+   * @param address - Referrer address to check
+   * @returns Array of `{ token, symbol, decimals, amount }` for each non-zero balance
+   *
+   * @example
+   * ```typescript
+   * const claimable = await client.optionBook.getAllClaimableFees('0xMyReferrer');
+   * for (const fee of claimable) {
+   *   console.log(`${fee.symbol}: ${ethers.formatUnits(fee.amount, fee.decimals)}`);
+   * }
+   * ```
+   */
+  async getAllClaimableFees(address: string): Promise<ClaimableFee[]> {
+    validateAddress(address, 'address');
+    this.client.logger.debug('Checking all claimable fees', { address });
+
+    const tokens = this.client.chainConfig.tokens;
+    const entries = Object.entries(tokens);
+
+    // Parallel RPC reads via Promise.allSettled — one rejected call won't block the rest
+    const settled = await Promise.allSettled(
+      entries.map(async ([symbol, config]) => {
+        const amount = await this.getFees(config.address, address);
+        return { token: config.address, symbol, decimals: config.decimals, amount };
+      })
+    );
+
+    const results: ClaimableFee[] = [];
+    for (const result of settled) {
+      if (result.status === 'fulfilled' && result.value.amount > 0n) {
+        results.push(result.value);
+      }
+      // Rejected promises (RPC errors, invalid tokens) are silently skipped
+    }
+
+    return results;
+  }
+
+  /**
    * Claim accumulated referrer fees
    *
    * @param token - Token address to claim fees for
@@ -610,6 +654,61 @@ export class OptionBookModule {
       this.client.logger.error('Failed to claim fees', { error, token });
       throw mapContractError(error);
     }
+  }
+
+  /**
+   * Claim all accumulated referrer fees across every collateral token.
+   *
+   * Calls `getAllClaimableFees()` to find non-zero balances, then calls
+   * `claimFees()` for each one sequentially (write txs need to be mined
+   * before the next one can use accurate gas estimation).
+   *
+   * If one token's claim fails (gas spike, RPC timeout), the error is recorded
+   * and remaining tokens are still claimed. Each result has either a `receipt`
+   * (success) or `error` (failure), so the caller knows exactly what happened.
+   *
+   * @param address - Referrer address to check. If omitted, uses the signer's address.
+   * @returns Array of `{ symbol, amount, receipt?, error? }` for each token attempted
+   *
+   * @throws {ThetanutsError} SIGNER_REQUIRED if no signer is configured and no address provided
+   *
+   * @example
+   * ```typescript
+   * const results = await client.optionBook.claimAllFees();
+   * for (const r of results) {
+   *   if (r.receipt) {
+   *     console.log(`Claimed ${r.symbol}: tx ${r.receipt.hash}`);
+   *   } else {
+   *     console.log(`Failed ${r.symbol}: ${r.error?.message}`);
+   *   }
+   * }
+   * ```
+   */
+  async claimAllFees(address?: string): Promise<ClaimFeeResult[]> {
+    const referrer = address ?? await this.client.signer?.getAddress();
+    if (!referrer) {
+      throw createError('SIGNER_REQUIRED', 'Signer required to determine referrer address');
+    }
+
+    const claimable = await this.getAllClaimableFees(referrer);
+    if (claimable.length === 0) {
+      this.client.logger.info('No claimable fees found', { referrer });
+      return [];
+    }
+
+    const results: ClaimFeeResult[] = [];
+    for (const fee of claimable) {
+      try {
+        const receipt = await this.claimFees(fee.token);
+        results.push({ symbol: fee.symbol, amount: fee.amount, receipt });
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        this.client.logger.warn('Failed to claim fees for token', { symbol: fee.symbol, error: error.message });
+        results.push({ symbol: fee.symbol, amount: fee.amount, error });
+      }
+    }
+
+    return results;
   }
 
   /**

@@ -131,6 +131,8 @@ export type {
   ProtocolStatsResponse,
   DailyStatsEntry,
   DailyStatsResponse,
+  ClaimableFee,
+  ClaimFeeResult,
 } from './types/api.js';
 
 // ============ Types — OptionFactory ============
