@@ -234,9 +234,21 @@ const hash = await walletClient.sendTransaction({ to, data });
 const feeBps = await client.optionBook.getReferrerFeeSplit('0x...');
 console.log(`Referrer fee: ${feeBps} bps`);
 
-// Query accumulated fees
+// Query accumulated fees for a single token
 const fees = await client.optionBook.getFees(usdcAddress, '0x...');
 console.log(`Accumulated fees: ${fees}`);
+
+// Check all claimable fees across every collateral token at once
+const claimable = await client.optionBook.getAllClaimableFees('0x...');
+for (const fee of claimable) {
+  console.log(`${fee.symbol}: ${ethers.formatUnits(fee.amount, fee.decimals)}`);
+}
+
+// Claim all non-zero fee balances in one call
+const results = await client.optionBook.claimAllFees();
+for (const r of results) {
+  if (r.receipt) console.log(`Claimed ${r.symbol}: tx ${r.receipt.hash}`);
+}
 ```
 
 If no referrer is provided, the zero address (`0x000...`) is used (no fee sharing).
@@ -246,16 +258,17 @@ If no referrer is provided, the zero address (`0x000...`) is used (no fee sharin
 | Module | Purpose | Requires Signer |
 |--------|---------|-----------------|
 | `client.erc20` | Token approvals, balances, transfers | Write ops only |
-| `client.optionBook` | Fill/cancel orders, get fees | Write ops only |
+| `client.optionBook` | Fill/cancel orders, get fees, claim fees | Write ops only |
 | `client.api` | Fetch orders, positions, stats | No |
 | `client.optionFactory` | RFQ lifecycle management | Write ops only |
 | `client.option` | Position management, payouts | Write ops only |
 | `client.events` | Query blockchain events | No |
 | `client.ws` | Real-time subscriptions | No |
-| `client.pricing` | Option pricing, Greeks | No |
+| `client.mmPricing` | Market maker pricing, Greeks | No |
+| `client.rfqKeys` | ECDH key management, offer encryption | No |
 | `client.utils` | Decimal conversions, payoffs | No |
 
-See [src/modules/README.md](src/modules/README.md) for detailed module documentation.
+See [src/modules/README.md](src/modules/README.md) for detailed module documentation (10 modules total).
 
 ## Supported Chains
 
@@ -825,14 +838,15 @@ src/
 ├── abis/       # Smart contract ABIs (ERC20, OptionBook, OptionFactory, BaseOption)
 ├── chains/     # Chain configurations
 ├── client/     # Main client class
-├── modules/    # Feature modules (9 modules)
+├── modules/    # Feature modules (10 modules)
 ├── types/      # TypeScript definitions (16 type files)
 ├── utils/      # Utility functions
 └── index.ts    # Main entry point
 
 scripts/
-├── run-mainnet-tests.ts   # Live mainnet integration tests
-└── benchmark-indexer.ts   # Indexer performance benchmark
+├── run-mainnet-tests.ts       # Live mainnet integration tests
+├── benchmark-indexer.ts       # Indexer performance benchmark
+└── test-indexer-endpoints.ts  # Indexer endpoint validation
 ```
 
 See [src/README.md](src/README.md) for detailed source documentation.
@@ -893,6 +907,12 @@ Detailed guides and references:
 | [RFQ Workflow Guide](docs/RFQ_WORKFLOW.md) | Complete RFQ lifecycle from request to settlement |
 | [Migration Guide](docs/MIGRATION_GUIDE.md) | Upgrading from previous versions |
 | [Error Codes](docs/ERROR_CODES.md) | Error codes and troubleshooting |
+
+**Integrations:**
+
+| Document | Description |
+|----------|-------------|
+| [MCP Server](mcp-server/README.md) | Read-only MCP server for AI agents (orders, positions, pricing, stats) |
 
 **Deep-dive guides:**
 
