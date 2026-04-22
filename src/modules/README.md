@@ -105,8 +105,12 @@ const { to, data } = client.optionBook.encodeFillOrder(orderWithSig, usdcAmount?
 // Encode swapAndFillOrder for external wallet use
 const { to, data } = client.optionBook.encodeSwapAndFillOrder(orderWithSig, swapParams);
 
-// Get fees
+// Get fees for a single token
 const fees = await client.optionBook.getFees(collateralToken, referrer);
+
+// Get all claimable fees across every collateral token (USDC, WETH, cbBTC, etc.)
+const claimable = await client.optionBook.getAllClaimableFees(referrerAddress);
+// Returns: [{ token, symbol, decimals, amount }] for non-zero balances
 
 // Get amount filled for a nonce
 const filled = await client.optionBook.getAmountFilled(nonce);
@@ -145,8 +149,12 @@ const result = await client.optionBook.swapAndFillOrder(orderWithSig, swapParams
 // Cancel an order
 const result = await client.optionBook.cancelOrder(orderWithSig);
 
-// Claim accumulated fees
+// Claim accumulated fees for a single token
 const receipt = await client.optionBook.claimFees(collateralToken);
+
+// Claim all non-zero fee balances across every collateral token
+const results = await client.optionBook.claimAllFees();
+// Returns: [{ symbol, amount, receipt?, error? }] for each token attempted
 
 // Set referrer fee split (owner-gated)
 const receipt = await client.optionBook.setReferrerFeeSplit(referrer, feeBps);
@@ -238,8 +246,11 @@ const history = await client.api.getUserHistoryFromIndexer('0x...');
 const stats = await client.api.getStatsFromIndexer();
 // → { totalOptionsTracked, openPositions, settledPositions, closedPositions, uniqueUsers, positions: {...} }
 
-// Referrer stats
+// Referrer stats (book side)
 const ref = await client.api.getReferrerStatsFromIndexer('0x...');
+
+// Referrer stats (factory/RFQ side)
+const factoryRef = await client.api.getFactoryReferrerStats('0x...');
 
 // Trigger indexer refresh (POST)
 await client.api.triggerIndexerUpdate();

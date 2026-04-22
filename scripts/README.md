@@ -130,13 +130,10 @@ These scripts are defined in `package.json`:
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:mainnet": "vitest run test/integration/mainnet.test.ts",
-    "test:mainnet:standalone": "npx tsx scripts/run-mainnet-tests.ts",
+    "test": "npx tsx scripts/run-mainnet-tests.ts",
+    "test:benchmark": "npx tsx scripts/benchmark-indexer.ts",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src test --ext .ts --fix",
+    "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
@@ -156,11 +153,8 @@ These scripts are defined in `package.json`:
 
 | Script | Description |
 |--------|-------------|
-| `npm test` | Run all unit tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Generate coverage report |
-| `npm run test:mainnet` | Run mainnet integration tests (Vitest) |
-| `npm run test:mainnet:standalone` | Run mainnet tests (standalone) |
+| `npm test` | Run mainnet integration tests |
+| `npm run test:benchmark` | Run indexer performance benchmark |
 
 ### Code Quality Scripts
 
