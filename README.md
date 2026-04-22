@@ -2,6 +2,8 @@
 
 TypeScript SDK for Thetanuts Finance V4 - Options trading on EVM chains.
 
+> **Full documentation:** [docs.thetanuts.finance/sdk](https://docs.thetanuts.finance/sdk)
+
 ## Table of Contents
 
 - [Features](#features)
@@ -898,32 +900,15 @@ This project supports both **npm** and **Yarn** (including Yarn Berry/v2+). The 
 
 Detailed guides and references:
 
-**Core references:**
-
-| Document | Description |
-|----------|-------------|
-| [SDK Quick Reference](docs/SDK_QUICK_REFERENCE.md) | One-page cheatsheet: all modules and methods |
-| [API Reference](docs/API_REFERENCE.md) | Full API documentation with examples for every module |
-| [RFQ Workflow Guide](docs/RFQ_WORKFLOW.md) | Complete RFQ lifecycle from request to settlement |
-| [Migration Guide](docs/MIGRATION_GUIDE.md) | Upgrading from previous versions |
-| [Error Codes](docs/ERROR_CODES.md) | Error codes and troubleshooting |
-
-**Integrations:**
-
-| Document | Description |
-|----------|-------------|
-| [MCP Server](mcp-server/README.md) | Read-only MCP server for AI agents (orders, positions, pricing, stats) |
-
-**Deep-dive guides:**
-
-| Document | Description |
-|----------|-------------|
-| [RFQ Pricing Integration Guide](docs/rfq-pricing-integration.md) | How `rfqCalculations`, `mmPricing`, and `optionFactory` fit together |
-| [RFQ Calculations Guide](docs/rfq-calculations.md) | Reserve price math, fee calculation, decimal-safe helpers |
-| [MM Pricing Guide](docs/mm-pricing.md) | How market maker pricing works (bid/ask, fees, carrying cost) |
-| [Product Types Reference](docs/product-types.md) | All supported option product types (PUT, CALL, spreads, etc.) |
-| [Validation Guide](docs/validation.md) | Input validation rules and error messages |
-| [Indexer Migration Notes](docs/indexer-migration-issues.md) | History of indexer field migrations (reference only) |
+| Section | Description |
+|---------|-------------|
+| [Getting Started](https://docs.thetanuts.finance/sdk/getting-started/overview) | Installation, quick start, configuration |
+| [OptionBook](https://docs.thetanuts.finance/sdk/optionbook/overview) | Browse orders, preview fills, execute trades |
+| [RFQ (Factory)](https://docs.thetanuts.finance/sdk/rfq/overview) | Create custom options, multi-leg structures, RFQ lifecycle |
+| [Pricing](https://docs.thetanuts.finance/sdk/pricing/mm-pricing) | MM pricing, spreads, collateral cost |
+| [Guides](https://docs.thetanuts.finance/sdk/guides/error-handling) | Error handling, WebSocket, production checklist |
+| [SDK Reference](https://docs.thetanuts.finance/sdk/reference/client) | Client, modules, types, utilities |
+| [MCP Server](mcp-server/README.md) | Read-only MCP server for AI agents |
 
 ### Code Examples
 
