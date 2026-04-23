@@ -79,16 +79,9 @@ config.implementations.PUT_CONDOR;
 config.implementations.CALL_CONDOR;
 config.implementations.IRON_CONDOR;
 
-// Physically settled
+// Physically settled (vanilla only)
 config.implementations.PHYSICAL_CALL;
 config.implementations.PHYSICAL_PUT;
-config.implementations.PHYSICAL_CALL_SPREAD;
-config.implementations.PHYSICAL_PUT_SPREAD;
-config.implementations.PHYSICAL_CALL_FLY;
-config.implementations.PHYSICAL_PUT_FLY;
-config.implementations.PHYSICAL_CALL_CONDOR;
-config.implementations.PHYSICAL_PUT_CONDOR;
-config.implementations.PHYSICAL_IRON_CONDOR;
 ```
 
 ## Price Feeds (Chainlink)
@@ -134,7 +127,7 @@ config.contracts.optionFactory;  // '0x1aDcD391CF15Fb699Ed29B1D394F4A64106886e5'
 | `apiBaseUrl` | Orders API | `https://round-snowflake-9c31.devops-118.workers.dev` |
 | `indexerApiUrl` | Book indexer (positions, stats) | `https://indexer.thetanuts.finance/api/v1/book` |
 | `pricingApiUrl` | Greeks and IV surfaces | `https://pricing.thetanuts.finance` |
-| `stateApiUrl` | RFQ state indexer | `https://dry-cake-8c44.devops-118.workers.dev` |
+| `stateApiUrl` | RFQ state indexer | `https://indexer.thetanuts.finance` |
 | `wsBaseUrl` | WebSocket server | `wss://ws.thetanuts.finance/v4` |
 
 ## ChainConfig Interface
