@@ -46,8 +46,8 @@ The SDK supports two trading systems. Choose based on your use case:
 | | **OptionBook** | **RFQ (Factory)** |
 |---|---|---|
 | **What** | Fill existing market-maker orders | Create custom options via sealed-bid auction |
-| **When to use** | Quick trades on listed options | Custom strikes, expiries, multi-leg structures |
-| **Structures** | Vanilla only | Vanilla, spread, butterfly, condor, iron condor |
+| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom strikes, expiries, or physically settled options via sealed-bid auction |
+| **Structures** | Vanilla, spread, butterfly, condor, iron condor (cash-settled) | Vanilla, spread, butterfly, condor, iron condor (cash-settled or physically settled for vanilla) |
 | **Key methods** | `fillOrder()`, `previewFillOrder()` | `buildRFQRequest()`, `requestForQuotation()` |
 | **Pricing** | Order prices from `fetchOrders()` | MM pricing from `getAllPricing()` |
 | **Data source** | Book indexer (`/api/v1/book/`) | Factory indexer (`/api/v1/factory/`) |

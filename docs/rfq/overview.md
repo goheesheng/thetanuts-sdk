@@ -22,8 +22,8 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 | | **OptionBook** | **RFQ (Factory)** |
 |---|---|---|
 | **What** | Fill existing market-maker orders | Create custom options via sealed-bid auction |
-| **When to use** | Quick trades on listed options | Custom strikes, expiries, multi-leg structures |
-| **Structures** | Vanilla only | Vanilla, spread, butterfly, condor, iron condor |
+| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom strikes, expiries, or physically settled options via sealed-bid auction |
+| **Structures** | Vanilla, spread, butterfly, condor, iron condor (cash-settled) | Vanilla, spread, butterfly, condor, iron condor (cash-settled or physically settled for vanilla) |
 | **Key methods** | `fillOrder()`, `previewFillOrder()` | `buildRFQRequest()`, `requestForQuotation()` |
 | **Pricing** | Order prices from `fetchOrders()` | MM pricing from `getAllPricing()` |
 | **Data source** | Book indexer (`/api/v1/book/`) | Factory indexer (`/api/v1/factory/`) |
@@ -35,13 +35,12 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 
 Choose the RFQ system when you need:
 
-- A **non-standard strike** or expiry not listed in the OptionBook
-- A **multi-leg structure** such as a spread, butterfly, or condor
-- A **physically settled** option (vanilla only)
+- A **custom strike or expiry** not currently listed in the OptionBook (any future timestamp works)
+- A **physically settled** option (vanilla only, actual delivery of underlying at expiry)
 - **Price competition** — you want multiple MMs to bid rather than taking a single listed price
 - To **close an existing position** by specifying `existingOptionAddress`
 
-Choose the OptionBook when you want a quick fill on a standard listed option and don't need custom parameters.
+Choose OptionBook when an existing maker order matches what you want. OptionBook supports vanilla and multi-leg structures (spreads, butterflies, condors) but only cash-settled.
 
 ## High-Level Flow
 
