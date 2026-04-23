@@ -32,7 +32,7 @@ No physical delivery of assets occurs. For physically settled options (actual de
 | **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
 | **Stats** | `getBookProtocolStats()`, `getBookDailyStats()` | `getFactoryProtocolStats()`, `getFactoryDailyStats()` |
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
-| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled or physically settled (actual delivery of underlying at expiry) |
+| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled by default; physically settled optional via `buildPhysicalOptionRFQ()` |
 
 Use OptionBook when you want to trade quickly against already-priced orders. Use RFQ when you need a specific strike, expiry, or multi-leg structure that is not currently listed in the book.
 

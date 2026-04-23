@@ -15,7 +15,7 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 - **Full collateralization** — Every option created through the factory is 100% collateralized. Collateral is pulled at settlement, not at RFQ creation.
 - **Atomic settlement** — Option deployment and collateral/premium transfer happen in a single transaction.
 - **Multi-leg structures** — Vanilla, spreads (2-leg), butterflies (3-leg), condors and iron condors (4-leg), plus physically settled variants.
-- **Cash or physical settlement** — Cash-settled options pay out the price difference in the collateral token (USDC for PUTs, WETH/cbBTC for CALLs). Physically settled options involve actual delivery of the underlying asset at expiry. Use `buildRFQRequest()` for cash-settled, `buildPhysicalOptionRFQ()` for physically settled (vanilla only).
+- **Cash-settled by default, physical optional** — RFQs are cash-settled by default via `buildRFQRequest()`. Cash settlement pays out the price difference in the collateral token (USDC for PUTs, WETH/cbBTC for CALLs). For physically settled options (actual delivery of underlying at expiry), use `buildPhysicalOptionRFQ()` instead (vanilla only).
 
 ## OptionBook vs RFQ (Factory)
 
@@ -29,7 +29,7 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 | **Data source** | Book indexer (`/api/v1/book/`) | Factory indexer (`/api/v1/factory/`) |
 | **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
-| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled or physically settled (actual delivery of underlying at expiry) |
+| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled by default; physically settled optional via `buildPhysicalOptionRFQ()` |
 
 ## When to Use RFQ
 
