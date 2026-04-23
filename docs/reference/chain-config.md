@@ -56,13 +56,6 @@ These implementations are used by the RFQ (Factory) system for creating custom p
 |-----|---------|-------------|
 | `PHYSICAL_CALL` | `0x07032ffb1df85eC006Be7c76249B9e6f39b60F32` | Vanilla physical CALL |
 | `PHYSICAL_PUT` | `0xAC5eCA7129909dE8c12e1a41102414B5a5f340AA` | Vanilla physical PUT |
-| `PHYSICAL_CALL_SPREAD` | Not yet deployed | Physical call spread (2 strikes) |
-| `PHYSICAL_PUT_SPREAD` | Not yet deployed | Physical put spread (2 strikes) |
-| `PHYSICAL_CALL_FLY` | Not yet deployed | Physical call butterfly (3 strikes) |
-| `PHYSICAL_PUT_FLY` | Not yet deployed | Physical put butterfly (3 strikes) |
-| `PHYSICAL_CALL_CONDOR` | Not yet deployed | Physical call condor (4 strikes) |
-| `PHYSICAL_PUT_CONDOR` | Not yet deployed | Physical put condor (4 strikes) |
-| `PHYSICAL_IRON_CONDOR` | Not yet deployed | Physical iron condor (4 strikes) |
 
 ```typescript
 // Cash-settled

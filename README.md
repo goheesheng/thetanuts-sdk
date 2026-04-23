@@ -137,13 +137,6 @@ config.implementations.IRON_CONDOR;    // Iron condor (4 strikes)
 // Physically settled implementations (RFQ/Factory)
 config.implementations.PHYSICAL_PUT;          // Vanilla physical PUT
 config.implementations.PHYSICAL_CALL;         // Vanilla physical CALL
-config.implementations.PHYSICAL_PUT_SPREAD;   // Physical put spread (2 strikes)
-config.implementations.PHYSICAL_CALL_SPREAD;  // Physical call spread (2 strikes)
-config.implementations.PHYSICAL_PUT_FLY;      // Physical put butterfly (3 strikes)
-config.implementations.PHYSICAL_CALL_FLY;     // Physical call butterfly (3 strikes)
-config.implementations.PHYSICAL_PUT_CONDOR;   // Physical put condor (4 strikes)
-config.implementations.PHYSICAL_CALL_CONDOR;  // Physical call condor (4 strikes)
-config.implementations.PHYSICAL_IRON_CONDOR;  // Physical iron condor (4 strikes)
 
 // Price feeds
 config.priceFeeds.ETH;  // Chainlink ETH/USD feed
