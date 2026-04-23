@@ -123,7 +123,7 @@ config.tokens.USDC.decimals; // 6
 config.tokens.WETH.address;  // 0x4200000000000000000000000000000000000006
 config.tokens.cbBTC.address; // 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf
 
-// Cash-settled option implementations
+// Cash-settled implementations (OptionBook)
 config.implementations.PUT;            // Vanilla PUT
 config.implementations.INVERSE_CALL;   // Vanilla CALL
 config.implementations.PUT_SPREAD;     // Put spread (2 strikes)
@@ -134,7 +134,7 @@ config.implementations.PUT_CONDOR;     // Put condor (4 strikes)
 config.implementations.CALL_CONDOR;    // Call condor (4 strikes)
 config.implementations.IRON_CONDOR;    // Iron condor (4 strikes)
 
-// Physically settled option implementations
+// Physically settled implementations (RFQ/Factory)
 config.implementations.PHYSICAL_PUT;          // Vanilla physical PUT
 config.implementations.PHYSICAL_CALL;         // Vanilla physical CALL
 config.implementations.PHYSICAL_PUT_SPREAD;   // Physical put spread (2 strikes)

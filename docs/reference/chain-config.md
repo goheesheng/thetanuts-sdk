@@ -32,7 +32,9 @@ config.tokens.cbBTC.decimals; // 8
 
 ## Option Implementations
 
-### Cash-Settled
+### Cash-Settled (OptionBook)
+
+These implementations are used by the OptionBook system for filling existing market-maker orders.
 
 | Key | Address | Description |
 |-----|---------|-------------|
@@ -46,19 +48,21 @@ config.tokens.cbBTC.decimals; // 8
 | `PUT_CONDOR` | `0xbdAcC00Dc3F6e1928D9380c17684344e947aa3Ec` | Put condor (4 strikes) |
 | `IRON_CONDOR` | `0x494Cd61b866D076c45564e236D6Cb9e011a72978` | Iron condor (4 strikes) |
 
-### Physically Settled
+### Physically Settled (RFQ/Factory)
 
-| Key | Description |
-|-----|-------------|
-| `PHYSICAL_CALL` | Vanilla physically settled CALL |
-| `PHYSICAL_PUT` | Vanilla physically settled PUT |
-| `PHYSICAL_CALL_SPREAD` | Physical CALL spread (2 strikes) |
-| `PHYSICAL_PUT_SPREAD` | Physical PUT spread (2 strikes) |
-| `PHYSICAL_CALL_FLY` | Physical CALL butterfly (3 strikes) |
-| `PHYSICAL_PUT_FLY` | Physical PUT butterfly (3 strikes) |
-| `PHYSICAL_CALL_CONDOR` | Physical CALL condor (4 strikes) |
-| `PHYSICAL_PUT_CONDOR` | Physical PUT condor (4 strikes) |
-| `PHYSICAL_IRON_CONDOR` | Physical iron condor (4 strikes) |
+These implementations are used by the RFQ (Factory) system for creating custom physically settled options via sealed-bid auction.
+
+| Key | Address | Description |
+|-----|---------|-------------|
+| `PHYSICAL_CALL` | `0x07032ffb1df85eC006Be7c76249B9e6f39b60F32` | Vanilla physical CALL |
+| `PHYSICAL_PUT` | `0xAC5eCA7129909dE8c12e1a41102414B5a5f340AA` | Vanilla physical PUT |
+| `PHYSICAL_CALL_SPREAD` | Not yet deployed | Physical call spread (2 strikes) |
+| `PHYSICAL_PUT_SPREAD` | Not yet deployed | Physical put spread (2 strikes) |
+| `PHYSICAL_CALL_FLY` | Not yet deployed | Physical call butterfly (3 strikes) |
+| `PHYSICAL_PUT_FLY` | Not yet deployed | Physical put butterfly (3 strikes) |
+| `PHYSICAL_CALL_CONDOR` | Not yet deployed | Physical call condor (4 strikes) |
+| `PHYSICAL_PUT_CONDOR` | Not yet deployed | Physical put condor (4 strikes) |
+| `PHYSICAL_IRON_CONDOR` | Not yet deployed | Physical iron condor (4 strikes) |
 
 ```typescript
 // Cash-settled
