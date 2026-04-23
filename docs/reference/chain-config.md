@@ -15,19 +15,29 @@ const config = client.chainConfig;
 
 ## Tokens
 
-| Symbol | Address | Decimals |
-|--------|---------|----------|
-| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6 |
-| WETH | `0x4200000000000000000000000000000000000006` | 18 |
-| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` | 8 |
+| Symbol | Address | Decimals | Description |
+|--------|---------|----------|-------------|
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6 | USD Coin |
+| WETH | `0x4200000000000000000000000000000000000006` | 18 | Wrapped Ether |
+| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` | 8 | Coinbase Wrapped BTC |
+| aBasWETH | `0xD4a0e0b9149BCee3C920d2E00b5dE09138fd8bb7` | 18 | Aave Base WETH |
+| aBascbBTC | `0xBdb9300b7CDE636d9cD4AFF00f6F009fFBBc8EE6` | 8 | Aave Base cbBTC |
+| aBasUSDC | `0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB` | 6 | Aave Base USDC |
+| cbDOGE | `0x73c7A9C372F31c1b1C7f8E5A7D12B8735c817C79` | 8 | Coinbase Wrapped DOGE |
+| cbXRP | `0x7B2Cd9EA5566c345C9cdbcF58f5E211a0dB47444` | 6 | Coinbase Wrapped XRP |
 
 ```typescript
-config.tokens.USDC.address;   // '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-config.tokens.USDC.decimals;  // 6
-config.tokens.WETH.address;   // '0x4200000000000000000000000000000000000006'
-config.tokens.WETH.decimals;  // 18
-config.tokens.cbBTC.address;  // '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
-config.tokens.cbBTC.decimals; // 8
+config.tokens.USDC.address;      // '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+config.tokens.USDC.decimals;     // 6
+config.tokens.WETH.address;      // '0x4200000000000000000000000000000000000006'
+config.tokens.WETH.decimals;     // 18
+config.tokens.cbBTC.address;     // '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+config.tokens.cbBTC.decimals;    // 8
+config.tokens.aBasWETH.address;  // '0xD4a0e0b9149BCee3C920d2E00b5dE09138fd8bb7'
+config.tokens.aBascbBTC.address; // '0xBdb9300b7CDE636d9cD4AFF00f6F009fFBBc8EE6'
+config.tokens.aBasUSDC.address;  // '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB'
+config.tokens.cbDOGE.address;    // '0x73c7A9C372F31c1b1C7f8E5A7D12B8735c817C79'
+config.tokens.cbXRP.address;     // '0x7B2Cd9EA5566c345C9cdbcF58f5E211a0dB47444'
 ```
 
 ## Option Implementations
@@ -87,10 +97,22 @@ config.implementations.PHYSICAL_IRON_CONDOR;
 |-------|-------------|
 | ETH | `0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70` |
 | BTC | `0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F` |
+| SOL | `0x975043adBb80fc32276CbF9Bbcfd4A601a12462D` |
+| DOGE | `0x8422f3d3CAFf15Ca682939310d6A5e619AE08e57` |
+| XRP | `0x9f0C1dD78C4CBdF5b9cf923a549A201EdC676D34` |
+| BNB | `0x4b7836916781CAAfbb7Bd1E5FDd20ED544B453b1` |
+| PAXG | `0x5213eBB69743b85644dbB6E25cdF994aFBb8cF31` |
+| AVAX | `0xE70f2D34Fd04046aaEC26a198A35dD8F2dF5cd92` |
 
 ```typescript
-config.priceFeeds.ETH;  // Chainlink ETH/USD feed
-config.priceFeeds.BTC;  // Chainlink BTC/USD feed
+config.priceFeeds.ETH;   // Chainlink ETH/USD feed
+config.priceFeeds.BTC;   // Chainlink BTC/USD feed
+config.priceFeeds.SOL;   // Chainlink SOL/USD feed
+config.priceFeeds.DOGE;  // Chainlink DOGE/USD feed
+config.priceFeeds.XRP;   // Chainlink XRP/USD feed
+config.priceFeeds.BNB;   // Chainlink BNB/USD feed
+config.priceFeeds.PAXG;  // Chainlink PAXG/USD feed
+config.priceFeeds.AVAX;  // Chainlink AVAX/USD feed
 ```
 
 ## Contracts
