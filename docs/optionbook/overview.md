@@ -24,7 +24,7 @@ No physical delivery of assets occurs. For physically settled options (actual de
 | | **OptionBook** | **RFQ (Factory)** |
 |---|---|---|
 | **What** | Fill existing market-maker orders | Create custom options via sealed-bid auction |
-| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom strikes, expiries, or physically settled options via sealed-bid auction |
+| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom options via sealed-bid auction: any strike, any expiry, cash-settled or physically settled |
 | **Structures** | Vanilla, spread, butterfly, condor, iron condor (cash-settled) | Vanilla, spread, butterfly, condor, iron condor (cash-settled or physically settled for vanilla) |
 | **Key methods** | `fillOrder()`, `previewFillOrder()` | `buildRFQRequest()`, `requestForQuotation()` |
 | **Pricing** | Order prices from `fetchOrders()` | MM pricing from `getAllPricing()` |

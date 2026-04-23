@@ -22,7 +22,7 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 | | **OptionBook** | **RFQ (Factory)** |
 |---|---|---|
 | **What** | Fill existing market-maker orders | Create custom options via sealed-bid auction |
-| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom strikes, expiries, or physically settled options via sealed-bid auction |
+| **When to use** | Quick trades on listed options (vanilla and multi-leg) | Custom options via sealed-bid auction: any strike, any expiry, cash-settled or physically settled |
 | **Structures** | Vanilla, spread, butterfly, condor, iron condor (cash-settled) | Vanilla, spread, butterfly, condor, iron condor (cash-settled or physically settled for vanilla) |
 | **Key methods** | `fillOrder()`, `previewFillOrder()` | `buildRFQRequest()`, `requestForQuotation()` |
 | **Pricing** | Order prices from `fetchOrders()` | MM pricing from `getAllPricing()` |
@@ -35,12 +35,13 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 
 Choose the RFQ system when you need:
 
-- A **custom strike or expiry** not currently listed in the OptionBook (any future timestamp works)
-- A **physically settled** option (vanilla only, actual delivery of underlying at expiry)
-- **Price competition** — you want multiple MMs to bid rather than taking a single listed price
+- A **custom cash-settled option** with any strike and any expiry not listed in the OptionBook (use `buildRFQRequest()`)
+- A **physically settled** option where actual tokens are delivered at expiry (use `buildPhysicalOptionRFQ()`, vanilla only)
+- **Price competition** — you want multiple MMs to submit sealed bids rather than taking a single listed price
+- A specific **multi-leg structure** (spread, butterfly, condor, iron condor) at your chosen strikes and expiry
 - To **close an existing position** by specifying `existingOptionAddress`
 
-Choose OptionBook when an existing maker order matches what you want. OptionBook supports vanilla and multi-leg structures (spreads, butterflies, condors) but only cash-settled.
+Choose OptionBook when an existing maker order already matches what you want. OptionBook supports vanilla and multi-leg structures but only cash-settled.
 
 ## High-Level Flow
 

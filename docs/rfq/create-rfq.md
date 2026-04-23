@@ -1,6 +1,6 @@
 # Create an RFQ
 
-Submit a Request for Quotation to the OptionFactory and have market makers compete to fill your custom option.
+Submit a Request for Quotation to the OptionFactory and have market makers compete to fill your custom option. This page covers **cash-settled** RFQs (the default). For physically settled options, see [Physical Options](physical-options.md).
 
 ## Prerequisites
 
