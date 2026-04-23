@@ -21,11 +21,27 @@ config.tokens.USDC.decimals; // 6
 config.tokens.WETH.address;  // 0x4200000000000000000000000000000000000006
 config.tokens.cbBTC.address; // 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf
 
-// Option implementations
-config.implementations.PUT;           // PUT option implementation
-config.implementations.INVERSE_CALL;  // CALL option implementation
-config.implementations.PHYSICAL_PUT;  // Physically settled PUT
-config.implementations.PHYSICAL_CALL; // Physically settled CALL
+// Cash-settled option implementations
+config.implementations.PUT;            // Vanilla PUT
+config.implementations.INVERSE_CALL;   // Vanilla CALL
+config.implementations.PUT_SPREAD;     // Put spread (2 strikes)
+config.implementations.CALL_SPREAD;    // Call spread (2 strikes)
+config.implementations.PUT_FLY;        // Put butterfly (3 strikes)
+config.implementations.CALL_FLY;       // Call butterfly (3 strikes)
+config.implementations.PUT_CONDOR;     // Put condor (4 strikes)
+config.implementations.CALL_CONDOR;    // Call condor (4 strikes)
+config.implementations.IRON_CONDOR;    // Iron condor (4 strikes)
+
+// Physically settled option implementations
+config.implementations.PHYSICAL_PUT;          // Vanilla physical PUT
+config.implementations.PHYSICAL_CALL;         // Vanilla physical CALL
+config.implementations.PHYSICAL_PUT_SPREAD;   // Physical put spread (2 strikes)
+config.implementations.PHYSICAL_CALL_SPREAD;  // Physical call spread (2 strikes)
+config.implementations.PHYSICAL_PUT_FLY;      // Physical put butterfly (3 strikes)
+config.implementations.PHYSICAL_CALL_FLY;     // Physical call butterfly (3 strikes)
+config.implementations.PHYSICAL_PUT_CONDOR;   // Physical put condor (4 strikes)
+config.implementations.PHYSICAL_CALL_CONDOR;  // Physical call condor (4 strikes)
+config.implementations.PHYSICAL_IRON_CONDOR;  // Physical iron condor (4 strikes)
 
 // Price feeds
 config.priceFeeds.ETH;  // Chainlink ETH/USD feed
