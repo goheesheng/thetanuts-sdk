@@ -12,6 +12,7 @@
 
 * [Overview](optionbook/overview.md)
 * [Browse & Filter Orders](optionbook/browse-filter-orders.md)
+* [Multi-Leg Structures](optionbook/multi-leg-structures.md)
 * [Preview Fills](optionbook/preview-fills.md)
 * [Fill Orders](optionbook/fill-orders.md)
 * [Referrer Fees](optionbook/referrer-fees.md)
