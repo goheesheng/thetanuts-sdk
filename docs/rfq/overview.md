@@ -45,6 +45,42 @@ Choose the RFQ system when you need:
 
 Choose OptionBook when an existing maker order already matches what you want. OptionBook is faster (instant fill vs ~60 second auction).
 
+## Quick Example
+
+```typescript
+import { ethers } from 'ethers';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
+
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+const client = new ThetanutsClient({ chainId: 8453, provider, signer });
+const userAddress = await signer.getAddress();
+
+// 1. Generate ECDH keypair (used to decrypt MM offers)
+const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
+// 2. Create a cash-settled PUT RFQ
+const rfqRequest = client.optionFactory.buildRFQRequest({
+  requester: userAddress,
+  underlying: 'ETH',
+  optionType: 'PUT',
+  strike: 2000,
+  expiry: Math.floor(Date.now() / 1000) + 86400 * 7,
+  numContracts: 1,
+  isLong: true,
+  offerDeadlineMinutes: 60,
+  collateralToken: 'USDC',
+  requesterPublicKey: keyPair.compressedPublicKey,
+});
+
+// 3. Send the RFQ transaction
+const { to, data } = client.optionFactory.encodeRequestForQuotation(rfqRequest);
+const tx = await signer.sendTransaction({ to, data });
+console.log('RFQ created:', tx.hash);
+
+// 4. Wait for MM offers, then settle (see Early Settlement or RFQ Lifecycle)
+```
+
 ## High-Level Flow
 
 ```

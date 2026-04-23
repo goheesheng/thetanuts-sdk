@@ -104,6 +104,37 @@ Complete walkthrough of the four phases of an RFQ — from creation through sett
 | `offerDeadlineMinutes` | How long MMs can respond | `60` |
 | `reservePrice` | Max/min acceptable price per contract (optional) | `0.015` |
 
+### Example: Create a Vanilla PUT RFQ
+
+```typescript
+import { ethers } from 'ethers';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
+
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+const client = new ThetanutsClient({ chainId: 8453, provider, signer });
+const userAddress = await signer.getAddress();
+const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
+const rfqRequest = client.optionFactory.buildRFQRequest({
+  requester: userAddress,
+  underlying: 'ETH',
+  optionType: 'PUT',
+  strike: 2000,
+  expiry: Math.floor(Date.now() / 1000) + 86400 * 7,  // 7 days
+  numContracts: 1.5,
+  isLong: true,
+  offerDeadlineMinutes: 60,
+  collateralToken: 'USDC',
+  reservePrice: 0.015,
+  requesterPublicKey: keyPair.compressedPublicKey,
+});
+
+const { to, data } = client.optionFactory.encodeRequestForQuotation(rfqRequest);
+const tx = await signer.sendTransaction({ to, data });
+console.log('RFQ created:', tx.hash);
+```
+
 ### Critical: collateralAmount is ALWAYS 0
 
 `collateralAmount` in the on-chain parameters must always be `0`. Collateral is NOT locked at RFQ creation — it is pulled from the seller at settlement. The `buildRFQParams` helper enforces this automatically.
@@ -203,6 +234,34 @@ Timeline:
 **When to use:** You see a good offer and want to lock it in before the deadline.
 
 **Who can call:** Only the requester (permissioned).
+
+```typescript
+// Decrypt an MM's offer and settle early
+const quotationId = 784n;
+const offerEvents = await client.events.getOfferMadeEvents({
+  quotationId,
+  fromBlock: currentBlock - 1000,
+});
+
+const offer = offerEvents[0];
+const keyPair = await client.rfqKeys.loadKeyPair();
+const decrypted = await client.rfqKeys.decryptOffer(
+  offer.signedOfferForRequester,
+  offer.signingKey,
+);
+
+console.log('Offer amount:', ethers.formatUnits(decrypted.offerAmount, 6), 'USDC');
+
+// Accept the offer
+const { to, data } = client.optionFactory.encodeSettleQuotationEarly(
+  quotationId,
+  decrypted.offerAmount,
+  decrypted.nonce,
+  offer.offeror,
+);
+const tx = await signer.sendTransaction({ to, data });
+console.log('Early settlement TX:', tx.hash);
+```
 
 See [Early Settlement](early-settlement.md) for a complete code example.
 
