@@ -4,9 +4,14 @@ Fill existing market-maker orders for vanilla options on-chain without needing a
 
 ## What is OptionBook?
 
-OptionBook is the order-book side of the Thetanuts protocol. Market makers post signed orders for vanilla options (PUTs and CALLs on ETH and BTC). As a taker, you browse those orders, pick one you like, and fill it — all in a single transaction.
+OptionBook is the order-book side of the Thetanuts protocol. Market makers post signed orders for vanilla options (PUTs and CALLs on ETH and BTC). As a taker, you browse those orders, pick one you like, and fill it in a single transaction.
 
-Collateral is paid upfront by the taker. When the option expires, settlement is cash-only (USDC, WETH, or cbBTC depending on the option type).
+Collateral is paid upfront by the taker. All OptionBook options are **cash-settled**: at expiry, the payout is calculated based on the difference between the strike price and the settlement price (Chainlink oracle), and paid out in the collateral token:
+
+- **PUT options**: Collateral and payout in USDC
+- **CALL options (Inverse Call)**: Collateral and payout in the underlying token (WETH for ETH, cbBTC for BTC)
+
+No physical delivery of assets occurs. For physically settled options (actual delivery of underlying at expiry), use [RFQ/Factory](../rfq/overview.md) instead.
 
 ## OptionBook vs RFQ
 
@@ -21,7 +26,7 @@ Collateral is paid upfront by the taker. When the option expires, settlement is 
 | **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
 | **Stats** | `getBookProtocolStats()`, `getBookDailyStats()` | `getFactoryProtocolStats()`, `getFactoryDailyStats()` |
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
-| **Settlement** | Cash only | Cash or physical |
+| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled or physically settled (actual delivery of underlying at expiry) |
 
 Use OptionBook when you want to trade quickly against already-priced orders. Use RFQ when you need a specific strike, expiry, or multi-leg structure that is not currently listed in the book.
 

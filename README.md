@@ -54,7 +54,7 @@ The SDK supports two trading systems. Choose based on your use case:
 | **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
 | **Stats** | `getBookProtocolStats()`, `getBookDailyStats()` | `getFactoryProtocolStats()`, `getFactoryDailyStats()` |
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
-| **Settlement** | Cash only | Cash or physical |
+| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled or physically settled (actual delivery of underlying at expiry) |
 
 ## Installation
 

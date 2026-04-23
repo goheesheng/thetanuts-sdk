@@ -15,7 +15,7 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 - **Full collateralization** — Every option created through the factory is 100% collateralized. Collateral is pulled at settlement, not at RFQ creation.
 - **Atomic settlement** — Option deployment and collateral/premium transfer happen in a single transaction.
 - **Multi-leg structures** — Vanilla, spreads (2-leg), butterflies (3-leg), condors and iron condors (4-leg), plus physically settled variants.
-- **Cash or physical settlement** — Vanilla options can be cash-settled or physically settled. Multi-leg structures are cash-settled only.
+- **Cash or physical settlement** — Cash-settled options pay out the price difference in the collateral token (USDC for PUTs, WETH/cbBTC for CALLs). Physically settled options involve actual delivery of the underlying asset at expiry. Use `buildRFQRequest()` for cash-settled, `buildPhysicalOptionRFQ()` for physically settled (vanilla only).
 
 ## OptionBook vs RFQ (Factory)
 
@@ -29,7 +29,7 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 | **Data source** | Book indexer (`/api/v1/book/`) | Factory indexer (`/api/v1/factory/`) |
 | **User data** | `getUserPositionsFromIndexer()` | `getUserRfqs()`, `getUserOptionsFromRfq()` |
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
-| **Settlement** | Cash only | Cash or physical |
+| **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled or physically settled (actual delivery of underlying at expiry) |
 
 ## When to Use RFQ
 
@@ -61,13 +61,14 @@ Choose the OptionBook when you want a quick fill on a standard listed option and
 
 ## Supported Structures
 
-| Strikes | Structure | Implementation |
-|---------|-----------|----------------|
-| 1 | Vanilla | `PUT` / `INVERSE_CALL` |
-| 1 (physical) | Physical vanilla | `PHYSICAL_PUT` / `PHYSICAL_CALL` |
-| 2 | Spread | `PUT_SPREAD` / `CALL_SPREAD` |
-| 3 | Butterfly | `PUT_FLYS` / `CALL_FLYS` |
-| 4 | Condor / Iron Condor | `PUT_CONDOR` / `CALL_CONDOR` / `IRON_CONDOR` |
+| Strikes | Structure | Settlement | Implementation | SDK Method |
+|---------|-----------|------------|----------------|------------|
+| 1 | Vanilla | Cash | `PUT` / `INVERSE_CALL` | `buildRFQRequest()` |
+| 1 | Vanilla | Physical | `PHYSICAL_PUT` / `PHYSICAL_CALL` | `buildPhysicalOptionRFQ()` |
+| 2 | Spread | Cash | `PUT_SPREAD` / `CALL_SPREAD` | `buildRFQRequest()` or `buildSpreadRFQ()` |
+| 3 | Butterfly | Cash | `PUT_FLY` / `CALL_FLY` | `buildRFQRequest()` or `buildButterflyRFQ()` |
+| 4 | Condor | Cash | `PUT_CONDOR` / `CALL_CONDOR` | `buildRFQRequest()` or `buildCondorRFQ()` |
+| 4 | Iron Condor | Cash | `IRON_CONDOR` | `buildRFQRequest()` or `buildIronCondorRFQ()` |
 
 The SDK detects the structure automatically from the length of the `strikes` array passed to `buildRFQParams()` or `buildRFQRequest()`.
 
