@@ -25,7 +25,7 @@ Pass strikes to `buildRFQParams` or `buildRFQRequest` as a `strikes` array (or u
 |-----------|---------|----------------|--------------|--------------------|
 | Vanilla | 1 | `PUT` / `INVERSE_CALL` | N/A | PUT: `strike × N` / CALL: `N` |
 | Spread | 2 | `PUT_SPREAD` / `CALL_SPREAD` | PUT: desc, CALL: asc | `(upper − lower) × N` |
-| Butterfly | 3 | `PUT_FLYS` / `CALL_FLYS` | PUT: desc, CALL: asc | `(middle − lower) × N` |
+| Butterfly | 3 | `PUT_FLY` / `CALL_FLY` | PUT: desc, CALL: asc | `(middle − lower) × N` |
 | Condor | 4 | `PUT_CONDOR` / `CALL_CONDOR` | Always ascending | `(strike2 − strike1) × N` |
 | Iron Condor | 4 | `IRON_CONDOR` | `[strike1, strike2, strike3, strike4]` ascending | `max(putWidth, callWidth) × N` |
 
