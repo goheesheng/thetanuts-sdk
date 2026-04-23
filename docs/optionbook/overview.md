@@ -34,7 +34,12 @@ No physical delivery of assets occurs. For physically settled options (actual de
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
 | **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled by default; physically settled optional via `buildPhysicalOptionRFQ()` |
 
-Use OptionBook when you want to trade quickly against already-priced orders. Use RFQ when you need a specific strike, expiry, or multi-leg structure that is not currently listed in the book.
+Both OptionBook and RFQ create cash-settled options using the same on-chain implementation contracts (PUT, INVERSE_CALL, spreads, etc.). The difference is how you get there:
+
+- **OptionBook**: Fill a pre-priced order instantly. The strike, expiry, and price are already set by the maker.
+- **RFQ**: Request your own custom strike and expiry. Market makers compete via sealed-bid auction (~60 seconds for offers).
+
+If OptionBook has an order matching your trade, use it. It's faster. Use RFQ when you need parameters that aren't currently listed.
 
 ## Core Flow
 

@@ -2,6 +2,8 @@
 
 Submit a Request for Quotation to the OptionFactory and have market makers compete to fill your custom option. This page covers **cash-settled** RFQs (the default). For physically settled options, see [Physical Options](physical-options.md).
 
+RFQ uses the same cash-settled implementation contracts as OptionBook (PUT, INVERSE_CALL, spreads, etc.). The difference is that you choose the strike and expiry instead of filling an existing order.
+
 ## Prerequisites
 
 - Install the SDK: `npm install @thetanuts-finance/thetanuts-client`

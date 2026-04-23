@@ -29,6 +29,24 @@ The SDK supports two trading systems. Choose based on your use case:
 | **Collateral** | Paid upfront by taker | `collateralAmount = 0` (held by factory) |
 | **Settlement** | Cash-settled (payout in USDC/WETH/cbBTC based on price difference at expiry) | Cash-settled by default; physically settled optional via `buildPhysicalOptionRFQ()` |
 
+## Which one should I use?
+
+Both OptionBook and RFQ create cash-settled options using the same on-chain contracts. The difference is how you get there:
+
+```
+Is there an existing order that matches your trade?
+  YES --> Use OptionBook (instant fill, no waiting)
+  NO  --> Use RFQ (custom strike/expiry, MMs compete on price)
+
+Need physical settlement (actual token delivery at expiry)?
+  YES --> Use RFQ with buildPhysicalOptionRFQ()
+  NO  --> Either works. OptionBook is faster if an order exists.
+```
+
+**OptionBook** is like a limit order book. Makers have already posted orders with set strikes, expiries, and prices. You pick one and fill it instantly.
+
+**RFQ** is like sending out a request for bids. You specify what you want (any strike, any expiry), and market makers compete via sealed-bid auction. It takes ~60 seconds for offers to arrive, but you get competitive pricing on exactly the parameters you need.
+
 ---
 
 ## See also

@@ -42,9 +42,9 @@ config.tokens.cbXRP.address;     // '0x7B2Cd9EA5566c345C9cdbcF58f5E211a0dB47444'
 
 ## Option Implementations
 
-### Cash-Settled (OptionBook)
+### Cash-Settled
 
-These implementations are used by the OptionBook system for filling existing market-maker orders.
+Used by both OptionBook (filling listed orders) and RFQ (creating custom options via `buildRFQRequest()`). The same implementation contracts are shared between both systems.
 
 | Key | Address | Description |
 |-----|---------|-------------|
@@ -58,9 +58,9 @@ These implementations are used by the OptionBook system for filling existing mar
 | `PUT_CONDOR` | `0xbdAcC00Dc3F6e1928D9380c17684344e947aa3Ec` | Put condor (4 strikes) |
 | `IRON_CONDOR` | `0x494Cd61b866D076c45564e236D6Cb9e011a72978` | Iron condor (4 strikes) |
 
-### Physically Settled (RFQ/Factory)
+### Physically Settled
 
-These implementations are used by the RFQ (Factory) system for creating custom physically settled options via sealed-bid auction.
+Used by RFQ only, via `buildPhysicalOptionRFQ()`. Vanilla options only. At expiry, the underlying asset is delivered rather than a cash payout.
 
 | Key | Address | Description |
 |-----|---------|-------------|

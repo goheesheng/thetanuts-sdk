@@ -33,15 +33,17 @@ Under the hood the OptionFactory contract acts as both auctioneer and deployer: 
 
 ## When to Use RFQ
 
+RFQ uses the same cash-settled implementation contracts as OptionBook (PUT, INVERSE_CALL, spreads, etc.). The difference is that you choose the parameters instead of filling an existing order.
+
 Choose the RFQ system when you need:
 
-- A **custom cash-settled option** with any strike and any expiry not listed in the OptionBook (use `buildRFQRequest()`)
-- A **physically settled** option where actual tokens are delivered at expiry (use `buildPhysicalOptionRFQ()`, vanilla only)
-- **Price competition** — you want multiple MMs to submit sealed bids rather than taking a single listed price
+- A **cash-settled option with custom parameters** ... any strike price, any expiry date, any structure ... that isn't currently listed on the OptionBook (use `buildRFQRequest()`)
+- **Price competition** ... you want multiple MMs to submit sealed bids rather than taking a single listed price
 - A specific **multi-leg structure** (spread, butterfly, condor, iron condor) at your chosen strikes and expiry
+- A **physically settled** option where actual tokens are delivered at expiry (use `buildPhysicalOptionRFQ()`, vanilla only)
 - To **close an existing position** by specifying `existingOptionAddress`
 
-Choose OptionBook when an existing maker order already matches what you want. OptionBook supports vanilla and multi-leg structures but only cash-settled.
+Choose OptionBook when an existing maker order already matches what you want. OptionBook is faster (instant fill vs ~60 second auction).
 
 ## High-Level Flow
 
