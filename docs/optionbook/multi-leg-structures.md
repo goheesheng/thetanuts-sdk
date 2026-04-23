@@ -140,6 +140,67 @@ if (butterflyOrder) {
 }
 ```
 
+### Condor Example
+
+```typescript
+// Find a condor order (4 strikes, not iron condor)
+const condorOrder = orders.find((o) => {
+  const strikes = o.rawApiData?.strikes ?? [];
+  const impl = o.rawApiData?.implementation?.toLowerCase() ?? '';
+  // Condor has 4 strikes but is NOT an iron condor
+  return strikes.length === 4 && !impl.includes('iron');
+});
+
+if (condorOrder) {
+  const preview = client.optionBook.previewFillOrder(condorOrder);
+  console.log(`Condor: ${preview.strikes.length} strikes`);
+  console.log(`Strikes: ${preview.strikes.join(', ')}`);
+  console.log(`Max contracts: ${preview.maxContracts}`);
+  console.log(`Price per contract: ${preview.pricePerContract}`);
+
+  // Approve and fill
+  await client.erc20.ensureAllowance(
+    preview.collateralToken,
+    client.chainConfig.contracts.optionBook,
+    preview.totalCollateral,
+  );
+  const receipt = await client.optionBook.fillOrder(condorOrder);
+  console.log(`Condor filled: ${receipt.hash}`);
+}
+```
+
+### Iron Condor Example
+
+An iron condor combines a put spread and a call spread. It uses the `IRON_CONDOR` implementation with 4 strikes.
+
+```typescript
+// Find an iron condor order
+// Iron condors use a specific implementation address
+const ironCondorImpl = client.chainConfig.implementations.IRON_CONDOR.toLowerCase();
+
+const ironCondorOrder = orders.find((o) => {
+  const strikes = o.rawApiData?.strikes ?? [];
+  const impl = (o.rawApiData?.implementation ?? '').toLowerCase();
+  return strikes.length === 4 && impl === ironCondorImpl;
+});
+
+if (ironCondorOrder) {
+  const preview = client.optionBook.previewFillOrder(ironCondorOrder);
+  console.log(`Iron Condor: ${preview.strikes.length} strikes`);
+  console.log(`Strikes: ${preview.strikes.join(', ')}`);
+  console.log(`Max contracts: ${preview.maxContracts}`);
+
+  // Approve and fill
+  await client.erc20.ensureAllowance(
+    preview.collateralToken,
+    client.chainConfig.contracts.optionBook,
+    preview.totalCollateral,
+  );
+  const receipt = await client.optionBook.fillOrder(ironCondorOrder);
+  console.log(`Iron Condor filled: ${receipt.hash}`);
+}
+```
+
 ---
 
 ## Implementation Addresses
