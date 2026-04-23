@@ -27,7 +27,7 @@ Pass strikes to `buildRFQParams` or `buildRFQRequest` as a `strikes` array (or u
 | Spread | 2 | `PUT_SPREAD` / `CALL_SPREAD` | PUT: desc, CALL: asc | `(upper − lower) × N` |
 | Butterfly | 3 | `PUT_FLYS` / `CALL_FLYS` | PUT: desc, CALL: asc | `(middle − lower) × N` |
 | Condor | 4 | `PUT_CONDOR` / `CALL_CONDOR` | Always ascending | `(strike2 − strike1) × N` |
-| Iron Condor | 4 | `IRON_CONDOR` | `[putLower, putUpper, callLower, callUpper]` | `max(putWidth, callWidth) × N` |
+| Iron Condor | 4 | `IRON_CONDOR` | `[strike1, strike2, strike3, strike4]` ascending | `max(putWidth, callWidth) × N` |
 
 ---
 
@@ -272,14 +272,14 @@ const condorRFQ = client.optionFactory.buildCondorRFQ({
 An iron condor combines a put spread and a call spread with different underlying directions, straddling a range.
 
 ```typescript
-// buildIronCondorRFQ uses [putLower, putUpper, callLower, callUpper] ordering
+// buildIronCondorRFQ uses strike1-4 in ascending order: [putLower, putUpper, callLower, callUpper]
 const ironCondorRFQ = client.optionFactory.buildIronCondorRFQ({
   requester: userAddress,
   underlying: 'ETH',
-  putLowerStrike: 1700,
-  putUpperStrike: 1800,
-  callLowerStrike: 2000,
-  callUpperStrike: 2100,
+  strike1: 1700,   // put spread lower leg
+  strike2: 1800,   // put spread upper leg
+  strike3: 2000,   // call spread lower leg
+  strike4: 2100,   // call spread upper leg
   expiry: 1741334400,
   numContracts: 1,
   isLong: false,
@@ -319,7 +319,7 @@ IRON_CONDOR:       [putLower, putUpper, callLower, callUpper]
 
 ## Product Type Reference
 
-For collateral formulas, max loss calculations, and validation rules for each product type, see the full [Product Types Reference](../reference/product-types.md).
+For collateral formulas and max loss calculations, see the [Collateral Cost Reference](../pricing/collateral-cost.md).
 
 ---
 
