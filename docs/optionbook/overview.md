@@ -96,15 +96,15 @@ All OptionBook options are cash-settled. The implementation address on each orde
 |------|---------------|---------|
 | Vanilla PUT | `PUT` | `0xF480F636301d50Ed570D026254dC5728b746A90F` |
 | Vanilla CALL | `INVERSE_CALL` | `0x3CeB524cBA83D2D4579F5a9F8C0D1f5701dd16FE` |
-| Call Spread | `CALL_SPREAD` | `0x2Db5aFA04aeE616157Beb53b96612947b3d13eE3` |
-| Put Spread | `PUT_SPREAD` | `0x571471B2f823cC6B5683FC99ac6781209BC85F55` |
-| Call Butterfly | `CALL_FLY` | `0xb727690FDD4Bb0ff74f2f0CC3E68297850A634c5` |
-| Put Butterfly | `PUT_FLY` | `0x78b02119007F9EFc2297A9738b9a47A3bc3c2777` |
-| Call Condor | `CALL_CONDOR` | `0x7D3C622852d71B932D0903F973cafF45BCdBa4F1` |
-| Put Condor | `PUT_CONDOR` | `0x5cc960B56049b6f850730FacB4F3EB45417c7679` |
-| Iron Condor | `IRON_CONDOR` | `0xb200253b68Fbf18f31D813AECEf97be3A6246b79` |
+| Call Spread | `CALL_SPREAD` | `0x4D75654bC616F64F6010d512C3B277891FB52540` |
+| Put Spread | `PUT_SPREAD` | `0xC9767F9a2f1eADC7Fdcb7f0057E829D9d760E086` |
+| Call Butterfly | `CALL_FLY` | `0xD8EA785ab2A63a8a94C38f42932a54A3E45501c3` |
+| Put Butterfly | `PUT_FLY` | `0x1fE24872Ab7c83BbA26Dc761ce2EA735c9b96175` |
+| Call Condor | `CALL_CONDOR` | `0xbb5d2EB2D354D930899DaBad01e032C76CC3c28f` |
+| Put Condor | `PUT_CONDOR` | `0xbdAcC00Dc3F6e1928D9380c17684344e947aa3Ec` |
+| Iron Condor | `IRON_CONDOR` | `0x494Cd61b866D076c45564e236D6Cb9e011a72978` |
 
-You don't need to specify implementations manually. The SDK reads the `implementation` field from each order returned by `fetchOrders()`.
+These are the addresses returned by `config.implementations`. Orders from `fetchOrders()` may reference these or earlier implementation versions. The SDK handles both transparently.
 
 ## Data Source
 

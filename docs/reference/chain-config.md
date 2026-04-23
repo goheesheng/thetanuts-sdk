@@ -110,7 +110,7 @@ config.contracts.optionFactory;  // '0x1aDcD391CF15Fb699Ed29B1D394F4A64106886e5'
 | Field | Purpose | Default URL |
 |-------|---------|-------------|
 | `apiBaseUrl` | Orders API | `https://round-snowflake-9c31.devops-118.workers.dev` |
-| `indexerApiUrl` | Book indexer (positions, stats) | `https://optionbook-indexer.thetanuts.finance/api/v1` |
+| `indexerApiUrl` | Book indexer (positions, stats) | `https://indexer.thetanuts.finance/api/v1/book` |
 | `pricingApiUrl` | Greeks and IV surfaces | `https://pricing.thetanuts.finance` |
 | `stateApiUrl` | RFQ state indexer | `https://dry-cake-8c44.devops-118.workers.dev` |
 | `wsBaseUrl` | WebSocket server | `wss://ws.thetanuts.finance/v4` |
