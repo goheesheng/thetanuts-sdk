@@ -6,3 +6,4 @@ export { ERC20_ABI } from './erc20.js';
 export { OPTION_BOOK_ABI } from './optionBook.js';
 export { OPTION_FACTORY_ABI } from './optionFactory.js';
 export { OPTION_ABI, BASE_OPTION_ABI } from './option.js';
+export { ZENDFI_LOAN_COORDINATOR_ABI, ZENDFI_OPTION_ABI, ZENDFI_LOAN_HANDLER_ABI, ZENDFI_WETH_ABI } from './loan.js';

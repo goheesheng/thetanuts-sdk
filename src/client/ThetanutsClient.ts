@@ -18,6 +18,7 @@ import { WebSocketModule } from '../modules/websocket.js';
 import { UtilsModule } from '../modules/utils.js';
 import { RFQKeyManagerModule } from '../modules/rfqKeyManager.js';
 import { MMPricingModule } from '../modules/mmPricing.js';
+import { LoanModule } from '../modules/loan.js';
 
 /**
  * Main client for interacting with Thetanuts Finance V4
@@ -135,6 +136,11 @@ export class ThetanutsClient {
    */
   public readonly mmPricing: MMPricingModule;
 
+  /**
+   * Loan module - Non-liquidatable lending via physically-settled call options (ZendFi)
+   */
+  public readonly loan: LoanModule;
+
   constructor(config: ThetanutsClientConfig) {
     // Validate required parameters
     this.validateConfig(config);
@@ -190,6 +196,7 @@ export class ThetanutsClient {
     this.utils = new UtilsModule(this);
     this.rfqKeys = new RFQKeyManagerModule(this, config.keyStorageProvider, config.rfqKeyPrefix);
     this.mmPricing = new MMPricingModule(this);
+    this.loan = new LoanModule(this);
   }
 
   /**

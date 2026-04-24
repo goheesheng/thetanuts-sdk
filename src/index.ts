@@ -47,6 +47,10 @@ export {
   OPTION_FACTORY_ABI,
   OPTION_ABI,
   BASE_OPTION_ABI,
+  ZENDFI_LOAN_COORDINATOR_ABI,
+  ZENDFI_OPTION_ABI,
+  ZENDFI_LOAN_HANDLER_ABI,
+  ZENDFI_WETH_ABI,
 } from './abis/index.js';
 
 // ============ Chain Configuration ============
@@ -62,6 +66,8 @@ export {
 
 export type { ChainConfig, TokenConfig, ContractAddresses, OptionImplementationInfo, ImplementationAddresses } from './chains/index.js';
 
+export { ZENDFI_CONFIG } from './chains/loan.js';
+
 // ============ Modules ============
 export { ERC20Module } from './modules/erc20.js';
 export { OptionBookModule } from './modules/optionBook.js';
@@ -73,6 +79,7 @@ export { WebSocketModule } from './modules/websocket.js';
 export { UtilsModule } from './modules/utils.js';
 export { RFQKeyManagerModule } from './modules/rfqKeyManager.js';
 export { MMPricingModule, parseTicker, buildTicker, applyFeeAdjustment, calculateCollateralCost } from './modules/mmPricing.js';
+export { LoanModule } from './modules/loan.js';
 
 // ============ Types — Logger ============
 export type { ThetanutsLogger } from './types/logger.js';
@@ -284,6 +291,26 @@ export type {
 } from './types/mmPricing.js';
 
 export { COLLATERAL_APR } from './types/mmPricing.js';
+
+// ============ Types — ZendFi ============
+export type {
+  ZendFiUnderlying,
+  ZendFiAssetConfig,
+  ZendFiPromoConfig,
+  ZendFiLoanRequest,
+  ZendFiLoanResult,
+  ZendFiCalculateParams,
+  ZendFiLoanCalculation,
+  ZendFiStrikeSettings,
+  ZendFiStrikeOption,
+  ZendFiStrikeOptionGroup,
+  ZendFiLoanState,
+  ZendFiOptionInfo,
+  ZendFiIndexerLoan,
+  ZendFiLendingOpportunity,
+  DeribitOptionData,
+  DeribitPricingMap,
+} from './types/loan.js';
 
 // ============ Types — Call Static ============
 export type { CallStaticResult } from './types/callStatic.js';
