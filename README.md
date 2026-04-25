@@ -278,8 +278,9 @@ If no referrer is provided, the zero address (`0x000...`) is used (no fee sharin
 | `client.mmPricing` | Market maker pricing, Greeks | No |
 | `client.rfqKeys` | ECDH key management, offer encryption | No |
 | `client.utils` | Decimal conversions, payoffs | No |
+| `client.loan` | Non-liquidatable lending | Write ops only |
 
-See [src/modules/README.md](src/modules/README.md) for detailed module documentation (10 modules total).
+See [src/modules/README.md](src/modules/README.md) for detailed module documentation (11 modules total).
 
 ## Supported Chains
 
@@ -849,7 +850,7 @@ src/
 ├── abis/       # Smart contract ABIs (ERC20, OptionBook, OptionFactory, BaseOption)
 ├── chains/     # Chain configurations
 ├── client/     # Main client class
-├── modules/    # Feature modules (10 modules)
+├── modules/    # Feature modules (11 modules)
 ├── types/      # TypeScript definitions (16 type files)
 ├── utils/      # Utility functions
 └── index.ts    # Main entry point
@@ -916,6 +917,7 @@ Detailed guides and references:
 | [RFQ (Factory)](https://docs.thetanuts.finance/sdk/rfq/overview) | Create custom options, multi-leg structures, RFQ lifecycle |
 | [Pricing](https://docs.thetanuts.finance/sdk/pricing/mm-pricing) | MM pricing, spreads, collateral cost |
 | [Guides](https://docs.thetanuts.finance/sdk/guides/error-handling) | Error handling, WebSocket, production checklist |
+| [Loan](https://docs.thetanuts.finance/sdk/loan/overview) | Non-liquidatable lending (borrow USDC against ETH/BTC) |
 | [SDK Reference](https://docs.thetanuts.finance/sdk/reference/client) | Client, modules, types, utilities |
 | [MCP Server](mcp-server/README.md) | Read-only MCP server for AI agents |
 
