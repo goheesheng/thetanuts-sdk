@@ -47,6 +47,10 @@ export {
   OPTION_FACTORY_ABI,
   OPTION_ABI,
   BASE_OPTION_ABI,
+  LOAN_COORDINATOR_ABI,
+  LOAN_OPTION_ABI,
+  LOAN_HANDLER_ABI,
+  LOAN_WETH_ABI,
 } from './abis/index.js';
 
 // ============ Chain Configuration ============
@@ -59,6 +63,8 @@ export {
   getOptionImplementationInfo,
   buildPriceFeedSymbolMap,
 } from './chains/index.js';
+
+export { LOAN_CONFIG } from './chains/loan.js';
 
 export type { ChainConfig, TokenConfig, ContractAddresses, OptionImplementationInfo, ImplementationAddresses } from './chains/index.js';
 
@@ -73,6 +79,7 @@ export { WebSocketModule } from './modules/websocket.js';
 export { UtilsModule } from './modules/utils.js';
 export { RFQKeyManagerModule } from './modules/rfqKeyManager.js';
 export { MMPricingModule, parseTicker, buildTicker, applyFeeAdjustment, calculateCollateralCost } from './modules/mmPricing.js';
+export { LoanModule } from './modules/loan.js';
 
 // ============ Types — Logger ============
 export type { ThetanutsLogger } from './types/logger.js';
@@ -284,6 +291,26 @@ export type {
 } from './types/mmPricing.js';
 
 export { COLLATERAL_APR } from './types/mmPricing.js';
+
+// ============ Types — Loan / Loan ============
+export type {
+  LoanUnderlying,
+  LoanAssetConfig,
+  LoanPromoConfig,
+  LoanRequest,
+  LoanResult,
+  LoanCalculateParams,
+  LoanCalculation,
+  LoanStrikeSettings,
+  LoanStrikeOption,
+  LoanStrikeOptionGroup,
+  LoanState,
+  LoanOptionInfo,
+  LoanIndexerLoan,
+  LoanLendingOpportunity,
+  DeribitOptionData,
+  DeribitPricingMap,
+} from './types/loan.js';
 
 // ============ Types — Call Static ============
 export type { CallStaticResult } from './types/callStatic.js';

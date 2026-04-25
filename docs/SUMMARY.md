@@ -28,6 +28,13 @@
 * [Key Management](rfq/key-management.md)
 * [Physical Options](rfq/physical-options.md)
 
+## Loan
+
+* [Overview](loan/overview.md)
+* [Borrowing](loan/borrowing.md)
+* [Lending](loan/lending.md)
+* [Pricing & Calculation](loan/pricing.md)
+
 ## Pricing
 
 * [MM Pricing Overview](pricing/mm-pricing.md)

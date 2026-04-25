@@ -1,6 +1,6 @@
 # Modules Overview
 
-All 10 SDK modules are accessed as properties on the `ThetanutsClient` instance — no separate instantiation needed.
+All 11 SDK modules are accessed as properties on the `ThetanutsClient` instance — no separate instantiation needed.
 
 ## Module Table
 
@@ -16,6 +16,7 @@ All 10 SDK modules are accessed as properties on the `ThetanutsClient` instance 
 | MM Pricing | `client.mmPricing` | Market maker pricing and Greeks | No |
 | RFQ Keys | `client.rfqKeys` | ECDH key management and offer encryption | No |
 | Utils | `client.utils` | Decimal conversions, payoff calculations | No |
+| Loan | `client.loan` | Non-liquidatable lending | Write ops only |
 
 ## Module Descriptions
 
@@ -71,6 +72,12 @@ Pure utility functions with no network calls: decimal conversions (`toBigInt`, `
 
 Relevant section: [Utilities](./utilities.md)
 
+### `client.loan` — LoanModule
+
+Non-liquidatable lending. Borrowers deposit ETH/BTC collateral and receive USDC. At expiry, repay to reclaim collateral or walk away. Includes pricing, cost calculation, lending opportunities, and option exercise.
+
+Relevant section: [Loan overview](../loan/overview.md)
+
 ## Quick Reference
 
 ```typescript
@@ -114,6 +121,10 @@ const keyPair = await client.rfqKeys.getOrCreateKeyPair();
 // Utils
 const onChain = client.utils.strikeToChain(1850);  // 185000000000n
 const human = client.utils.fromBigInt(100500000n, 6);  // '100.5'
+
+// Loan
+const strikes = await client.loan.getStrikeOptions('ETH');
+const calc = client.loan.calculateLoan({ depositAmount: '1.0', underlying: 'ETH', strike: 1600, expiryTimestamp: 1780041600, askPrice: 0.007, underlyingPrice: 2328 });
 ```
 
 ---
