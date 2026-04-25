@@ -555,8 +555,10 @@ export class LoanModule {
       if (!response.ok) {
         throw createError('HTTP_ERROR', `Loan indexer error: ${response.status}`);
       }
-      const data: { loans?: LoanIndexerLoan[] } = await response.json() as { loans?: LoanIndexerLoan[] };
-      const loans = data.loans ?? [];
+      const data = await response.json() as { loans?: Record<string, LoanIndexerLoan> | LoanIndexerLoan[] };
+      const loans: LoanIndexerLoan[] = Array.isArray(data.loans)
+        ? data.loans
+        : data.loans ? Object.values(data.loans) : [];
 
       const now = Math.floor(Date.now() / 1000);
       const results: LoanLendingOpportunity[] = [];
@@ -662,8 +664,10 @@ export class LoanModule {
       if (!response.ok) {
         throw createError('HTTP_ERROR', `Loan indexer error: ${response.status}`);
       }
-      const data: { loans?: LoanIndexerLoan[] } = await response.json() as { loans?: LoanIndexerLoan[] };
-      const loans = data.loans ?? [];
+      const data = await response.json() as { loans?: Record<string, LoanIndexerLoan> | LoanIndexerLoan[] };
+      const loans: LoanIndexerLoan[] = Array.isArray(data.loans)
+        ? data.loans
+        : data.loans ? Object.values(data.loans) : [];
 
       return loans.filter(
         (loan) => loan.requester.toLowerCase() === address.toLowerCase(),
