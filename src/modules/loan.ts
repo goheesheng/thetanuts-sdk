@@ -46,14 +46,14 @@ import { createError, mapContractError } from '../utils/errors.js';
 import { validateAddress } from '../utils/validation.js';
 import type {
   LoanUnderlying,
-  LoanLoanRequest,
-  LoanLoanResult,
+  LoanRequest,
+  LoanResult,
   LoanCalculateParams,
-  LoanLoanCalculation,
+  LoanCalculation,
   LoanStrikeSettings,
   LoanStrikeOption,
   LoanStrikeOptionGroup,
-  LoanLoanState,
+  LoanState,
   LoanOptionInfo,
   LoanIndexerLoan,
   LoanLendingOpportunity,
@@ -236,7 +236,7 @@ export class LoanModule {
    * console.log(`Loan ID: ${result.quotationId}`);
    * ```
    */
-  async requestLoan(params: LoanLoanRequest): Promise<LoanLoanResult> {
+  async requestLoan(params: LoanRequest): Promise<LoanResult> {
     const signer = this.client.requireSigner();
     const asset = getAssetConfig(params.underlying);
 
@@ -627,7 +627,7 @@ export class LoanModule {
    * @param quotationId - The quotation ID
    * @returns Loan state including settlement status and option contract address
    */
-  async getLoanRequest(quotationId: bigint): Promise<LoanLoanState> {
+  async getLoanRequest(quotationId: bigint): Promise<LoanState> {
     const contract = this.getCoordinatorReadContract();
 
     try {
@@ -920,7 +920,7 @@ export class LoanModule {
    * }
    * ```
    */
-  calculateLoan(params: LoanCalculateParams): LoanLoanCalculation | null {
+  calculateLoan(params: LoanCalculateParams): LoanCalculation | null {
     const { depositAmount, underlying, strike, expiryTimestamp, askPrice, underlyingPrice } = params;
     const maxApr = params.maxApr ?? 20;
 
@@ -1023,7 +1023,7 @@ export class LoanModule {
    * @param params - Loan request parameters
    * @returns Encoded transaction { to, data }
    */
-  encodeRequestLoan(params: LoanLoanRequest): { to: string; data: string } {
+  encodeRequestLoan(params: LoanRequest): { to: string; data: string } {
     const asset = getAssetConfig(params.underlying);
 
     const collateralAmount = typeof params.collateralAmount === 'string'

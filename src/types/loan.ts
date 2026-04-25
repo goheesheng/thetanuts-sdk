@@ -44,7 +44,7 @@ export interface LoanPromoConfig {
 // ─── Loan Request ───
 
 /** Input parameters for requesting a new loan */
-export interface LoanLoanRequest {
+export interface LoanRequest {
   /** Underlying asset: 'ETH' or 'BTC' */
   underlying: LoanUnderlying;
   /** Collateral amount as human-readable string (e.g. '1.0') or bigint (wei) */
@@ -62,7 +62,7 @@ export interface LoanLoanRequest {
 }
 
 /** Result of a successful loan request */
-export interface LoanLoanResult {
+export interface LoanResult {
   /** Transaction receipt */
   receipt: TransactionReceipt;
   /** The quotation ID assigned to this loan request */
@@ -92,7 +92,7 @@ export interface LoanCalculateParams {
 }
 
 /** Full breakdown of loan costs and amounts */
-export interface LoanLoanCalculation {
+export interface LoanCalculation {
   /** Total amount owed at expiry (USDC, 6 decimals) */
   owe: bigint;
   /** Option premium cost (USDC, 6 decimals) */
@@ -179,7 +179,7 @@ export interface LoanStrikeOptionGroup {
 // ─── On-Chain State ───
 
 /** On-chain loan state from the LoanCoordinator contract */
-export interface LoanLoanState {
+export interface LoanState {
   /** Borrower address */
   requester: string;
   /** Collateral amount (token decimals) */
