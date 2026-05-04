@@ -13,10 +13,10 @@ export interface TokenConfig {
  * V4 Contract addresses
  */
 export interface ContractAddresses {
-  /** OptionBook contract address */
-  optionBook: string;
-  /** OptionFactory contract address */
-  optionFactory: string;
+  /** OptionBook contract address (null if not deployed on this chain) */
+  optionBook: string | null;
+  /** OptionFactory contract address (null if not deployed on this chain) */
+  optionFactory: string | null;
 }
 
 /**
@@ -281,6 +281,68 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
         address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
         symbol: 'cbBTC',
         decimals: 8,
+      },
+    },
+  },
+  1: {
+    chainId: 1,
+    name: 'Ethereum',
+    nativeCurrency: 'ETH',
+    explorerUrl: 'https://etherscan.io',
+    contracts: {
+      optionBook: null,      // Not deployed on Ethereum
+      optionFactory: null,   // Not deployed on Ethereum
+    },
+    tokens: {
+      USDC: {
+        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+        symbol: 'USDC',
+        decimals: 6,
+      },
+      WBTC: {
+        address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+        symbol: 'WBTC',
+        decimals: 8,
+      },
+      WETH: {
+        address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+        symbol: 'WETH',
+        decimals: 18,
+      },
+    },
+    priceFeeds: {
+      ETH: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+      BTC: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+    },
+    implementations: {} as ImplementationAddresses,
+    optionImplementations: {},
+    deploymentBlock: 0,
+    apiBaseUrl: '',
+    indexerApiUrl: '',
+    wsBaseUrl: '',
+    pricingApiUrl: '',
+    stateApiUrl: '',
+    defaultRpcUrls: [
+      'https://ethereum-rpc.publicnode.com',
+      'https://eth.llamarpc.com',
+    ],
+    // Deprecated fields for backwards compatibility
+    optionBook: '',
+    collateralTokens: {
+      USDC: {
+        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+        symbol: 'USDC',
+        decimals: 6,
+      },
+      WBTC: {
+        address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+        symbol: 'WBTC',
+        decimals: 8,
+      },
+      WETH: {
+        address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+        symbol: 'WETH',
+        decimals: 18,
       },
     },
   },

@@ -19,6 +19,8 @@ import { UtilsModule } from '../modules/utils.js';
 import { RFQKeyManagerModule } from '../modules/rfqKeyManager.js';
 import { MMPricingModule } from '../modules/mmPricing.js';
 import { LoanModule } from '../modules/loan.js';
+import { WheelVaultModule } from '../modules/wheelVault.js';
+import { StrategyVaultModule } from '../modules/strategyVault.js';
 
 /**
  * Main client for interacting with Thetanuts Finance V4
@@ -141,6 +143,16 @@ export class ThetanutsClient {
    */
   public readonly loan: LoanModule;
 
+  /**
+   * WheelVault module - Gyro wheel strategy vaults on Ethereum
+   */
+  public readonly wheelVault: WheelVaultModule;
+
+  /**
+   * StrategyVault module - Kairos fixed-strike + CLVEX directional/condor vaults on Base
+   */
+  public readonly strategyVault: StrategyVaultModule;
+
   constructor(config: ThetanutsClientConfig) {
     // Validate required parameters
     this.validateConfig(config);
@@ -197,6 +209,8 @@ export class ThetanutsClient {
     this.rfqKeys = new RFQKeyManagerModule(this, config.keyStorageProvider, config.rfqKeyPrefix);
     this.mmPricing = new MMPricingModule(this);
     this.loan = new LoanModule(this);
+    this.wheelVault = new WheelVaultModule(this);
+    this.strategyVault = new StrategyVaultModule(this);
   }
 
   /**
@@ -267,10 +281,18 @@ export class ThetanutsClient {
   }
 
   /**
-   * Get contract address from chain config
+   * Get contract address from chain config.
+   * Throws if the contract is not deployed on the current chain.
    */
   getContractAddress(contract: 'optionBook' | 'optionFactory'): string {
-    return this.chainConfig.contracts[contract];
+    const address = this.chainConfig.contracts[contract];
+    if (!address) {
+      throw createError(
+        'NETWORK_UNSUPPORTED',
+        `${contract} is not deployed on ${this.chainConfig.name} (chain ${this.chainId})`
+      );
+    }
+    return address;
   }
 
   /**
@@ -289,7 +311,7 @@ export class ThetanutsClient {
    * @deprecated Use chainConfig.contracts.optionBook instead
    */
   get optionBookAddress(): string {
-    return this.chainConfig.contracts.optionBook;
+    return this.getContractAddress('optionBook');
   }
 
   /**
@@ -304,10 +326,10 @@ export class ThetanutsClient {
    */
   get network(): SupportedNetwork {
     // Map chainId to legacy network name
-    const chainIdToNetwork: Record<SupportedChainId, SupportedNetwork> = {
+    const chainIdToNetwork: Partial<Record<SupportedChainId, SupportedNetwork>> = {
       8453: 'base',
     };
-    return chainIdToNetwork[this.chainId];
+    return chainIdToNetwork[this.chainId] ?? 'base';
   }
 
   /**
