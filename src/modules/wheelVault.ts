@@ -20,7 +20,7 @@
  * ```
  */
 
-import { Contract, Interface } from 'ethers';
+import { Contract, Interface, ZeroAddress } from 'ethers';
 import type { TransactionReceipt, ContractTransactionResponse } from 'ethers';
 
 import type { ThetanutsClient } from '../client/ThetanutsClient.js';
@@ -240,6 +240,48 @@ export class WheelVaultModule {
     }
   }
 
+  private validateConfiguredAddress(address: string, label: string, allowed: readonly string[]): void {
+    validateAddress(address, label);
+    const normalized = address.toLowerCase();
+    if (!allowed.some((allowedAddress) => allowedAddress.toLowerCase() === normalized)) {
+      throw createError(
+        'INVALID_PARAMS',
+        `${label} is not a configured Gyro contract address`
+      );
+    }
+  }
+
+  private validateConfiguredVault(address: string): void {
+    this.validateConfiguredAddress(
+      address,
+      'vaultAddress',
+      Object.values(WHEEL_VAULT_CONFIG.assets).map((asset) => asset.vault)
+    );
+  }
+
+  private validateConfiguredMarkets(address: string): void {
+    this.validateConfiguredAddress(
+      address,
+      'marketsAddress',
+      Object.values(WHEEL_VAULT_CONFIG.assets).map((asset) => asset.markets)
+    );
+  }
+
+  private validateConfiguredMarketsLens(address: string): void {
+    this.validateConfiguredAddress(
+      address,
+      'lensAddress',
+      Object.values(WHEEL_VAULT_CONFIG.assets).map((asset) => asset.marketsLens)
+    );
+  }
+
+  private validateConfiguredSwapRouter(address: string, label: string): void {
+    this.validateConfiguredAddress(address, label, [
+      WHEEL_VAULT_CONFIG.swapAggregatorRouter,
+      ZeroAddress,
+    ]);
+  }
+
   // ─── Private Contract Accessors ───
 
   private getMulticall3(): Multicall3Contract {
@@ -329,7 +371,7 @@ export class WheelVaultModule {
    */
   async getVaultState(vaultAddress: string, seriesId: number): Promise<VaultState> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const iface = new Interface(WHEEL_VAULT_ABI);
 
@@ -442,7 +484,7 @@ export class WheelVaultModule {
    */
   async getSeries(vaultAddress: string, seriesId: number): Promise<VaultSeries> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultRead(vaultAddress);
 
@@ -476,7 +518,7 @@ export class WheelVaultModule {
    */
   async getSeriesCount(vaultAddress: string): Promise<number> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultRead(vaultAddress);
 
@@ -505,7 +547,7 @@ export class WheelVaultModule {
     toIndex: number,
   ): Promise<ShareSnapshot[]> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultRead(vaultAddress);
 
@@ -533,7 +575,7 @@ export class WheelVaultModule {
    */
   async getEpochExpiries(vaultAddress: string, seriesId: number): Promise<number[]> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultRead(vaultAddress);
 
@@ -556,7 +598,7 @@ export class WheelVaultModule {
    */
   async getShareValueInQuote(vaultAddress: string, seriesId: number, shares: bigint): Promise<bigint> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultRead(vaultAddress);
 
@@ -622,7 +664,7 @@ export class WheelVaultModule {
     expectedPrice: bigint,
   ): Promise<VaultDepositResult> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultWrite(vaultAddress);
 
@@ -683,7 +725,7 @@ export class WheelVaultModule {
     sharesToBurn: bigint,
   ): Promise<VaultWithdrawResult> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultWrite(vaultAddress);
 
@@ -745,7 +787,7 @@ export class WheelVaultModule {
     sharesToBurn: bigint,
   ): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultWrite(vaultAddress);
 
@@ -781,7 +823,7 @@ export class WheelVaultModule {
    */
   async poke(vaultAddress: string): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultWrite(vaultAddress);
 
@@ -811,7 +853,7 @@ export class WheelVaultModule {
    */
   async trigger(vaultAddress: string): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const vault = this.getVaultWrite(vaultAddress);
 
@@ -845,9 +887,9 @@ export class WheelVaultModule {
    */
   async depositSingle(params: DepositSingleParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(params.vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(params.vaultAddress);
     validateAddress(params.depositToken, 'depositToken');
-    validateAddress(params.aggregator, 'aggregator');
+    this.validateConfiguredSwapRouter(params.aggregator, 'aggregator');
 
     const router = this.getRouter();
 
@@ -901,7 +943,7 @@ export class WheelVaultModule {
    */
   async depositDual(params: DepositDualParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(params.vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(params.vaultAddress);
 
     const router = this.getRouter();
 
@@ -951,9 +993,9 @@ export class WheelVaultModule {
    */
   async withdrawSingle(params: WithdrawSingleParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(params.vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(params.vaultAddress);
     validateAddress(params.targetToken, 'targetToken');
-    validateAddress(params.aggregator, 'aggregator');
+    this.validateConfiguredSwapRouter(params.aggregator, 'aggregator');
 
     const router = this.getRouter();
 
@@ -1005,9 +1047,9 @@ export class WheelVaultModule {
    */
   async withdrawSingleWithPermit(params: WithdrawSingleWithPermitParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(params.vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(params.vaultAddress);
     validateAddress(params.targetToken, 'targetToken');
-    validateAddress(params.aggregator, 'aggregator');
+    this.validateConfiguredSwapRouter(params.aggregator, 'aggregator');
 
     const router = this.getRouter();
 
@@ -1080,7 +1122,7 @@ export class WheelVaultModule {
     amount: bigint,
   ): Promise<DepositSplitEstimate> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
     validateAddress(token, 'token');
 
     const lens = this.getLens();
@@ -1113,7 +1155,7 @@ export class WheelVaultModule {
     quoteAmt: bigint,
   ): Promise<DepositPreview> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const lens = this.getLens();
 
@@ -1142,7 +1184,7 @@ export class WheelVaultModule {
     shares: bigint,
   ): Promise<WithdrawPreview> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const lens = this.getLens();
 
@@ -1172,7 +1214,7 @@ export class WheelVaultModule {
     seriesId: number,
   ): Promise<{ baseAmt: bigint; quoteAmt: bigint; totalShares: bigint }> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const lens = this.getLens();
 
@@ -1203,7 +1245,11 @@ export class WheelVaultModule {
    */
   async marketFill(marketsAddress: string, params: MarketFillParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
+    if (params.useSwap) {
+      this.validateConfiguredSwapRouter(params.swap.router, 'swap.router');
+      this.validateConfiguredSwapRouter(params.swap.approvalTarget, 'swap.approvalTarget');
+    }
 
     const markets = this.getMarkets(marketsAddress);
     const swapTuple: SwapTuple = [
@@ -1271,7 +1317,7 @@ export class WheelVaultModule {
    */
   async depositToBucket(marketsAddress: string, params: DepositToBucketParams): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
 
     const markets = this.getMarkets(marketsAddress);
 
@@ -1323,7 +1369,7 @@ export class WheelVaultModule {
    */
   async cancelDeposit(marketsAddress: string, entryId: bigint): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
 
     const markets = this.getMarkets(marketsAddress);
 
@@ -1359,7 +1405,7 @@ export class WheelVaultModule {
    */
   async claim(marketsAddress: string, tokenAddress: string): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
     validateAddress(tokenAddress, 'tokenAddress');
 
     const markets = this.getMarkets(marketsAddress);
@@ -1396,7 +1442,7 @@ export class WheelVaultModule {
    */
   async exercise(marketsAddress: string, optionId: bigint): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
 
     const markets = this.getMarkets(marketsAddress);
 
@@ -1432,7 +1478,7 @@ export class WheelVaultModule {
    */
   async expire(marketsAddress: string, optionId: bigint): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
+    this.validateConfiguredMarkets(marketsAddress);
 
     const markets = this.getMarkets(marketsAddress);
 
@@ -1475,8 +1521,8 @@ export class WheelVaultModule {
     swapData: string,
   ): Promise<TransactionReceipt> {
     this.ensureEnabled();
-    validateAddress(marketsAddress, 'marketsAddress');
-    validateAddress(swapTarget, 'swapTarget');
+    this.validateConfiguredMarkets(marketsAddress);
+    this.validateConfiguredSwapRouter(swapTarget, 'swapTarget');
 
     const markets = this.getMarkets(marketsAddress);
 
@@ -1526,7 +1572,7 @@ export class WheelVaultModule {
     maxIvBps: number,
   ): Promise<DepthChartResult> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
 
     const lens = this.getMarketsLens(lensAddress);
 
@@ -1580,7 +1626,7 @@ export class WheelVaultModule {
     maxIvBps: number,
   ): Promise<FillPremiumPreview> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
 
     const lens = this.getMarketsLens(lensAddress);
 
@@ -1622,7 +1668,7 @@ export class WheelVaultModule {
     maxCount: bigint,
   ): Promise<BuyerOption[]> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
     validateAddress(buyer, 'buyer');
 
     const lens = this.getMarketsLens(lensAddress);
@@ -1664,7 +1710,7 @@ export class WheelVaultModule {
     maxEntries: number,
   ): Promise<SellerPosition[]> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
     validateAddress(seller, 'seller');
 
     const lens = this.getMarketsLens(lensAddress);
@@ -1699,7 +1745,7 @@ export class WheelVaultModule {
     seriesIds: number[],
   ): Promise<ClaimableSummary> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
     validateAddress(seller, 'seller');
 
     const lens = this.getMarketsLens(lensAddress);
@@ -1727,7 +1773,7 @@ export class WheelVaultModule {
    */
   async previewExercise(lensAddress: string, optionId: bigint): Promise<ExercisePreview> {
     this.ensureEnabled();
-    validateAddress(lensAddress, 'lensAddress');
+    this.validateConfiguredMarketsLens(lensAddress);
 
     const lens = this.getMarketsLens(lensAddress);
 

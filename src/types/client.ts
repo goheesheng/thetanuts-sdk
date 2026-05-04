@@ -75,4 +75,4 @@ export interface ThetanutsClientConfig {
 /**
  * @deprecated Use SupportedChainId instead. Will be removed in next major version.
  */
-export type SupportedNetwork = 'base';
+export type SupportedNetwork = 'base' | 'ethereum';

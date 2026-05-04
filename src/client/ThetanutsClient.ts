@@ -328,8 +328,13 @@ export class ThetanutsClient {
     // Map chainId to legacy network name
     const chainIdToNetwork: Partial<Record<SupportedChainId, SupportedNetwork>> = {
       8453: 'base',
+      1: 'ethereum',
     };
-    return chainIdToNetwork[this.chainId] ?? 'base';
+    const network = chainIdToNetwork[this.chainId];
+    if (!network) {
+      throw createError('NETWORK_UNSUPPORTED', `No legacy network name for chain ${this.chainId}`);
+    }
+    return network;
   }
 
   /**

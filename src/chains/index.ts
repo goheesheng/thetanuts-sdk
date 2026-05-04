@@ -92,7 +92,7 @@ export interface ChainConfig {
   /** Price feed addresses */
   priceFeeds: Record<string, string>;
   /** Option implementation addresses */
-  implementations: ImplementationAddresses;
+  implementations: Partial<ImplementationAddresses>;
   /** Option implementation info keyed by lowercase address (reverse lookup) */
   optionImplementations: Record<string, OptionImplementationInfo>;
   /** Deployment block number */
@@ -314,7 +314,7 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
       ETH: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
       BTC: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
     },
-    implementations: {} as ImplementationAddresses,
+    implementations: {},
     optionImplementations: {},
     deploymentBlock: 0,
     apiBaseUrl: '',
@@ -354,6 +354,7 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
  */
 export const CHAIN_CONFIGS: Record<SupportedNetwork, ChainConfig> = {
   base: CHAIN_CONFIGS_BY_ID[8453],
+  ethereum: CHAIN_CONFIGS_BY_ID[1],
 };
 
 /**

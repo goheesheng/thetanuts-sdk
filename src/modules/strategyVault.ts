@@ -106,8 +106,26 @@ export class StrategyVaultModule {
   private ensureEnabled(): void {
     if (this._disabled) {
       throw createError(
-        'INVALID_PARAMS',
+        'NETWORK_UNSUPPORTED',
         `StrategyVault module requires chain ${STRATEGY_VAULT_CONFIG.chainId} (${STRATEGY_VAULT_CONFIG.chainName}), but client is on chain ${this.client.chainId}`,
+      );
+    }
+  }
+
+  private getConfiguredVaultAddresses(): string[] {
+    return [
+      ...STRATEGY_VAULT_CONFIG.kairos.vaults.map((vault) => vault.address),
+      ...STRATEGY_VAULT_CONFIG.clvex.vaults.map((vault) => vault.address),
+    ];
+  }
+
+  private validateConfiguredVault(address: string): void {
+    validateAddress(address, 'vaultAddress');
+    const normalized = address.toLowerCase();
+    if (!this.getConfiguredVaultAddresses().some((vaultAddress) => vaultAddress.toLowerCase() === normalized)) {
+      throw createError(
+        'INVALID_PARAMS',
+        'vaultAddress is not a configured strategy vault address'
       );
     }
   }
@@ -157,7 +175,7 @@ export class StrategyVaultModule {
    */
   async getVaultState(vaultAddress: string): Promise<StrategyVaultState> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const calls = [
       { fragment: 'name', args: [] },
@@ -230,7 +248,7 @@ export class StrategyVaultModule {
    */
   async getTotalAssets(vaultAddress: string): Promise<StrategyVaultAssets> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     try {
       const contract = this.getVaultReadContract(vaultAddress);
@@ -256,7 +274,7 @@ export class StrategyVaultModule {
    */
   async getShareBalance(vaultAddress: string, userAddress: string): Promise<bigint> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
     validateAddress(userAddress, 'userAddress');
 
     try {
@@ -276,7 +294,7 @@ export class StrategyVaultModule {
    */
   async getNextExpiry(vaultAddress: string): Promise<number> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     try {
       const contract = this.getVaultReadContract(vaultAddress);
@@ -297,7 +315,7 @@ export class StrategyVaultModule {
    */
   async canCreateOption(vaultAddress: string): Promise<boolean> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     try {
       const contract = this.getVaultReadContract(vaultAddress);
@@ -323,7 +341,7 @@ export class StrategyVaultModule {
    */
   async isRecoveryMode(vaultAddress: string): Promise<boolean> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     try {
       const contract = this.getVaultReadContract(vaultAddress);
@@ -370,7 +388,7 @@ export class StrategyVaultModule {
     assetIndex: number,
   ): Promise<StrategyVaultDepositResult> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     if (amount <= 0n) {
       throw createError('INVALID_PARAMS', 'Deposit amount must be greater than zero');
@@ -421,7 +439,7 @@ export class StrategyVaultModule {
     shares: bigint,
   ): Promise<StrategyVaultWithdrawResult> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     if (shares <= 0n) {
       throw createError('INVALID_PARAMS', 'Shares amount must be greater than zero');
@@ -470,7 +488,7 @@ export class StrategyVaultModule {
    */
   async createOption(vaultAddress: string): Promise<StrategyVaultCreateOptionResult> {
     this.ensureEnabled();
-    validateAddress(vaultAddress, 'vaultAddress');
+    this.validateConfiguredVault(vaultAddress);
 
     const contract = this.getVaultWriteContract(vaultAddress);
 
@@ -522,7 +540,7 @@ export class StrategyVaultModule {
     }
 
     for (const addr of vaultAddresses) {
-      validateAddress(addr, 'vaultAddress');
+      this.validateConfiguredVault(addr);
     }
 
     const fragmentNames = [
