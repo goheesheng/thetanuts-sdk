@@ -229,6 +229,66 @@ export const BASE_OPTION_ABI = [
     ],
     stateMutability: 'view',
   },
+  // r12-additive views (BaseOption introspection)
+  {
+    type: 'function',
+    name: 'creator',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'paramsHash',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'splitGeneration',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionParent',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionChildren',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getReclaimFee',
+    inputs: [{ name: 'caller', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getSplitFee',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'calculateNumContractsForCollateral',
+    inputs: [
+      { name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: '_collateralAmount', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
+  },
 
   // ============ Write Functions ============
   {
@@ -299,6 +359,21 @@ export const BASE_OPTION_ABI = [
     inputs: [
       { name: 'token', type: 'address', internalType: 'contract IERC20' },
     ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // r12-additive writes (user-facing collateral flow)
+  {
+    type: 'function',
+    name: 'reclaimCollateral',
+    inputs: [{ name: 'recipient', type: 'address', internalType: 'address' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'returnExcessCollateral',
+    inputs: [],
     outputs: [],
     stateMutability: 'nonpayable',
   },

@@ -119,6 +119,39 @@ export const OPTION_BOOK_ABI = [
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
   },
+  // r12-additive views
+  {
+    type: 'function',
+    name: 'getValidNumContracts',
+    inputs: [
+      { name: 'collateral', type: 'address', internalType: 'address' },
+      { name: 'strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: 'numContracts', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'makerCancellationCutoff',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'minNumContracts',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'minPremiumAmount',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
 
   // ============ Write Functions ============
   {
@@ -132,6 +165,28 @@ export const OPTION_BOOK_ABI = [
         components: ORDER_COMPONENTS,
       },
     ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // r12-additive writes (user-facing batch + cutoff cancellation)
+  {
+    type: 'function',
+    name: 'cancelOrders',
+    inputs: [
+      {
+        name: 'orders',
+        type: 'tuple[]',
+        internalType: 'struct OptionBook.Order[]',
+        components: ORDER_COMPONENTS,
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'cancelOrdersExpiringBefore',
+    inputs: [{ name: 'cutoffTimestamp', type: 'uint256', internalType: 'uint256' }],
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -255,6 +310,17 @@ export const OPTION_BOOK_ABI = [
     inputs: [
       { name: 'referrer', type: 'address', indexed: true, internalType: 'address' },
       { name: 'feeBps', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  // r12-additive event
+  {
+    type: 'event',
+    name: 'MakerCutoffUpdated',
+    inputs: [
+      { name: 'maker', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'oldCutoff', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'newCutoff', type: 'uint256', indexed: false, internalType: 'uint256' },
     ],
     anonymous: false,
   },

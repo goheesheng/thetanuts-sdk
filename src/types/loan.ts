@@ -55,7 +55,11 @@ export interface LoanRequest {
   expiryTimestamp: number;
   /** Minimum settlement amount in USDC (6 decimals) — use calculateLoan() to compute */
   minSettlementAmount: bigint;
-  /** Whether to convert to limit order if no MM fills during auction */
+  /**
+   * @deprecated The r12 LoanCoordinator no longer accepts this field;
+   * it is ignored at the contract level. Kept on the type to preserve
+   * backwards compatibility with existing callers.
+   */
   keepOrderOpen?: boolean;
   /** Custom offer duration in seconds (default: 30) */
   offerDurationSeconds?: number;
@@ -244,8 +248,12 @@ export interface LoanIndexerLoan {
   expiryTimestamp: number;
   /** Offer end timestamp */
   offerEndTimestamp: number;
-  /** Whether this is a limit order */
-  convertToLimitOrder: boolean;
+  /**
+   * Whether this loan was placed with the limit-order conversion flag.
+   * Optional — r12 contract dropped this field, but the indexer may still
+   * surface it from prior records or off-chain orderbook state.
+   */
+  convertToLimitOrder?: boolean;
   /** Loan status */
   status: string;
   /** Deployed option contract address (if settled) */

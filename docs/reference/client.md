@@ -70,17 +70,25 @@ config.tokens.cbBTC.decimals // 8
 // Option implementations — cash-settled
 config.implementations.PUT
 config.implementations.INVERSE_CALL
+config.implementations.LINEAR_CALL
 config.implementations.PUT_SPREAD
 config.implementations.CALL_SPREAD
+config.implementations.INVERSE_CALL_SPREAD
 config.implementations.PUT_FLY
 config.implementations.CALL_FLY
 config.implementations.PUT_CONDOR
 config.implementations.CALL_CONDOR
 config.implementations.IRON_CONDOR
+config.implementations.RANGER       // r12: zone-bound (4-strike) RangerOption
+config.implementations.CALL_LOAN    // r12: physically-settled call loan handler
 
-// Option implementations — physically settled
+// Option implementations — physically settled (vanilla deployed in r12)
 config.implementations.PHYSICAL_CALL
 config.implementations.PHYSICAL_PUT
+
+// Option implementations — physically settled multi-leg (NOT YET DEPLOYED in r12;
+// addresses below are 0x000…000 placeholders. RFQ flows that try to route through
+// these throw INVALID_PARAMS at the SDK level — see optionFactory.ts:2241).
 config.implementations.PHYSICAL_CALL_SPREAD
 config.implementations.PHYSICAL_PUT_SPREAD
 config.implementations.PHYSICAL_CALL_FLY
@@ -96,6 +104,10 @@ config.priceFeeds.BTC  // Chainlink BTC/USD feed
 // Contracts
 config.contracts.optionFactory
 config.contracts.optionBook
+
+// r12: HistoricalPriceConsumerV3_TWAP (Chainlink TWAP consumer used at settlement).
+// null on chains where the consumer is not deployed.
+config.twapConsumer
 ```
 
 ## Helper Methods

@@ -13,6 +13,7 @@ import { OptionBookModule } from '../modules/optionBook.js';
 import { APIModule } from '../modules/api.js';
 import { OptionFactoryModule } from '../modules/optionFactory.js';
 import { OptionModule } from '../modules/option.js';
+import { RangerModule } from '../modules/ranger.js';
 import { EventsModule } from '../modules/events.js';
 import { WebSocketModule } from '../modules/websocket.js';
 import { UtilsModule } from '../modules/utils.js';
@@ -114,6 +115,11 @@ export class ThetanutsClient {
   public readonly option: OptionModule;
 
   /**
+   * Ranger module - zone-bound (RangerOption) position management
+   */
+  public readonly ranger: RangerModule;
+
+  /**
    * Events module - query contract events
    */
   public readonly events: EventsModule;
@@ -203,6 +209,7 @@ export class ThetanutsClient {
     this.api = new APIModule(this);
     this.optionFactory = new OptionFactoryModule(this);
     this.option = new OptionModule(this);
+    this.ranger = new RangerModule(this);
     this.events = new EventsModule(this);
     this.ws = new WebSocketModule(this);
     this.utils = new UtilsModule(this);

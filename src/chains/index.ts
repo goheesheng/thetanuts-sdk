@@ -27,10 +27,14 @@ export interface ImplementationAddresses {
   PUT: string;
   /** Inverse call option implementation */
   INVERSE_CALL: string;
+  /** Linear call option implementation */
+  LINEAR_CALL: string;
   /** Call spread implementation */
   CALL_SPREAD: string;
   /** Put spread implementation */
   PUT_SPREAD: string;
+  /** Inverse call spread implementation */
+  INVERSE_CALL_SPREAD: string;
   /** Call butterfly implementation */
   CALL_FLY: string;
   /** Put butterfly implementation */
@@ -41,6 +45,10 @@ export interface ImplementationAddresses {
   PUT_CONDOR: string;
   /** Iron condor implementation */
   IRON_CONDOR: string;
+  /** Ranger (zone-bound) implementation */
+  RANGER: string;
+  /** Physically settled call loan handler implementation */
+  CALL_LOAN: string;
   /** Physically settled call option implementation */
   PHYSICAL_CALL: string;
   /** Physically settled put option implementation */
@@ -68,7 +76,7 @@ export interface OptionImplementationInfo {
   /** Human-readable name (e.g. 'INVERSE_CALL', 'PUT_SPREAD') */
   name: string;
   /** Option structure type */
-  type: 'VANILLA' | 'SPREAD' | 'BUTTERFLY' | 'CONDOR' | 'IRON_CONDOR' | 'RANGE' | 'LOAN_HANDLER';
+  type: 'VANILLA' | 'SPREAD' | 'BUTTERFLY' | 'CONDOR' | 'IRON_CONDOR' | 'RANGER' | 'LOAN_HANDLER';
   /** Number of strikes used */
   numStrikes: number;
 }
@@ -95,6 +103,11 @@ export interface ChainConfig {
   implementations: Partial<ImplementationAddresses>;
   /** Option implementation info keyed by lowercase address (reverse lookup) */
   optionImplementations: Record<string, OptionImplementationInfo>;
+  /**
+   * HistoricalPriceConsumerV3_TWAP address (Chainlink TWAP consumer used at
+   * settlement). null if not deployed on this chain.
+   */
+  twapConsumer: string | null;
   /** Deployment block number */
   deploymentBlock: number;
   /** API base URL */
@@ -130,8 +143,9 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
     nativeCurrency: 'ETH',
     explorerUrl: 'https://basescan.org',
     contracts: {
-      optionBook: '0xd58b814C7Ce700f251722b5555e25aE0fa8169A1',
-      optionFactory: '0x1aDcD391CF15Fb699Ed29B1D394F4A64106886e5',
+      // Base_r12 deployment (deployed 2026-05-05)
+      optionBook: '0x1bDff855d6811728acaDC00989e79143a2bdfDed',
+      optionFactory: '0x8118daD971dEbffB49B9280047659174128A8B94',
     },
     tokens: {
       USDC: {
@@ -189,18 +203,25 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
       'BTC/USD': '0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F',
     },
     implementations: {
-      PUT: '0xF480F636301d50Ed570D026254dC5728b746A90F',
-      INVERSE_CALL: '0x3CeB524cBA83D2D4579F5a9F8C0D1f5701dd16FE',
-      CALL_SPREAD: '0x4D75654bC616F64F6010d512C3B277891FB52540',
-      PUT_SPREAD: '0xC9767F9a2f1eADC7Fdcb7f0057E829D9d760E086',
-      CALL_FLY: '0xD8EA785ab2A63a8a94C38f42932a54A3E45501c3',
-      PUT_FLY: '0x1fE24872Ab7c83BbA26Dc761ce2EA735c9b96175',
-      CALL_CONDOR: '0xbb5d2EB2D354D930899DaBad01e032C76CC3c28f',
-      PUT_CONDOR: '0xbdAcC00Dc3F6e1928D9380c17684344e947aa3Ec',
-      IRON_CONDOR: '0x494Cd61b866D076c45564e236D6Cb9e011a72978',
-      PHYSICAL_CALL: '0x07032ffb1df85eC006Be7c76249B9e6f39b60F32',
-      PHYSICAL_PUT: '0xAC5eCA7129909dE8c12e1a41102414B5a5f340AA',
+      // Base_r12 implementations
+      PUT: '0x7355EB92dfb0503DB558a70c10843618932ab290',
+      INVERSE_CALL: '0xE6c5756b0289e3f0994CB12eb8aB71Cd903Ed0Ea',
+      LINEAR_CALL: '0x051791df68223AE173Fade5217C48875e36eef61',
+      CALL_SPREAD: '0xfaeD63f7040E65b79cF0Ae29706fDc423eE249A9',
+      PUT_SPREAD: '0x02Fe0d9635e0139DBB3768a5d5Db404Fd84d9134',
+      INVERSE_CALL_SPREAD: '0x7Be48100b1B0349528A96D64953295Cd0Bbe4B70',
+      CALL_FLY: '0xa1d5f6b16A2e7f298F8d2cDF78F7779B4A20C4C2',
+      PUT_FLY: '0x4fd2C6D271cC6FF3EbD2027da9815a0608d03AA3',
+      CALL_CONDOR: '0x14476CF2ea9F7C448100F061670E390f17c78817',
+      PUT_CONDOR: '0xC742E422c7BB43A7FDe1CEF47997bC9D5b543cDD',
+      IRON_CONDOR: '0x9ebd7E23AfD52a48F557523019285EfEF2170D59',
+      RANGER: '0x9980ec85bc6fE07340adb36c76FA093bb6D4FcBc',
+      CALL_LOAN: '0x7c444A2375275DaB925b32493B64a407eE955DEd',
+      PHYSICAL_CALL: '0x8c56100caE246f7daa4BC1EC4d1477d71178c563',
+      PHYSICAL_PUT: '0x6aD53DD058bea004829cCf58a282C21a7Df02DcA',
       // Physical multi-leg implementations (placeholder - contracts not yet deployed)
+      // The runtime guard at src/modules/optionFactory.ts:2241 throws a clear
+      // error if a user attempts to route through any of these zero addresses.
       PHYSICAL_CALL_SPREAD: '0x0000000000000000000000000000000000000000',
       PHYSICAL_PUT_SPREAD: '0x0000000000000000000000000000000000000000',
       PHYSICAL_CALL_FLY: '0x0000000000000000000000000000000000000000',
@@ -252,9 +273,26 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
       '0xb200253b68fbf18f31d813aecef97be3a6246b79': { name: 'IRON_CONDOR', type: 'IRON_CONDOR', numStrikes: 4 },
       '0x025a8ef95f8939ffdba6a45973a28695846e9e45': { name: 'PHYSICAL_CALL', type: 'VANILLA', numStrikes: 1 },
       '0x2d283d7ade2896d98331496ee761f15ed1d6a699': { name: 'PHYSICAL_PUT', type: 'VANILLA', numStrikes: 1 },
-      '0x6a1d5ce9e3bdef110a06d8d025c171189d926d72': { name: 'RANGE', type: 'RANGE', numStrikes: 2 },
+      '0x6a1d5ce9e3bdef110a06d8d025c171189d926d72': { name: 'RANGER', type: 'RANGER', numStrikes: 2 },
+      // Base_r12 implementations (deployed 2026-05-05, block 45601440)
+      '0x7355eb92dfb0503db558a70c10843618932ab290': { name: 'PUT', type: 'VANILLA', numStrikes: 1 },
+      '0xe6c5756b0289e3f0994cb12eb8ab71cd903ed0ea': { name: 'INVERSE_CALL', type: 'VANILLA', numStrikes: 1 },
+      '0x051791df68223ae173fade5217c48875e36eef61': { name: 'LINEAR_CALL', type: 'VANILLA', numStrikes: 1 },
+      '0xfaed63f7040e65b79cf0ae29706fdc423ee249a9': { name: 'CALL_SPREAD', type: 'SPREAD', numStrikes: 2 },
+      '0x02fe0d9635e0139dbb3768a5d5db404fd84d9134': { name: 'PUT_SPREAD', type: 'SPREAD', numStrikes: 2 },
+      '0x7be48100b1b0349528a96d64953295cd0bbe4b70': { name: 'INVERSE_CALL_SPREAD', type: 'SPREAD', numStrikes: 2 },
+      '0xa1d5f6b16a2e7f298f8d2cdf78f7779b4a20c4c2': { name: 'CALL_FLYS', type: 'BUTTERFLY', numStrikes: 3 },
+      '0x4fd2c6d271cc6ff3ebd2027da9815a0608d03aa3': { name: 'PUT_FLYS', type: 'BUTTERFLY', numStrikes: 3 },
+      '0x14476cf2ea9f7c448100f061670e390f17c78817': { name: 'CALL_CONDOR', type: 'CONDOR', numStrikes: 4 },
+      '0xc742e422c7bb43a7fde1cef47997bc9d5b543cdd': { name: 'PUT_CONDOR', type: 'CONDOR', numStrikes: 4 },
+      '0x9ebd7e23afd52a48f557523019285efef2170d59': { name: 'IRON_CONDOR', type: 'IRON_CONDOR', numStrikes: 4 },
+      '0x9980ec85bc6fe07340adb36c76fa093bb6d4fcbc': { name: 'RANGER', type: 'RANGER', numStrikes: 4 },
+      '0x8c56100cae246f7daa4bc1ec4d1477d71178c563': { name: 'PHYSICAL_CALL', type: 'VANILLA', numStrikes: 1 },
+      '0x6ad53dd058bea004829ccf58a282c21a7df02dca': { name: 'PHYSICAL_PUT', type: 'VANILLA', numStrikes: 1 },
+      '0x7c444a2375275dab925b32493b64a407ee955ded': { name: 'CALL_LOAN', type: 'LOAN_HANDLER', numStrikes: 1 },
     },
-    deploymentBlock: 33445320,
+    twapConsumer: '0xE909fb38767e0ac5F7a347DF9Dd4222217E10816',
+    deploymentBlock: 45601440,
     apiBaseUrl: 'https://round-snowflake-9c31.devops-118.workers.dev',
     indexerApiUrl: 'https://indexer.thetanuts.finance/api/v1/book',
     wsBaseUrl: 'wss://ws.thetanuts.finance/v4',
@@ -265,7 +303,7 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
       'https://base.llamarpc.com',
     ],
     // Deprecated fields for backwards compatibility
-    optionBook: '0xd58b814C7Ce700f251722b5555e25aE0fa8169A1',
+    optionBook: '0x1bDff855d6811728acaDC00989e79143a2bdfDed',
     collateralTokens: {
       USDC: {
         address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -316,6 +354,7 @@ export const CHAIN_CONFIGS_BY_ID: Record<SupportedChainId, ChainConfig> = {
     },
     implementations: {},
     optionImplementations: {},
+    twapConsumer: null,
     deploymentBlock: 0,
     apiBaseUrl: '',
     indexerApiUrl: '',

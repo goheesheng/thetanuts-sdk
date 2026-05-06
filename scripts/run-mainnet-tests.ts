@@ -16,8 +16,12 @@ import type { OrderWithSignature } from '../src/types/index.js';
 const BASE_MAINNET_RPC = 'https://mainnet.base.org';
 const BASE_CHAIN_ID = 8453;
 
+// Base_r12 deployment (deployed 2026-05-05, block 45601440)
 const ADDRESSES = {
-  OPTION_BOOK: '0xd58b814C7Ce700f251722b5555e25aE0fa8169A1',
+  OPTION_BOOK: '0x1bDff855d6811728acaDC00989e79143a2bdfDed',
+  OPTION_FACTORY: '0x8118daD971dEbffB49B9280047659174128A8B94',
+  TWAP_CONSUMER: '0xE909fb38767e0ac5F7a347DF9Dd4222217E10816',
+  RANGER_IMPL: '0x9980ec85bc6fE07340adb36c76FA093bb6D4FcBc',
   USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   WETH: '0x4200000000000000000000000000000000000006',
   cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
@@ -282,6 +286,106 @@ async function runTests() {
     pass('MM Pricing module methods available');
   } catch (e) {
     fail('MM Pricing module', e as Error);
+  }
+
+  // ========== Test Suite 7: Base_r12 surface ==========
+  log('\n--- 7. Base_r12 Additive Surface ---');
+
+  try {
+    if (client.chainConfig.twapConsumer !== ADDRESSES.TWAP_CONSUMER) {
+      throw new Error(`Expected TWAP consumer ${ADDRESSES.TWAP_CONSUMER}, got ${client.chainConfig.twapConsumer}`);
+    }
+    pass(`twapConsumer registered: ${client.chainConfig.twapConsumer}`);
+  } catch (e) {
+    fail('twapConsumer registration', e as Error);
+  }
+
+  try {
+    const ranger = client.chainConfig.implementations.RANGER;
+    if (ranger?.toLowerCase() !== ADDRESSES.RANGER_IMPL.toLowerCase()) {
+      throw new Error(`Expected ${ADDRESSES.RANGER_IMPL}, got ${ranger}`);
+    }
+    pass(`RANGER implementation registered: ${ranger}`);
+  } catch (e) {
+    fail('RANGER implementation address', e as Error);
+  }
+
+  try {
+    const { getOptionImplementationInfo } = await import('../src/chains/index.js');
+    const info = getOptionImplementationInfo(BASE_CHAIN_ID, ADDRESSES.RANGER_IMPL);
+    if (!info || info.type !== 'RANGER' || info.numStrikes !== 4) {
+      throw new Error(`Reverse-lookup mismatch: ${JSON.stringify(info)}`);
+    }
+    pass(`Ranger reverse-lookup resolves: ${info.name}/${info.type}`);
+  } catch (e) {
+    fail('Ranger reverse-lookup', e as Error);
+  }
+
+  try {
+    await delay(500);
+    const factory = new ethers.Contract(
+      ADDRESSES.OPTION_FACTORY,
+      ['function historicalTWAPConsumer() view returns (address)'],
+      provider,
+    );
+    const onChain = (await factory.historicalTWAPConsumer()) as string;
+    if (onChain.toLowerCase() !== ADDRESSES.TWAP_CONSUMER.toLowerCase()) {
+      throw new Error(`On-chain TWAP consumer ${onChain} != expected ${ADDRESSES.TWAP_CONSUMER}`);
+    }
+    pass(`OptionFactory.historicalTWAPConsumer() == ${onChain}`);
+  } catch (e) {
+    fail('OptionFactory.historicalTWAPConsumer', e as Error);
+  }
+
+  try {
+    await delay(500);
+    const book = new ethers.Contract(
+      ADDRESSES.OPTION_BOOK,
+      [
+        'function minNumContracts() view returns (uint256)',
+        'function minPremiumAmount() view returns (uint256)',
+      ],
+      provider,
+    );
+    const [minN, minP] = await Promise.all([
+      book.minNumContracts() as Promise<bigint>,
+      book.minPremiumAmount() as Promise<bigint>,
+    ]);
+    pass(`OptionBook thresholds: minNumContracts=${minN.toString()}, minPremiumAmount=${minP.toString()}`);
+  } catch (e) {
+    fail('OptionBook minimum thresholds', e as Error);
+  }
+
+  try {
+    await delay(500);
+    const factory = new ethers.Contract(
+      ADDRESSES.OPTION_FACTORY,
+      [
+        'function totalClaimableTransfers(address) view returns (uint256)',
+        'function claimableTransfers(address,address) view returns (uint256)',
+        'function baseSplitFee() view returns (uint256)',
+      ],
+      provider,
+    );
+    const [total, perToken, baseSplit] = await Promise.all([
+      factory.totalClaimableTransfers(ADDRESSES.SAMPLE_USER) as Promise<bigint>,
+      factory.claimableTransfers(ADDRESSES.SAMPLE_USER, ADDRESSES.USDC) as Promise<bigint>,
+      factory.baseSplitFee() as Promise<bigint>,
+    ]);
+    pass(
+      `Escrow views: totalClaimable=${total.toString()}, USDC=${perToken.toString()}, baseSplitFee=${baseSplit.toString()}`,
+    );
+  } catch (e) {
+    fail('OptionFactory escrow views', e as Error);
+  }
+
+  try {
+    if (typeof client.ranger.getInfo !== 'function') throw new Error('client.ranger.getInfo missing');
+    if (typeof client.ranger.getZone !== 'function') throw new Error('client.ranger.getZone missing');
+    if (typeof client.ranger.getSpreadWidth !== 'function') throw new Error('client.ranger.getSpreadWidth missing');
+    pass('client.ranger module surface available');
+  } catch (e) {
+    fail('client.ranger module surface', e as Error);
   }
 
   // ========== Summary ==========

@@ -1,0 +1,395 @@
+/**
+ * RangerOption ABI — Thetanuts V4 Ranger (zone-bound) implementation.
+ * Source: thetaverse/abis/RangerOption.json (Base_r12).
+ *
+ * User-facing surface only. Admin/internal callbacks are deliberately
+ * omitted: notifyCreationComplete, notifyTradeSettled,
+ * executeCollateralReclaim, approveTransfer, rescueERC20.
+ */
+export const RANGER_OPTION_ABI = [
+  // ============ Constants ============
+  {
+    type: 'function',
+    name: 'PRICE_DECIMALS',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+
+  // ============ Identity / metadata ============
+  {
+    type: 'function',
+    name: 'buyer',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'seller',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'creator',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'collateralToken',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'collateralAmount',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'numContracts',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'expiryTimestamp',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'chainlinkPriceFeed',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'historicalTWAPConsumer',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'twapPeriod',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionType',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionSettled',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'paramsHash',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'splitGeneration',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionParent',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionChildren',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'factory',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'rescueAddress',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getImplementation',
+    inputs: [],
+    outputs: [{ name: 'implementation', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getStrikes',
+    inputs: [],
+    outputs: [{ name: 'strikes', type: 'uint256[]', internalType: 'uint256[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'buyerAllowance',
+    inputs: [
+      { name: '', type: 'address', internalType: 'address' },
+      { name: '', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'sellerAllowance',
+    inputs: [
+      { name: '', type: 'address', internalType: 'address' },
+      { name: '', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+
+  // ============ Ranger-specific views ============
+  {
+    type: 'function',
+    name: 'getZone',
+    inputs: [],
+    outputs: [
+      { name: 'zoneLower', type: 'uint256', internalType: 'uint256' },
+      { name: 'zoneUpper', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getSpreadWidth',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+
+  // ============ Pricing / payout views ============
+  {
+    type: 'function',
+    name: 'getTWAP',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'calculatePayout',
+    inputs: [{ name: 'price', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'calculateRequiredCollateral',
+    inputs: [
+      { name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: '_numContracts', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    name: 'calculateNumContractsForCollateral',
+    inputs: [
+      { name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: '_collateralAmount', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    name: 'simulatePayout',
+    inputs: [
+      { name: 'price', type: 'uint256', internalType: 'uint256' },
+      { name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: '_numContracts', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    name: 'getReclaimFee',
+    inputs: [{ name: 'caller', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getSplitFee',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'validateParams',
+    inputs: [{ name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' }],
+    outputs: [],
+    stateMutability: 'pure',
+  },
+
+  // ============ Write Functions (user-facing) ============
+  {
+    type: 'function',
+    name: 'payout',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'close',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'split',
+    inputs: [{ name: 'splitCollateralAmount', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'transfer',
+    inputs: [
+      { name: 'isBuyer', type: 'bool', internalType: 'bool' },
+      { name: 'target', type: 'address', internalType: 'address' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'reclaimCollateral',
+    inputs: [{ name: 'recipient', type: 'address', internalType: 'address' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'returnExcessCollateral',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+
+  // ============ Events ============
+  {
+    type: 'event',
+    name: 'OptionInitialized',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'creator', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'paramsHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionClosed',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'closedBy', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'collateralReturned', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionExpired',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'settlementPrice', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionPayout',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'buyer', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amountPaidOut', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionSettlementFailed',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'reason', type: 'string', indexed: false, internalType: 'string' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionSplit',
+    inputs: [
+      { name: 'parent', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'child', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'splitCollateralAmount', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ExcessCollateralReturned',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'seller', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amountReturned', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'TransferApproval',
+    inputs: [
+      { name: 'optionAddress', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'isBuyer', type: 'bool', indexed: false, internalType: 'bool' },
+      { name: 'target', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'isApproved', type: 'bool', indexed: false, internalType: 'bool' },
+    ],
+    anonymous: false,
+  },
+] as const;

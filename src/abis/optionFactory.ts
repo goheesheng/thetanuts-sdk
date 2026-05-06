@@ -54,6 +54,26 @@ const QUOTATION_TRACKING_COMPONENTS = [
   { name: 'eventCode', type: 'uint256', internalType: 'uint256' },
 ] as const;
 
+/**
+ * OptionBook.Order struct components - used by settleQuotationEarlyByOrderBook (r12).
+ * Mirrors ORDER_COMPONENTS in src/abis/optionBook.ts.
+ */
+const ORDER_BOOK_ORDER_COMPONENTS = [
+  { name: 'maker', type: 'address', internalType: 'address' },
+  { name: 'orderExpiryTimestamp', type: 'uint256', internalType: 'uint256' },
+  { name: 'collateral', type: 'address', internalType: 'address' },
+  { name: 'isCall', type: 'bool', internalType: 'bool' },
+  { name: 'priceFeed', type: 'address', internalType: 'address' },
+  { name: 'implementation', type: 'address', internalType: 'address' },
+  { name: 'isLong', type: 'bool', internalType: 'bool' },
+  { name: 'maxCollateralUsable', type: 'uint256', internalType: 'uint256' },
+  { name: 'strikes', type: 'uint256[]', internalType: 'uint256[]' },
+  { name: 'expiry', type: 'uint256', internalType: 'uint256' },
+  { name: 'price', type: 'uint256', internalType: 'uint256' },
+  { name: 'numContracts', type: 'uint256', internalType: 'uint256' },
+  { name: 'extraOptionData', type: 'bytes', internalType: 'bytes' },
+] as const;
+
 export const OPTION_FACTORY_ABI = [
   // ============ Constructor ============
   {
@@ -213,6 +233,66 @@ export const OPTION_FACTORY_ABI = [
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
     stateMutability: 'view',
   },
+  // r12-additive views
+  {
+    type: 'function',
+    name: 'MAX_ORACLE_STALENESS',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'MAX_TRANSFER_DUST',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'activeRfqForOption',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'baseSplitFee',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'claimableTransfers',
+    inputs: [
+      { name: '', type: 'address', internalType: 'address' },
+      { name: '', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'deprecationTime',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'settlementExtension',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'totalClaimableTransfers',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
   {
     type: 'function',
     name: 'returnReferralParameters',
@@ -340,6 +420,31 @@ export const OPTION_FACTORY_ABI = [
       { name: 'offerAmount', type: 'uint256', internalType: 'uint256' },
       { name: 'nonce', type: 'uint64', internalType: 'uint64' },
       { name: 'offeror', type: 'address', internalType: 'address' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // r12-additive writes (user-facing only — admin setters omitted)
+  {
+    type: 'function',
+    name: 'claimEscrowedFunds',
+    inputs: [{ name: 'token', type: 'address', internalType: 'address' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'settleQuotationEarlyByOrderBook',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', internalType: 'uint256' },
+      { name: 'optionBook', type: 'address', internalType: 'address' },
+      {
+        name: 'order',
+        type: 'tuple',
+        internalType: 'struct OptionBook.Order',
+        components: ORDER_BOOK_ORDER_COMPONENTS,
+      },
+      { name: 'signature', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -818,6 +923,103 @@ export const OPTION_FACTORY_ABI = [
         indexed: true,
         internalType: 'address',
       },
+    ],
+    anonymous: false,
+  },
+  // r12-additive events
+  {
+    type: 'event',
+    name: 'BaseSplitFeeUpdated',
+    inputs: [
+      { name: 'oldFee', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'newFee', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'CollateralDeposited',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', indexed: true, internalType: 'uint256' },
+      { name: 'depositor', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amount', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'CollateralReturned',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', indexed: true, internalType: 'uint256' },
+      { name: 'recipient', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amount', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'EscrowClaimed',
+    inputs: [
+      { name: 'recipient', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'token', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amount', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ExpiredReferralSwept',
+    inputs: [
+      { name: 'referralId', type: 'uint256', indexed: true, internalType: 'uint256' },
+      { name: 'token', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amount', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'FactoryDeprecation',
+    inputs: [
+      { name: 'timestamp', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'MaxRfqValueUpdated',
+    inputs: [
+      { name: 'oldValue', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'newValue', type: 'uint256', indexed: false, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OfferAcceptedFromOrderBook',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', indexed: true, internalType: 'uint256' },
+      { name: 'maker', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'premiumAmount', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'optionAddress', type: 'address', indexed: false, internalType: 'address' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'SettlementFailedDueToStateChange',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', indexed: true, internalType: 'uint256' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'TransferEscrowed',
+    inputs: [
+      { name: 'quotationId', type: 'uint256', indexed: true, internalType: 'uint256' },
+      { name: 'recipient', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'token', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'amount', type: 'uint256', indexed: false, internalType: 'uint256' },
     ],
     anonymous: false,
   },

@@ -71,7 +71,6 @@ interface LoanRequestParams {
   expiryTimestamp: number;
   offerEndTimestamp: number;
   minSettlementAmount: bigint;
-  convertToLimitOrder: boolean;
   requesterPublicKey: string;
 }
 
@@ -283,7 +282,6 @@ export class LoanModule {
         expiryTimestamp: params.expiryTimestamp,
         offerEndTimestamp,
         minSettlementAmount: params.minSettlementAmount,
-        convertToLimitOrder: params.keepOrderOpen ?? false,
         requesterPublicKey: keyPair.compressedPublicKey,
       };
 
@@ -1044,7 +1042,6 @@ export class LoanModule {
       expiryTimestamp: params.expiryTimestamp,
       offerEndTimestamp,
       minSettlementAmount: params.minSettlementAmount,
-      convertToLimitOrder: params.keepOrderOpen ?? false,
       requesterPublicKey: '',
     }]);
 

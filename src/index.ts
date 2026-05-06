@@ -85,6 +85,8 @@ export { OptionBookModule } from './modules/optionBook.js';
 export { APIModule } from './modules/api.js';
 export { OptionFactoryModule } from './modules/optionFactory.js';
 export { OptionModule } from './modules/option.js';
+export { RangerModule } from './modules/ranger.js';
+export type { RangerInfo } from './modules/ranger.js';
 export { EventsModule } from './modules/events.js';
 export { WebSocketModule } from './modules/websocket.js';
 export { UtilsModule } from './modules/utils.js';
