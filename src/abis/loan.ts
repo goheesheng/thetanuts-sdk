@@ -5,18 +5,29 @@
  * The SDK already handles OptionFactory and OptionBook ABIs internally.
  */
 
-/** LoanCoordinator — manages loan requests and collateral */
+/**
+ * LoanCoordinator — manages loan requests and collateral.
+ * Source: thetaverse/abis/PhysicallySettledCallOptionLoanCoordinator.json (r12).
+ *
+ * User-facing surface only. Admin/internal functions deliberately omitted:
+ *   setAssetConfig, removeAssetConfig, setFee, transferOwnership,
+ *   renounceOwnership, acceptOwnership, rescueToken, handleSettlement,
+ *   handleSettlementComplete.
+ */
 export const LOAN_COORDINATOR_ABI = [
-  'function requestLoan(tuple(address collateralToken, address priceFeed, address settlementToken, uint256 collateralAmount, uint256 strike, uint256 expiryTimestamp, uint256 offerEndTimestamp, uint256 minSettlementAmount, bool convertToLimitOrder, string requesterPublicKey) params) returns (uint256 quotationId)',
+  'function requestLoan(tuple(address collateralToken, address priceFeed, address settlementToken, uint256 collateralAmount, uint256 strike, uint256 expiryTimestamp, uint256 offerEndTimestamp, uint256 minSettlementAmount, string requesterPublicKey) params) returns (uint256 quotationId)',
   'function settleQuotationEarly(uint256 quotationId, uint256 offerAmount, uint64 nonce, address offeror)',
   'function cancelLoan(uint256 quotationId)',
-  'function handleSettlement(uint256 quotationId, address settledOptionContract) returns (address requester, uint256 settlementAmount, address collateralToken, uint256 collateralAmount)',
-  'function loanRequests(uint256) view returns (address requester, uint256 collateralAmount, uint256 strike, uint256 expiryTimestamp, address collateralToken, address settlementToken, bool isSettled, address settledOptionContract)',
+  'function loanRequests(uint256) view returns (address requester, uint256 collateralAmount, uint256 strike, uint256 expiryTimestamp, address collateralToken, address settlementToken, bool isSettled, address settledOptionContract, bool loanClaimed)',
+  'function assetConfigs(bytes32) view returns (address collateralToken, address priceFeed, address settlementToken, bool isActive)',
+  'function callOptionImplementation() view returns (address)',
+  'function loanHandlerImplementation() view returns (address)',
   'function fee() view returns (uint256)',
   'function MAX_FEE() view returns (uint256)',
   'function optionFactory() view returns (address)',
   'function totalLockedCollateral(address) view returns (uint256)',
-  'event LoanRequested(uint256 indexed quotationId, address indexed requester, address collateralToken, address settlementToken, uint256 collateralAmount, uint256 minSettlementAmount, uint256 strike, uint256 expiryTimestamp, uint256 offerEndTimestamp, bool convertToLimitOrder)',
+  'event LoanRequested(uint256 indexed quotationId, address indexed requester, address collateralToken, address settlementToken, uint256 collateralAmount, uint256 minSettlementAmount, uint256 strike, uint256 expiryTimestamp, uint256 offerEndTimestamp)',
+  'event LoanClaimed(uint256 indexed quotationId, address indexed claimant, uint256 amount)',
   'event FeeCollected(uint256 indexed quotationId, uint256 feeAmount)',
 ];
 
@@ -26,7 +37,7 @@ export const LOAN_OPTION_ABI = [
   'function doNotExercise()',
   'function swapAndExercise(address aggregator, bytes swapData)',
   'function close()',
-  'function split(uint256 splitCollateralAmount) returns (address)',
+  'function split(uint256 splitCollateralAmount) payable returns (address)',
   'function transfer(bool isBuyer, address target)',
   'function approveTransfer(bool isBuyer, address target, bool isApproved)',
   'function buyer() view returns (address)',

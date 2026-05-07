@@ -47,10 +47,20 @@ export {
   OPTION_FACTORY_ABI,
   OPTION_ABI,
   BASE_OPTION_ABI,
+  RANGER_OPTION_ABI,
   LOAN_COORDINATOR_ABI,
   LOAN_OPTION_ABI,
   LOAN_HANDLER_ABI,
   LOAN_WETH_ABI,
+  WHEEL_VAULT_ABI,
+  VAULT_MATH_ABI,
+  WHEEL_MARKETS_ABI,
+  WHEEL_MARKETS_LENS_ABI,
+  WHEEL_VAULT_ROUTER_ABI,
+  WHEEL_VAULT_LENS_ABI,
+  MULTICALL3_ABI,
+  UNISWAP_NPM_ABI,
+  STRATEGY_VAULT_ABI,
 } from './abis/index.js';
 
 // ============ Chain Configuration ============
@@ -65,6 +75,8 @@ export {
 } from './chains/index.js';
 
 export { LOAN_CONFIG } from './chains/loan.js';
+export { WHEEL_VAULT_CONFIG } from './chains/wheelVault.js';
+export { STRATEGY_VAULT_CONFIG } from './chains/strategyVault.js';
 
 export type { ChainConfig, TokenConfig, ContractAddresses, OptionImplementationInfo, ImplementationAddresses } from './chains/index.js';
 
@@ -74,12 +86,16 @@ export { OptionBookModule } from './modules/optionBook.js';
 export { APIModule } from './modules/api.js';
 export { OptionFactoryModule } from './modules/optionFactory.js';
 export { OptionModule } from './modules/option.js';
+export { RangerModule } from './modules/ranger.js';
+export type { RangerInfo } from './modules/ranger.js';
 export { EventsModule } from './modules/events.js';
 export { WebSocketModule } from './modules/websocket.js';
 export { UtilsModule } from './modules/utils.js';
 export { RFQKeyManagerModule } from './modules/rfqKeyManager.js';
 export { MMPricingModule, parseTicker, buildTicker, applyFeeAdjustment, calculateCollateralCost } from './modules/mmPricing.js';
 export { LoanModule } from './modules/loan.js';
+export { WheelVaultModule } from './modules/wheelVault.js';
+export { StrategyVaultModule } from './modules/strategyVault.js';
 
 // ============ Types — Logger ============
 export type { ThetanutsLogger } from './types/logger.js';
@@ -204,7 +220,7 @@ export type {
   PositionClosedEvent,
   PositionTransferredEvent,
   EventFilters,
-  CollateralReturnedEvent,
+  ExcessCollateralReturnedEvent,
   OptionClosedEvent,
   OptionExpiredEvent,
   OptionPayoutEvent,
@@ -351,3 +367,46 @@ export {
 } from './utils/rfqCalculations.js';
 
 export type { ProductName, ValidationResult, DeliveryResult } from './utils/rfqCalculations.js';
+
+// ============ Types — WheelVault ============
+export type {
+  WheelVaultAssetKey,
+  WheelVaultAssetConfig,
+  VaultSeries,
+  VaultState,
+  ShareSnapshot,
+  DeficitPreview,
+  BucketPreview,
+  DepthChartResult,
+  VaultOption,
+  ExercisePreview,
+  SellerPosition,
+  FillTranche,
+  FillPremiumPreview,
+  BuyerOption,
+  ClaimableSummary,
+  DepositPreview,
+  WithdrawPreview,
+  DepositSplitEstimate,
+  VaultDepositResult,
+  VaultWithdrawResult,
+  MarketSwapParams,
+  DepositSingleParams,
+  DepositDualParams,
+  WithdrawSingleParams,
+  WithdrawSingleWithPermitParams,
+  MarketFillParams,
+  DepositToBucketParams,
+  UniswapV3Position,
+} from './types/wheelVault.js';
+
+// ============ Types — StrategyVault ============
+export type {
+  StrategyVaultEntry,
+  StrategyVaultAssets,
+  StrategyVaultState,
+  VaultEpochInfo,
+  StrategyVaultDepositResult,
+  StrategyVaultWithdrawResult,
+  StrategyVaultCreateOptionResult,
+} from './types/strategyVault.js';

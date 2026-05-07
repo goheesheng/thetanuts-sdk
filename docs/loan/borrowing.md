@@ -56,7 +56,10 @@ const result = await client.loan.requestLoan({
   strike: selected.strike,
   expiryTimestamp: selected.expiry,
   minSettlementAmount: calc.finalLoanAmount,
-  keepOrderOpen: true,  // Convert to limit order if no MM fills
+  // keepOrderOpen is deprecated as of v0.2.0 (Base_r12) and ignored at the
+  // contract level — the contract no longer supports converting an unfilled
+  // RFQ into a limit order. The field remains in LoanRequest for source
+  // compatibility but its value has no on-chain effect.
 });
 
 console.log(`TX: ${result.receipt.hash}`);

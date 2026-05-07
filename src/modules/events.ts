@@ -20,7 +20,7 @@ import type {
   RfqHistory,
   EventQueryParams,
   BaseEvent,
-  CollateralReturnedEvent,
+  ExcessCollateralReturnedEvent,
   OptionClosedEvent,
   OptionExpiredEvent,
   OptionPayoutEvent,
@@ -815,54 +815,58 @@ export class EventsModule {
   }
 
   /**
-   * Get CollateralReturned events from an Option contract
+   * Get ExcessCollateralReturned events from an Option contract.
+   *
+   * r12 renamed the prior `CollateralReturned` event to
+   * `ExcessCollateralReturned` and reshaped fields to
+   * (seller indexed, collateralToken indexed, collateralReturned).
    *
    * @param optionAddress - Option contract address
    * @param filters - Event query filters
-   * @returns Array of collateral returned events
+   * @returns Array of excess collateral returned events
    */
-  async getCollateralReturnedEvents(
+  async getExcessCollateralReturnedEvents(
     optionAddress: string,
     filters?: EventFilters
-  ): Promise<CollateralReturnedEvent[]> {
+  ): Promise<ExcessCollateralReturnedEvent[]> {
     validateAddress(optionAddress, 'optionAddress');
-    this.client.logger.debug('Getting collateral returned events', { optionAddress, filters });
+    this.client.logger.debug('Getting excess collateral returned events', { optionAddress, filters });
 
     try {
       const contract = this.getBaseOptionContract(optionAddress);
       const fromBlock = filters?.fromBlock;
       const toBlock = filters?.toBlock;
 
-      const eventFilter = contract.filters['CollateralReturned']?.();
+      const eventFilter = contract.filters['ExcessCollateralReturned']?.();
       if (!eventFilter) {
         return [];
       }
 
       const logs = await this.queryFilterChunked(contract, eventFilter, fromBlock, toBlock);
 
-      const events: CollateralReturnedEvent[] = [];
+      const events: ExcessCollateralReturnedEvent[] = [];
       for (const log of logs) {
         if (this.isEventLog(log)) {
           const args = log.args as unknown as {
-            optionAddress: string;
             seller: string;
-            amountReturned: bigint;
+            collateralToken: string;
+            collateralReturned: bigint;
           };
 
           events.push({
             blockNumber: log.blockNumber,
             transactionHash: log.transactionHash,
             logIndex: log.index,
-            optionAddress: args.optionAddress,
             seller: args.seller,
-            amountReturned: args.amountReturned,
+            collateralToken: args.collateralToken,
+            collateralReturned: args.collateralReturned,
           });
         }
       }
 
       return events;
     } catch (error) {
-      this.client.logger.error('Failed to get collateral returned events', { error, optionAddress });
+      this.client.logger.error('Failed to get excess collateral returned events', { error, optionAddress });
       throw mapContractError(error);
     }
   }
@@ -1096,9 +1100,14 @@ export class EventsModule {
       const events: OptionSplitEvent[] = [];
       for (const log of logs) {
         if (this.isEventLog(log)) {
+          // r12 OptionSplit shape: (newOption indexed, collateralAmount,
+          // feePaid, counterparty indexed). Earlier SDK extracted only
+          // newOption + collateralAmount.
           const args = log.args as unknown as {
             newOption: string;
             collateralAmount: bigint;
+            feePaid: bigint;
+            counterparty: string;
           };
 
           events.push({
@@ -1108,6 +1117,8 @@ export class EventsModule {
             originalOption: optionAddress,
             newOption: args.newOption,
             collateralAmount: args.collateralAmount,
+            feePaid: args.feePaid,
+            counterparty: args.counterparty,
           });
         }
       }

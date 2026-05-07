@@ -28,6 +28,7 @@ import type {
   PhysicalIronCondorRFQParams,
 } from '../types/optionFactory.js';
 import type { CallStaticResult } from '../types/callStatic.js';
+import type { ImplementationAddresses } from '../chains/index.js';
 import { createError, mapContractError } from '../utils/errors.js';
 import { NotFoundError } from '../types/errors.js';
 import { validateAddress } from '../utils/validation.js';
@@ -151,6 +152,21 @@ export class OptionFactoryModule {
    */
   get contractAddress(): string {
     return this.client.getContractAddress('optionFactory');
+  }
+
+  private ensureAvailable(): void {
+    this.client.getContractAddress('optionFactory');
+  }
+
+  private getImplementationAddress(name: keyof ImplementationAddresses): string {
+    const implementation = this.client.chainConfig.implementations[name];
+    if (!implementation || implementation === '0x0000000000000000000000000000000000000000') {
+      throw createError(
+        'NETWORK_UNSUPPORTED',
+        `${name} implementation is not deployed on ${this.client.chainConfig.name} (chain ${this.client.chainId})`
+      );
+    }
+    return implementation;
   }
 
   /**
@@ -304,6 +320,7 @@ export class OptionFactoryModule {
   async requestForQuotation(request: RFQRequest): Promise<TransactionReceipt> {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'requestForQuotation');
 
     if (request.params.strikes.length === 0) {
       throw createError('INVALID_PARAMS', 'At least one strike price is required');
@@ -909,6 +926,7 @@ export class OptionFactoryModule {
   async registerReferral(params: QuotationParameters): Promise<TransactionReceipt> {
     validateAddress(params.requester, 'requester');
     validateAddress(params.collateral, 'collateral');
+    this.assertImplementationDeployed(params.implementation, 'registerReferral');
 
     this.client.logger.debug('Registering referral', {
       requester: params.requester,
@@ -1100,6 +1118,7 @@ export class OptionFactoryModule {
   encodeRequestForQuotation(request: RFQRequest): { to: string; data: string } {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'encodeRequestForQuotation');
 
     if (request.params.strikes.length === 0) {
       throw createError('INVALID_PARAMS', 'At least one strike price is required');
@@ -1352,6 +1371,7 @@ export class OptionFactoryModule {
   async callStaticCreateRFQ(request: RFQRequest): Promise<CallStaticResult<bigint>> {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'callStaticCreateRFQ');
 
     if (request.params.strikes.length === 0) {
       return {
@@ -1582,6 +1602,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildRFQParams(params: RFQBuilderParams): QuotationParameters {
+    this.ensureAvailable();
     validateAddress(params.requester, 'requester');
 
     const chainConfig = this.client.chainConfig;
@@ -1653,7 +1674,6 @@ export class OptionFactoryModule {
     const implementation = this.getImplementationForStructure(
       params.optionType,
       strikesOnChain.length,
-      chainConfig,
       params.isIronCondor ?? false
     );
 
@@ -1710,7 +1730,6 @@ export class OptionFactoryModule {
   private getImplementationForStructure(
     optionType: 'CALL' | 'PUT',
     strikeCount: number,
-    chainConfig: typeof this.client.chainConfig,
     isIronCondor: boolean = false
   ): string {
     const isCall = optionType === 'CALL';
@@ -1718,31 +1737,23 @@ export class OptionFactoryModule {
     switch (strikeCount) {
       case 1:
         // Vanilla option
-        return isCall
-          ? chainConfig.implementations.INVERSE_CALL
-          : chainConfig.implementations.PUT;
+        return this.getImplementationAddress(isCall ? 'INVERSE_CALL' : 'PUT');
 
       case 2:
         // Spread
-        return isCall
-          ? chainConfig.implementations.CALL_SPREAD
-          : chainConfig.implementations.PUT_SPREAD;
+        return this.getImplementationAddress(isCall ? 'CALL_SPREAD' : 'PUT_SPREAD');
 
       case 3:
         // Butterfly - uses butterfly (FLY) implementation
-        return isCall
-          ? chainConfig.implementations.CALL_FLY
-          : chainConfig.implementations.PUT_FLY;
+        return this.getImplementationAddress(isCall ? 'CALL_FLY' : 'PUT_FLY');
 
       case 4:
         // Condor - uses condor implementation
         // Iron condor uses a different implementation (put spread + call spread)
         if (isIronCondor) {
-          return chainConfig.implementations.IRON_CONDOR;
+          return this.getImplementationAddress('IRON_CONDOR');
         }
-        return isCall
-          ? chainConfig.implementations.CALL_CONDOR
-          : chainConfig.implementations.PUT_CONDOR;
+        return this.getImplementationAddress(isCall ? 'CALL_CONDOR' : 'PUT_CONDOR');
 
       default:
         throw createError(
@@ -1987,6 +1998,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildPhysicalOptionRFQ(params: PhysicalOptionRFQParams): RFQRequest {
+    this.ensureAvailable();
     const { optionType, underlying, deliveryToken, collateralToken } = params;
 
     // 1. Validate option type
@@ -2006,13 +2018,7 @@ export class OptionFactoryModule {
 
     // 3. Select implementation
     const implKey = optionType === 'CALL' ? 'PHYSICAL_CALL' : 'PHYSICAL_PUT';
-    const implementation = this.client.chainConfig.implementations[implKey];
-    if (!implementation) {
-      throw createError(
-        'INVALID_PARAMS',
-        `${implKey} implementation not found in chain config. Physical options may not be supported on this chain.`
-      );
-    }
+    const implementation = this.getImplementationAddress(implKey);
 
     // 4. Validate/infer collateral token
     const inferredCollateral = this.inferPhysicalCollateral(optionType, underlying);
@@ -2187,7 +2193,7 @@ export class OptionFactoryModule {
   ): string {
     const chainConfig = this.client.chainConfig;
     const isCall = optionType === 'CALL';
-    let implementation: string;
+    let implementation: string | undefined;
     let implName: string;
 
     switch (strikeCount) {
@@ -2248,6 +2254,27 @@ export class OptionFactoryModule {
   }
 
   /**
+   * Guard against passing a zero-address implementation to the on-chain RFQ.
+   *
+   * The seven physical multi-leg implementations (PHYSICAL_*_SPREAD/FLY/CONDOR/
+   * IRON_CONDOR) are stored as 0x000…000 in the chain registry until the
+   * contracts deploy. Without this guard, raw callers using
+   * `requestForQuotation` / `encodeRequestForQuotation` who pass
+   * `chainConfig.implementations.PHYSICAL_*` directly would otherwise produce
+   * calldata or send a transaction targeting the zero address — leading to a
+   * cryptic on-chain revert with no SDK-level explanation.
+   */
+  private assertImplementationDeployed(impl: string, where: string): void {
+    if (!impl || impl === '0x0000000000000000000000000000000000000000') {
+      throw createError(
+        'INVALID_PARAMS',
+        `${where}: implementation 0x000…000 — physical multi-leg contracts not yet deployed in r12. ` +
+        `If this is unexpected, check chainConfig.implementations for your option type.`,
+      );
+    }
+  }
+
+  /**
    * Build a physical spread RFQ request using explicit lower/upper strike parameters.
    *
    * A physical spread involves 2 strikes with actual asset delivery at settlement.
@@ -2273,6 +2300,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildPhysicalSpreadRFQ(params: PhysicalSpreadRFQParams): RFQRequest {
+    this.ensureAvailable();
     const { optionType, underlying, lowerStrike, upperStrike, deliveryToken, collateralToken } = params;
 
     // Validate delivery token
@@ -2402,6 +2430,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildPhysicalButterflyRFQ(params: PhysicalButterflyRFQParams): RFQRequest {
+    this.ensureAvailable();
     const { optionType, underlying, lowerStrike, middleStrike, upperStrike, deliveryToken, collateralToken } = params;
 
     // Validate delivery token
@@ -2533,6 +2562,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildPhysicalCondorRFQ(params: PhysicalCondorRFQParams): RFQRequest {
+    this.ensureAvailable();
     const { optionType, underlying, strike1, strike2, strike3, strike4, deliveryToken, collateralToken } = params;
 
     // Validate delivery token
@@ -2661,6 +2691,7 @@ export class OptionFactoryModule {
    * ```
    */
   buildPhysicalIronCondorRFQ(params: PhysicalIronCondorRFQParams): RFQRequest {
+    this.ensureAvailable();
     const { underlying, strike1, strike2, strike3, strike4, deliveryToken, collateralToken } = params;
 
     // Validate delivery token

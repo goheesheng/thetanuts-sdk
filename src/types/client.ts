@@ -5,7 +5,7 @@ import type { KeyStorageProvider } from './rfqKeyManager.js';
 /**
  * Supported chain IDs for Thetanuts SDK V4
  */
-export type SupportedChainId = 8453; // Base mainnet
+export type SupportedChainId = 8453 | 1; // Base mainnet | Ethereum mainnet
 
 /**
  * Environment configuration
@@ -75,4 +75,4 @@ export interface ThetanutsClientConfig {
 /**
  * @deprecated Use SupportedChainId instead. Will be removed in next major version.
  */
-export type SupportedNetwork = 'base';
+export type SupportedNetwork = 'base' | 'ethereum';

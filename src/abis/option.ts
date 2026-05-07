@@ -229,6 +229,66 @@ export const BASE_OPTION_ABI = [
     ],
     stateMutability: 'view',
   },
+  // r12-additive views (BaseOption introspection)
+  {
+    type: 'function',
+    name: 'creator',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'paramsHash',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'splitGeneration',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionParent',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'optionChildren',
+    inputs: [{ name: '', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getReclaimFee',
+    inputs: [{ name: 'ownedOption', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getSplitFee',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'calculateNumContractsForCollateral',
+    inputs: [
+      { name: '_strikes', type: 'uint256[]', internalType: 'uint256[]' },
+      { name: '_collateralAmount', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
+  },
 
   // ============ Write Functions ============
   {
@@ -270,7 +330,7 @@ export const BASE_OPTION_ABI = [
       },
     ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -302,6 +362,21 @@ export const BASE_OPTION_ABI = [
     outputs: [],
     stateMutability: 'nonpayable',
   },
+  // r12-additive writes (user-facing collateral flow)
+  {
+    type: 'function',
+    name: 'reclaimCollateral',
+    inputs: [{ name: 'ownedOption', type: 'address', internalType: 'address' }],
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'returnExcessCollateral',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
   {
     type: 'function',
     name: 'validateParams',
@@ -315,14 +390,8 @@ export const BASE_OPTION_ABI = [
   // ============ Events ============
   {
     type: 'event',
-    name: 'CollateralReturned',
+    name: 'ExcessCollateralReturned',
     inputs: [
-      {
-        name: 'optionAddress',
-        type: 'address',
-        indexed: true,
-        internalType: 'address',
-      },
       {
         name: 'seller',
         type: 'address',
@@ -330,11 +399,35 @@ export const BASE_OPTION_ABI = [
         internalType: 'address',
       },
       {
-        name: 'amountReturned',
+        name: 'collateralToken',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'collateralReturned',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
       },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionInitialized',
+    inputs: [
+      { name: 'buyer', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'seller', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'createdBy', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'optionType', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'collateralToken', type: 'address', indexed: false, internalType: 'address' },
+      { name: 'priceFeed', type: 'address', indexed: false, internalType: 'address' },
+      { name: 'strikes', type: 'uint256[]', indexed: false, internalType: 'uint256[]' },
+      { name: 'expiryTimestamp', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'numContracts', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'collateralAmount', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'extraOptionData', type: 'bytes', indexed: false, internalType: 'bytes' },
     ],
     anonymous: false,
   },
@@ -453,6 +546,18 @@ export const BASE_OPTION_ABI = [
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
+      },
+      {
+        name: 'feePaid',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'counterparty',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
     ],
     anonymous: false,

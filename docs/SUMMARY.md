@@ -45,6 +45,7 @@
 ## Guides
 
 * [Position Management](guides/position-management.md)
+* [Ranger Options](guides/ranger.md)
 * [Token Operations](guides/token-operations.md)
 * [WebSocket Subscriptions](guides/websocket.md)
 * [Blockchain Events](guides/events.md)

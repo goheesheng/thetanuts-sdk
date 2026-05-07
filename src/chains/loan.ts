@@ -8,10 +8,10 @@
 import type { LoanAssetConfig, LoanPromoConfig } from '../types/loan.js';
 
 export const LOAN_CONFIG = {
-  /** Loan custom contract addresses */
+  /** Loan custom contract addresses (Base_r12) */
   contracts: {
-    loanCoordinator: '0x6278B8B09Df960599fb19EBa4b79aed0ED6B077b',
-    loanHandler: '0x6e0019bF9a44B60d57435a032Cb86b716629C08E',
+    loanCoordinator: '0x9FB75b24d9d6f7c29D6BdE2870697A4FE0395994',
+    loanHandler: '0x7c444A2375275DaB925b32493B64a407eE955DEd',
   },
 
   /** Loan loan indexer API base URL */

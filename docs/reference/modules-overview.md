@@ -1,6 +1,6 @@
 # Modules Overview
 
-All 11 SDK modules are accessed as properties on the `ThetanutsClient` instance — no separate instantiation needed.
+All 14 SDK modules are accessed as properties on the `ThetanutsClient` instance — no separate instantiation needed.
 
 ## Module Table
 
@@ -11,12 +11,15 @@ All 11 SDK modules are accessed as properties on the `ThetanutsClient` instance 
 | API | `client.api` | Fetch orders, positions, stats | No |
 | OptionFactory | `client.optionFactory` | RFQ lifecycle management | Write ops only |
 | Option | `client.option` | Position management and payouts | Write ops only |
+| Ranger | `client.ranger` | RangerOption (zone-bound, 4-strike) position management | Write ops only |
 | Events | `client.events` | Query blockchain events | No |
 | WebSocket | `client.ws` | Real-time subscriptions | No |
 | MM Pricing | `client.mmPricing` | Market maker pricing and Greeks | No |
 | RFQ Keys | `client.rfqKeys` | ECDH key management and offer encryption | No |
 | Utils | `client.utils` | Decimal conversions, payoff calculations | No |
 | Loan | `client.loan` | Non-liquidatable lending | Write ops only |
+| WheelVault | `client.wheelVault` | WheelVault (Ethereum mainnet) interactions | Write ops only |
+| StrategyVault | `client.strategyVault` | StrategyVault (Base) interactions | Write ops only |
 
 ## Module Descriptions
 
@@ -45,6 +48,12 @@ Relevant section: [RFQ overview](../rfq/overview.md)
 ### `client.option` — OptionModule
 
 Queries and manages individual option positions. Reads option info, checks expiry/settlement state, calculates payouts at a given price, and executes close/transfer/split/payout operations.
+
+### `client.ranger` — RangerModule
+
+Manages RangerOption positions — the r12 zone-bound, 4-strike payoff. The buyer earns the maximum payout when the settlement price lands inside the zone (between strikes 2 and 3) and a linearly decaying payout outside. Reads include `getInfo()`, `getZone()`, `getSpreadWidth()`, `getStrikes()`, `getTWAP()`, `calculatePayout(price)`, `simulatePayout(...)`, and `calculateRequiredCollateral(...)`. Writes include `payout()`, `close()`, `split(amount)`, `transfer(isBuyer, target)`, `reclaimCollateral(ownedOption)`, and `returnExcessCollateral()`.
+
+The module throws `NETWORK_UNSUPPORTED` on chains where RangerOption is not deployed (e.g., Ethereum mainnet today) — no silent eth_call failures.
 
 ### `client.events` — EventsModule
 
@@ -78,6 +87,14 @@ Non-liquidatable lending. Borrowers deposit ETH/BTC collateral and receive USDC.
 
 Relevant section: [Loan overview](../loan/overview.md)
 
+### `client.wheelVault` — WheelVaultModule
+
+Reads and interacts with the WheelVault contracts on Ethereum mainnet. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 1`.
+
+### `client.strategyVault` — StrategyVaultModule
+
+Reads and interacts with the StrategyVault contracts (Kairos and CLVEX strategies) on Base. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 8453`.
+
 ## Quick Reference
 
 ```typescript
@@ -103,6 +120,10 @@ await client.optionFactory.requestForQuotation(request);
 
 // Option
 const info = await client.option.getFullOptionInfo(optionAddress);
+
+// Ranger (RangerOption — zone-bound, 4-strike)
+const rangerInfo = await client.ranger.getInfo(rangerAddress);
+const { zoneLower, zoneUpper } = await client.ranger.getZone(rangerAddress);
 
 // Events
 const fills = await client.events.getOrderFillEvents();

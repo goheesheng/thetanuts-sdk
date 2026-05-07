@@ -4,9 +4,10 @@ The chains where the Thetanuts SDK is currently available, and how to access per
 
 ## Supported Chains
 
-| Chain | Chain ID | Status |
-|-------|----------|--------|
-| Base Mainnet | 8453 | Supported |
+| Chain | Chain ID | Status | Notes |
+|-------|----------|--------|-------|
+| Base Mainnet | 8453 | Supported | Full SDK surface (OptionBook, RFQ, Loan, StrategyVault, Ranger) |
+| Ethereum Mainnet | 1 | Supported (vault-only) | WheelVault module only — OptionBook/RFQ are not deployed here |
 
 ## Chain Configuration
 
@@ -22,15 +23,22 @@ config.tokens.WETH.address;  // 0x4200000000000000000000000000000000000006
 config.tokens.cbBTC.address; // 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf
 
 // Cash-settled implementations (OptionBook)
-config.implementations.PUT;            // Vanilla PUT
-config.implementations.INVERSE_CALL;   // Vanilla CALL
-config.implementations.PUT_SPREAD;     // Put spread (2 strikes)
-config.implementations.CALL_SPREAD;    // Call spread (2 strikes)
-config.implementations.PUT_FLY;        // Put butterfly (3 strikes)
-config.implementations.CALL_FLY;       // Call butterfly (3 strikes)
-config.implementations.PUT_CONDOR;     // Put condor (4 strikes)
-config.implementations.CALL_CONDOR;    // Call condor (4 strikes)
-config.implementations.IRON_CONDOR;    // Iron condor (4 strikes)
+config.implementations.PUT;                  // Vanilla PUT
+config.implementations.INVERSE_CALL;         // Vanilla CALL (inverse-priced)
+config.implementations.LINEAR_CALL;          // Vanilla CALL (linear)
+config.implementations.PUT_SPREAD;           // Put spread (2 strikes)
+config.implementations.CALL_SPREAD;          // Call spread (2 strikes)
+config.implementations.INVERSE_CALL_SPREAD;  // Inverse call spread (2 strikes)
+config.implementations.PUT_FLY;              // Put butterfly (3 strikes)
+config.implementations.CALL_FLY;             // Call butterfly (3 strikes)
+config.implementations.PUT_CONDOR;           // Put condor (4 strikes)
+config.implementations.CALL_CONDOR;          // Call condor (4 strikes)
+config.implementations.IRON_CONDOR;          // Iron condor (4 strikes)
+config.implementations.RANGER;               // Ranger / zone-bound (4 strikes, r12)
+config.implementations.CALL_LOAN;            // Physically-settled call loan handler
+
+// HistoricalPriceConsumerV3_TWAP (Chainlink TWAP consumer) — r12
+config.twapConsumer; // string | null (null on chains without it)
 
 // Physically settled implementations (RFQ/Factory)
 config.implementations.PHYSICAL_PUT;          // Vanilla physical PUT

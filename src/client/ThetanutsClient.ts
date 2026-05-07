@@ -13,12 +13,15 @@ import { OptionBookModule } from '../modules/optionBook.js';
 import { APIModule } from '../modules/api.js';
 import { OptionFactoryModule } from '../modules/optionFactory.js';
 import { OptionModule } from '../modules/option.js';
+import { RangerModule } from '../modules/ranger.js';
 import { EventsModule } from '../modules/events.js';
 import { WebSocketModule } from '../modules/websocket.js';
 import { UtilsModule } from '../modules/utils.js';
 import { RFQKeyManagerModule } from '../modules/rfqKeyManager.js';
 import { MMPricingModule } from '../modules/mmPricing.js';
 import { LoanModule } from '../modules/loan.js';
+import { WheelVaultModule } from '../modules/wheelVault.js';
+import { StrategyVaultModule } from '../modules/strategyVault.js';
 
 /**
  * Main client for interacting with Thetanuts Finance V4
@@ -112,6 +115,11 @@ export class ThetanutsClient {
   public readonly option: OptionModule;
 
   /**
+   * Ranger module - zone-bound (RangerOption) position management
+   */
+  public readonly ranger: RangerModule;
+
+  /**
    * Events module - query contract events
    */
   public readonly events: EventsModule;
@@ -140,6 +148,16 @@ export class ThetanutsClient {
    * Loan module - Non-liquidatable lending via physically-settled call options
    */
   public readonly loan: LoanModule;
+
+  /**
+   * WheelVault module - Gyro wheel strategy vaults on Ethereum
+   */
+  public readonly wheelVault: WheelVaultModule;
+
+  /**
+   * StrategyVault module - Kairos fixed-strike + CLVEX directional/condor vaults on Base
+   */
+  public readonly strategyVault: StrategyVaultModule;
 
   constructor(config: ThetanutsClientConfig) {
     // Validate required parameters
@@ -191,12 +209,15 @@ export class ThetanutsClient {
     this.api = new APIModule(this);
     this.optionFactory = new OptionFactoryModule(this);
     this.option = new OptionModule(this);
+    this.ranger = new RangerModule(this);
     this.events = new EventsModule(this);
     this.ws = new WebSocketModule(this);
     this.utils = new UtilsModule(this);
     this.rfqKeys = new RFQKeyManagerModule(this, config.keyStorageProvider, config.rfqKeyPrefix);
     this.mmPricing = new MMPricingModule(this);
     this.loan = new LoanModule(this);
+    this.wheelVault = new WheelVaultModule(this);
+    this.strategyVault = new StrategyVaultModule(this);
   }
 
   /**
@@ -267,10 +288,18 @@ export class ThetanutsClient {
   }
 
   /**
-   * Get contract address from chain config
+   * Get contract address from chain config.
+   * Throws if the contract is not deployed on the current chain.
    */
   getContractAddress(contract: 'optionBook' | 'optionFactory'): string {
-    return this.chainConfig.contracts[contract];
+    const address = this.chainConfig.contracts[contract];
+    if (!address) {
+      throw createError(
+        'NETWORK_UNSUPPORTED',
+        `${contract} is not deployed on ${this.chainConfig.name} (chain ${this.chainId})`
+      );
+    }
+    return address;
   }
 
   /**
@@ -289,7 +318,7 @@ export class ThetanutsClient {
    * @deprecated Use chainConfig.contracts.optionBook instead
    */
   get optionBookAddress(): string {
-    return this.chainConfig.contracts.optionBook;
+    return this.getContractAddress('optionBook');
   }
 
   /**
@@ -304,10 +333,15 @@ export class ThetanutsClient {
    */
   get network(): SupportedNetwork {
     // Map chainId to legacy network name
-    const chainIdToNetwork: Record<SupportedChainId, SupportedNetwork> = {
+    const chainIdToNetwork: Partial<Record<SupportedChainId, SupportedNetwork>> = {
       8453: 'base',
+      1: 'ethereum',
     };
-    return chainIdToNetwork[this.chainId];
+    const network = chainIdToNetwork[this.chainId];
+    if (!network) {
+      throw createError('NETWORK_UNSUPPORTED', `No legacy network name for chain ${this.chainId}`);
+    }
+    return network;
   }
 
   /**

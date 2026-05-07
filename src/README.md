@@ -10,7 +10,7 @@ src/
 ├── abis/              # Smart contract ABIs
 ├── chains/            # Chain configuration and network support
 ├── client/            # ThetanutsClient main class
-├── modules/           # Feature modules (10 total)
+├── modules/           # Feature modules (11 total)
 ├── types/             # TypeScript type definitions
 └── utils/             # Utility functions
 ```
@@ -33,10 +33,10 @@ src/
 │  │  Option  │ │  Events  │ │WebSocket │ │    PricingV4     │  │
 │  │  Module  │ │  Module  │ │  Module  │ │     Module       │  │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘  │
-│  ┌──────────┐ ┌──────────────────┐                             │
-│  │  Utils   │ │   RFQKeyManager  │                             │
-│  │  Module  │ │      Module      │                             │
-│  └──────────┘ └──────────────────┘                             │
+│  ┌──────────┐ ┌──────────────────┐ ┌──────────────────┐        │
+│  │  Utils   │ │   RFQKeyManager  │ │      Loan        │        │
+│  │  Module  │ │      Module      │ │     Module       │        │
+│  └──────────┘ └──────────────────┘ └──────────────────┘        │
 ├─────────────────────────────────────────────────────────────────┤
 │                      DEPENDENCIES                               │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐  │
@@ -141,11 +141,11 @@ dist/
 
 | Directory | Files | Description |
 |-----------|-------|-------------|
-| `abis/` | 5 | Smart contract ABI definitions |
-| `chains/` | 1 | Chain configuration (Base mainnet) |
+| `abis/` | 6 | Smart contract ABI definitions |
+| `chains/` | 2 | Chain configuration (Base mainnet, Loan config) |
 | `client/` | 2 | ThetanutsClient entry point |
-| `modules/` | 10 | Feature modules (ERC20, OptionBook, API, OptionFactory, Option, Events, WebSocket, PricingV4, Utils, RFQKeyManager) |
-| `types/` | 13 | TypeScript type definitions |
+| `modules/` | 11 | Feature modules (ERC20, OptionBook, API, OptionFactory, Option, Events, WebSocket, PricingV4, Utils, RFQKeyManager, Loan) |
+| `types/` | 14 | TypeScript type definitions |
 | `utils/` | 5 | Utility functions (decimals, errors, logger, validation) |
 | `index.ts` | 1 | Main entry point — exports all public APIs |
 

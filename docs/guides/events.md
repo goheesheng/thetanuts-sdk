@@ -14,6 +14,12 @@ Query historical blockchain events from the Thetanuts protocol using the `client
 | `getOfferRevealedEvents(filters?)` | RFQ offer reveal events | No |
 | `getQuotationSettledEvents(filters?)` | RFQ quotation settlement events | No |
 | `getPositionClosedEvents(option, filters?)` | Position close events for a specific option | No |
+| `getExcessCollateralReturnedEvents(option, filters?)` | Excess collateral returned to seller (per option) | No |
+| `getOptionSplitEvents(option, filters?)` | Position split events (per option) | No |
+| `getTransferApprovalEvents(option, filters?)` | Transfer-approval events (per option) | No |
+| `getOptionSettlementFailedEvents(option, filters?)` | Settlement failures (per option) | No |
+
+> **v0.2.1 rename:** `getCollateralReturnedEvents` was renamed to `getExcessCollateralReturnedEvents` and the event field shape changed to match the r12 contract (`{ seller, collateralToken, collateralReturned }`). See the [Migration Guide](../resources/migration-guide.md) for the full diff.
 
 > All event queries auto-chunk block ranges into 10,000-block segments — no manual splitting needed.
 >
