@@ -19,7 +19,7 @@ export const LOAN_COORDINATOR_ABI = [
   'function settleQuotationEarly(uint256 quotationId, uint256 offerAmount, uint64 nonce, address offeror)',
   'function cancelLoan(uint256 quotationId)',
   'function loanRequests(uint256) view returns (address requester, uint256 collateralAmount, uint256 strike, uint256 expiryTimestamp, address collateralToken, address settlementToken, bool isSettled, address settledOptionContract, bool loanClaimed)',
-  'function assetConfigs(bytes32) view returns (bool)',
+  'function assetConfigs(bytes32) view returns (address collateralToken, address priceFeed, address settlementToken, bool isActive)',
   'function callOptionImplementation() view returns (address)',
   'function loanHandlerImplementation() view returns (address)',
   'function fee() view returns (uint256)',
