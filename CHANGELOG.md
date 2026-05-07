@@ -2,205 +2,107 @@
 
 All notable changes to `@thetanuts-finance/thetanuts-client` are documented here.
 
-## 0.2.1 — codex-found r12 fixes
+## 0.2.1 — Base_r12 deployment + codex-found fixes
 
-Bugfix release on top of 0.2.0. An adversarial review run identified 15 issues
-in the as-shipped 0.2.0 surface — eight of them production-critical (silent
-reverts, wrong ABI shapes, broken event decoding). All fixed here. 0.2.0 is
-unchanged on npm; pin to 0.2.0 if you need that exact surface, otherwise
-upgrade.
+The first 0.2.x release published to npm. Bundles the Base_r12 deployment cutover with 22 fixes that three adversarial code-review passes found in the staged 0.2.0 surface. v0.2.0 was prepared internally but never published to npm; everything its CHANGELOG promised plus everything 0.2.1 fixes ships in this single release.
 
-### Fixes
+If you are on v0.1.x: pin `@thetanuts-finance/thetanuts-client@^0.1.x` to keep talking to the prior Base deployment, or upgrade to `^0.2.1` to migrate to Base_r12.
 
-- **`split` and `reclaimCollateral` are now correctly declared `payable`** in
-  `option.ts`, `ranger.ts`, and `loan.ts` ABIs. The r12 contracts collect
-  `getSplitFee()` and `getReclaimFee(ownedOption)` as `msg.value`. With the
-  prior `nonpayable` declaration, every call would silently revert as soon
-  as the contract owner set a non-zero fee.
-- **`OptionModule.split` and `RangerModule.split`** now read `getSplitFee()`
-  and forward the value with the transaction.
-- **`RangerModule.reclaimCollateral`** now reads
-  `getReclaimFee(ownedOption)` and forwards the value. The fee is keyed
-  on the option being reclaimed, not on the caller. Parameter renamed
-  from `recipient` to `ownedOption` to match the on-chain semantics —
-  the address is the option being reclaimed from, not a transfer
-  destination.
-- **Raw `requestForQuotation` / `encodeRequestForQuotation` zero-address
-  guard.** Both entry points now reject `params.implementation ===
-  0x000…000` with a clear `INVALID_PARAMS` error before producing calldata
-  or sending a transaction. The previous v0.2.0 guard only fired inside the
-  high-level physical-RFQ builders; raw callers passing
-  `chainConfig.implementations.PHYSICAL_*` directly bypassed it entirely.
-- **`OptionBook.getValidNumContracts`** ABI now matches the canonical
-  r12 shape: a single named tuple output `result { validContracts,
-  collateralRequired }`. Inputs match the canonical names —
-  `implementation` (was `collateral`) and `desiredContracts` (was
-  `numContracts`).
-- **`optionType()`** ABI corrected to match each contract's actual
-  state mutability — `view returns (uint256)` for `BaseOption.optionType`
-  and `pure returns (uint256)` for `RangerOption.optionType`. The v0.2.0
-  Ranger ABI declared `view returns (bytes32)`.
-- **`returnExcessCollateral()`** ABI now declares `returns (uint256)`. Was
-  no-output.
-- **`LOAN_COORDINATOR_ABI.assetConfigs(bytes32)`** ABI now declares the
-  full r12 tuple return `(address collateralToken, address priceFeed,
-  address settlementToken, bool isActive)`. Was a single `bool`.
-- **`OptionInitialized` event** added to `BASE_OPTION_ABI` (was missing
-  entirely in 0.2.0) and corrected in `RANGER_OPTION_ABI`. r12 emits
-  11 fields; the 0.2.0 ranger ABI declared 3.
-- **`OptionSplit` event** corrected in both `BASE_OPTION_ABI` and
-  `RANGER_OPTION_ABI`. r12 shape is `(address indexed newOption,
-  uint256 collateralAmount, uint256 feePaid, address indexed
-  counterparty)`. The 0.2.0 ABIs were missing `feePaid` and `counterparty`.
-- **`TransferApproval` event** corrected in `RANGER_OPTION_ABI`. r12 shape
-  is `(address indexed target, address indexed from, bool isBuyer,
-  bool isApproved)`. The 0.2.0 ranger ABI had the first two fields
-  swapped. (`option.ts` was already correct.)
-- **`OptionSettlementFailed` event** corrected in `RANGER_OPTION_ABI` to
-  no inputs. The 0.2.0 ranger ABI declared `(address, string)`.
-- **`CollateralReturned` event renamed to `ExcessCollateralReturned`** in
-  both `BASE_OPTION_ABI` and `RANGER_OPTION_ABI`. r12 reshaped fields
-  to `(address indexed seller, address indexed collateralToken,
-  uint256 collateralReturned)`.
-- **`client.events.getCollateralReturnedEvents` renamed to
-  `getExcessCollateralReturnedEvents`** with the new field shape.
-- **`getOptionSplitEvents`** field extraction now includes `feePaid` and
-  `counterparty`.
-- **`getLendingOpportunities` filter** at `src/modules/loan.ts` now treats
-  a missing `convertToLimitOrder` indexer field as eligible (only skips
-  when explicitly `false`). The r12 indexer is expected to drop the field;
-  without this, the lender opportunity list would always be empty against
-  an r12 indexer.
-- **`RangerModule` chain guard.** Every public method now throws
-  `NETWORK_UNSUPPORTED` up-front on chains where `RANGER` isn't
-  registered in `chainConfig.implementations`. Previously the module
-  constructed cleanly on Ethereum mainnet and other chains, then failed
-  deep in ethers with a cryptic `eth_call` error.
-- **`CALL_FLYS` / `PUT_FLYS` reverse-lookup names renamed to
-  `CALL_FLY` / `PUT_FLY`** for both historical and r12 entries, matching
-  the public `ImplementationAddresses` keys. The `ProductName` union in
-  `src/utils/rfqCalculations.ts` follows.
+### Base_r12 deployment cutover
 
-### Breaking changes from 0.2.0
+The Thetanuts protocol shipped a fresh v4 deployment on Base (chainId 8453) under tag `Base_r12` at block 45601440 on 2026-05-05. This SDK release switches every chainId-8453 address to r12 in place. There is no runtime version selector — pin the npm major to pick the deployment.
 
-These are real source-breaking changes for anyone who already integrated
-0.2.0. v0.2.0 has been on npm only briefly; the breakage window is
-intentionally short.
-
-- `client.events.getCollateralReturnedEvents` — **removed**. Replaced by
-  `client.events.getExcessCollateralReturnedEvents`. The returned event
-  type is now `ExcessCollateralReturnedEvent` with fields
-  `{ seller, collateralToken, collateralReturned }` (was
-  `{ optionAddress, seller, amountReturned }`).
-- `OptionSplitEvent` — added `feePaid: bigint` and `counterparty: string`
-  fields.
-- `getOptionImplementationInfo(addr).name` for butterfly options returns
-  `'CALL_FLY'` / `'PUT_FLY'` (was `'CALL_FLYS'` / `'PUT_FLYS'`).
-- `ProductName` union no longer includes `'CALL_FLYS'` / `'PUT_FLYS'`;
-  use `'CALL_FLY'` / `'PUT_FLY'`.
-- `RangerModule.reclaimCollateral` — second parameter renamed from
-  `recipient` to `ownedOption`. Positional callers unaffected; named
-  callers using a TypeScript object-shape will break.
-- The typed `RangerContract.optionType` interface (used internally and
-  exported as part of the `RangerModule` type surface) now declares
-  `Promise<bigint>` return — was `Promise<string>`. There is no public
-  `client.ranger.optionType()` method; this only affects callers
-  reading the typed contract interface directly.
-
-## 0.2.0 — Base_r12 deployment
-
-The Thetanuts protocol shipped a fresh v4 deployment on Base (chain ID 8453)
-under the `Base_r12` tag (deployed 2026-05-05, block 45601440). This SDK
-release switches every chainId-8453 address to r12 in place. There is no
-runtime version selector; users still pointed at the prior deployment should
-pin `@thetanuts-finance/thetanuts-client@^0.1.x`, which remains published on
-npm and is unchanged.
-
-### Added
-
-- **RangerOption**: new zone-bound option implementation.
-  - Address registered under `implementations.RANGER` for chainId 8453.
-  - New module `client.ranger` (`RangerModule`) with reads (`getInfo`,
-    `getZone`, `getSpreadWidth`, `getStrikes`, `getTWAP`, `calculatePayout`,
-    `simulatePayout`, `calculateRequiredCollateral`) and user-facing writes
-    (`payout`, `close`, `split`, `transfer`, `reclaimCollateral`,
-    `returnExcessCollateral`).
-  - `RANGER_OPTION_ABI` exported from `@thetanuts-finance/thetanuts-client`.
-- **HistoricalPriceConsumerV3_TWAP**: surfaced as `chainConfig.twapConsumer`
-  (Chainlink TWAP consumer used at settlement). `null` on chains where it is
-  not deployed.
-- **New implementation keys** in `ImplementationAddresses`:
-  `INVERSE_CALL_SPREAD`, `LINEAR_CALL`, `RANGER`, `CALL_LOAN`.
-- **OptionBook ABI** (additive, user-facing only): `cancelOrders(Order[])`,
-  `cancelOrdersExpiringBefore(uint256)`, `getValidNumContracts`,
-  `makerCancellationCutoff`, `minNumContracts`, `minPremiumAmount`, plus the
-  `MakerCutoffUpdated` event.
-- **OptionFactory ABI** (additive, user-facing only):
-  `claimEscrowedFunds`, `claimableTransfers`, `totalClaimableTransfers`,
-  `activeRfqForOption`, `baseSplitFee`, `MAX_TRANSFER_DUST`,
-  `MAX_ORACLE_STALENESS`, `settleQuotationEarlyByOrderBook`,
-  `historicalTWAPConsumer`, `deprecationTime`, `settlementExtension`, plus
-  the `BaseSplitFeeUpdated`, `CollateralDeposited`, `CollateralReturned`,
-  `EscrowClaimed`, `ExpiredReferralSwept`, `FactoryDeprecation`,
-  `MaxRfqValueUpdated`, `OfferAcceptedFromOrderBook`,
-  `SettlementFailedDueToStateChange`, and `TransferEscrowed` events.
-- **BaseOption ABI** (additive): `creator`, `paramsHash`, `splitGeneration`,
-  `optionParent`, `optionChildren`, `getReclaimFee`, `getSplitFee`,
-  `calculateNumContractsForCollateral`, plus user-facing writes
-  `reclaimCollateral` and `returnExcessCollateral`.
-- **Historical reverse-lookup** preserved: prior `8453_v6` and `Base_r10`
-  implementation entries remain in `optionImplementations` so the SDK can
-  still decode events emitted before the cutover. New `Base_r12` entries
-  appended.
-
-### Changed
-
-- **All chainId-8453 contract addresses** point at the r12 deployment.
+- All chainId-8453 contract addresses point at r12.
   - `contracts.optionBook` → `0x1bDff855d6811728acaDC00989e79143a2bdfDed`
   - `contracts.optionFactory` → `0x8118daD971dEbffB49B9280047659174128A8B94`
-  - All implementation addresses replaced.
+  - All 13 implementation addresses replaced.
   - `deploymentBlock` → `45601440`.
-- **LoanCoordinator** address bumped to `0x9FB75b24d9d6f7c29D6BdE2870697A4FE0395994`;
-  loan handler to `0x7c444A2375275DaB925b32493B64a407eE955DEd`.
-- **`LOAN_COORDINATOR_ABI`** updated for r12: `requestLoan` parameter tuple
-  no longer carries `convertToLimitOrder` (the field was removed at the
-  contract level), `loanRequests` view now returns 9 fields including
-  `loanClaimed`, and `LoanRequested` event lost its `convertToLimitOrder`
-  param. New `LoanClaimed` event added.
-- **`LoanRequest.keepOrderOpen`** is now `@deprecated` — the r12 contract
-  ignores the value. The field remains in the public type to keep existing
-  caller code compiling.
-- **`OptionImplementationInfo.type`** union: `'RANGE'` replaced by
-  `'RANGER'` to match the on-chain `RangerOption` naming and the existing
-  `rfqCalculations.ts` `'RANGER'` usages. The single prior `RANGE` entry
-  for the `Base_r10` ranger address has been retagged to `'RANGER'`.
+- LoanCoordinator → `0x9FB75b24d9d6f7c29D6BdE2870697A4FE0395994`.
+- LoanHandler → `0x7c444A2375275DaB925b32493B64a407eE955DEd`.
+- Historical reverse-lookup entries (`8453_v6`, `Base_r10`) preserved so events emitted before the cutover still decode through `getOptionImplementationInfo`.
+- Ethereum mainnet (`chainId 1`) added as a vault-only chain.
+
+### New surface
+
+- **RangerOption**: zone-bound, 4-strike payoff. New `client.ranger` module (`RangerModule`) with reads (`getInfo`, `getZone`, `getSpreadWidth`, `getStrikes`, `getTWAP`, `calculatePayout`, `simulatePayout`, `calculateRequiredCollateral`) and writes (`payout`, `close`, `split`, `transfer`, `reclaimCollateral`, `returnExcessCollateral`). Module is chain-gated — throws `NETWORK_UNSUPPORTED` on chains where RangerOption is not deployed.
+- `RANGER_OPTION_ABI` exported from `@thetanuts-finance/thetanuts-client`.
+- `chainConfig.twapConsumer` (HistoricalPriceConsumerV3_TWAP) surfaced as a top-level chain-config field. `null` on chains without it.
+- New chain-config implementation keys: `INVERSE_CALL_SPREAD`, `LINEAR_CALL`, `RANGER`, `CALL_LOAN`.
+- New OptionBook ABI surface (user-facing only): `cancelOrders`, `cancelOrdersExpiringBefore`, `getValidNumContracts`, `makerCancellationCutoff`, `minNumContracts`, `minPremiumAmount` + `MakerCutoffUpdated` event.
+- New OptionFactory ABI surface: `claimEscrowedFunds`, `claimableTransfers`, `totalClaimableTransfers`, `activeRfqForOption`, `baseSplitFee`, `MAX_TRANSFER_DUST`, `MAX_ORACLE_STALENESS`, `settleQuotationEarlyByOrderBook`, `historicalTWAPConsumer`, `deprecationTime`, `settlementExtension` + 10 new events (`BaseSplitFeeUpdated`, `CollateralDeposited`, `CollateralReturned`, `EscrowClaimed`, `ExpiredReferralSwept`, `FactoryDeprecation`, `MaxRfqValueUpdated`, `OfferAcceptedFromOrderBook`, `SettlementFailedDueToStateChange`, `TransferEscrowed`).
+- New BaseOption ABI surface: `creator`, `paramsHash`, `splitGeneration`, `optionParent`, `optionChildren`, `getReclaimFee`, `getSplitFee`, `calculateNumContractsForCollateral`, plus user-facing writes `reclaimCollateral` and `returnExcessCollateral`.
+
+### Production-revert fixes
+
+These would silently revert in production once the protocol owner enabled non-zero contract fees.
+
+- **`split` and `reclaimCollateral` are correctly declared `payable`** in `option.ts`, `ranger.ts`, and `loan.ts` ABIs. The r12 contracts collect `getSplitFee()` and `getReclaimFee(ownedOption)` as `msg.value`.
+- **`OptionModule.split` and `RangerModule.split`** read `getSplitFee()` and forward as `msg.value`.
+- **`RangerModule.reclaimCollateral`** reads `getReclaimFee(ownedOption)` and forwards as `msg.value`. The fee is keyed on the option being reclaimed, not on the caller. Parameter renamed from `recipient` to `ownedOption`.
+
+### ABI shape corrections
+
+Verified against canonical r12 JSONs.
+
+- **`OptionBook.getValidNumContracts`** returns the canonical tuple `result { validContracts, collateralRequired }`. Inputs match canonical names: `implementation` and `desiredContracts`.
+- **`optionType()`** matches each contract's actual state mutability — `view returns (uint256)` for BaseOption, `pure returns (uint256)` for RangerOption.
+- **`returnExcessCollateral()`** declares its `uint256` return.
+- **`LOAN_COORDINATOR_ABI.assetConfigs(bytes32)`** declares the four-field tuple return `(address collateralToken, address priceFeed, address settlementToken, bool isActive)`.
+
+### Event shape corrections
+
+Without these, any consumer of `client.events.*` for these events would silently misdecode logs against r12 contracts.
+
+- **`OptionInitialized`** added to `BASE_OPTION_ABI` and corrected in `RANGER_OPTION_ABI` — r12 emits 11 fields.
+- **`OptionSplit`** corrected in both BaseOption and RangerOption ABIs — r12 shape adds `feePaid` and `counterparty` (indexed).
+- **`TransferApproval`** corrected in `RANGER_OPTION_ABI` — first two fields were swapped.
+- **`OptionSettlementFailed`** corrected in `RANGER_OPTION_ABI` — r12 has no inputs.
+- **`CollateralReturned` renamed to `ExcessCollateralReturned`** in both ABIs with new shape `(seller indexed, collateralToken indexed, collateralReturned)`.
+- **`client.events.getCollateralReturnedEvents` renamed to `getExcessCollateralReturnedEvents`** with the new field shape.
+- **`getOptionSplitEvents`** field extraction now includes `feePaid` and `counterparty`.
+
+### Safety upgrades
+
+- **Zero-address guard on every RFQ entry point.** All four (`requestForQuotation`, `encodeRequestForQuotation`, `registerReferral`, `callStaticCreateRFQ`) now reject `params.implementation === 0x000…000` with `INVALID_PARAMS` before any tx is built. The seven `PHYSICAL_*_SPREAD/FLY/CONDOR/IRON_CONDOR` placeholders are still 0x0…0 in r12 and bypassing the guard would silently target the zero address on-chain.
+- **`RangerModule` chain guard.** Every public method throws `NETWORK_UNSUPPORTED` up-front when `chainConfig.implementations.RANGER` is missing or set to the zero address.
+- **`getLendingOpportunities` filter** treats a missing `convertToLimitOrder` indexer field as eligible — only skips when explicitly `false`. The r12 indexer is expected to drop the field.
+
+### Loan changes for r12
+
+- `LOAN_COORDINATOR_ABI` updated: `requestLoan` parameter tuple no longer carries `convertToLimitOrder`; `loanRequests` view now returns 9 fields including `loanClaimed`; `LoanRequested` event lost its `convertToLimitOrder` param; new `LoanClaimed` event added.
+- `LoanRequest.keepOrderOpen` is `@deprecated` — the r12 contract ignores the value. The field remains in the public type for source compatibility.
+- `LoanIndexerLoan.convertToLimitOrder` is now optional.
+
+### Naming reconciliation
+
+- **`CALL_FLYS` / `PUT_FLYS`** reverse-lookup names renamed to **`CALL_FLY` / `PUT_FLY`** for both historical and r12 entries, matching the public `ImplementationAddresses` keys. The `ProductName` union in `src/utils/rfqCalculations.ts` follows.
+- **`OptionImplementationInfo.type`** union: `'RANGE'` replaced by `'RANGER'` to match the on-chain `RangerOption` naming.
+
+### Breaking changes from 0.1.x
+
+For users upgrading from v0.1.x. v0.1.x stays on npm at `@^0.1.x` if you need to keep talking to the prior Base deployment.
+
+- `client.events.getCollateralReturnedEvents` removed; replaced by `getExcessCollateralReturnedEvents` with field shape `{ seller, collateralToken, collateralReturned }` (was `{ optionAddress, seller, amountReturned }`).
+- `OptionSplitEvent` adds `feePaid: bigint` and `counterparty: string` fields.
+- `getOptionImplementationInfo(addr).name` for butterflies returns `'CALL_FLY'` / `'PUT_FLY'` (was `'CALL_FLYS'` / `'PUT_FLYS'`).
+- `ProductName` union no longer includes `'CALL_FLYS'` / `'PUT_FLYS'`.
+- `RangerModule.reclaimCollateral` second parameter is `ownedOption` (was `recipient` in the staged 0.2.0). Semantic also changed: the address is the option being reclaimed FROM, not a transfer destination.
+- `LoanRequest.keepOrderOpen` is a no-op at the contract level. Still accepted on the type for source compatibility.
 
 ### Skipped on purpose
 
-These admin-only and internal-only contract functions are deliberately
-*not* added to the SDK ABIs, even though they exist in r12:
+These admin-only and internal-only contract functions are deliberately not added to the SDK:
 
 - OptionFactory: `setBaseSplitFee`, `setMaxRfqValue`, `deprecateFactory`.
 - OptionBook: `setMinimumThresholds`.
-- LoanCoordinator: `setAssetConfig`, `removeAssetConfig`, `setFee`,
-  `transferOwnership`, `renounceOwnership`, `acceptOwnership`,
-  `rescueToken`, `handleSettlement`, `handleSettlementComplete`.
-- BaseOption / RangerOption: `notifyCreationComplete`, `notifyTradeSettled`,
-  `executeCollateralReclaim`, `exerciseInternal`, `exerciseOnOracleFailure`.
-- `partnerFeeBrokerFactory` is deployed at `0x0843078cAF4B5B8732e723AA8f22381cd7e9f186`
-  but is not exposed by the SDK in 0.2.0 — the upstream artifacts directory
-  ships no public ABI for it.
+- LoanCoordinator: `setAssetConfig`, `removeAssetConfig`, `setFee`, `transferOwnership`, `renounceOwnership`, `acceptOwnership`, `rescueToken`, `handleSettlement`, `handleSettlementComplete`.
+- BaseOption / RangerOption: `notifyCreationComplete`, `notifyTradeSettled`, `executeCollateralReclaim`, `exerciseInternal`, `exerciseOnOracleFailure`.
+- `partnerFeeBrokerFactory` is deployed at `0x0843078cAF4B5B8732e723AA8f22381cd7e9f186` but not exposed by the SDK — upstream artifacts directory ships no public ABI for it.
 
-Already-shipped admin-ish methods on existing modules (`sweepProtocolFees`,
-`setReferrerFeeSplit`, `withdrawFees`, `claimFees`, `rescueERC20`,
-`approveTransfer`) are left untouched; removing them is a separate concern.
+Already-shipped admin-ish methods on existing modules (`sweepProtocolFees`, `setReferrerFeeSplit`, `withdrawFees`, `claimFees`, `rescueERC20`, `approveTransfer`) are left untouched; removing them is a separate concern.
 
 ### Notes for users
 
-- **Pin to the deployment you want.** v0.1.x tracks the prior deployment;
-  v0.2.x tracks Base_r12. Don't mix.
-- The seven physical multi-leg implementation slots
-  (`PHYSICAL_CALL_SPREAD`, `PHYSICAL_PUT_SPREAD`, `PHYSICAL_*_FLY`,
-  `PHYSICAL_*_CONDOR`, `PHYSICAL_IRON_CONDOR`) remain `0x000…000` in r12.
-  The runtime guard in `optionFactory.ts` continues to throw a clear
-  `INVALID_PARAMS` error if an RFQ flow tries to route through one.
+- **Pin to the deployment you want.** v0.1.x tracks the prior Base deployment; v0.2.x tracks Base_r12. Don't mix.
+- The seven physical multi-leg implementation slots (`PHYSICAL_CALL_SPREAD`, `PHYSICAL_PUT_SPREAD`, `PHYSICAL_*_FLY`, `PHYSICAL_*_CONDOR`, `PHYSICAL_IRON_CONDOR`) remain `0x000…000` in r12. The runtime guards in `optionFactory.ts` throw a clear `INVALID_PARAMS` error if any RFQ flow tries to route through one.
+- See [`docs/releases/0.2.1.md`](docs/releases/0.2.1.md) for the full per-commit deep-dive, before/after migration code, and verification commands.
