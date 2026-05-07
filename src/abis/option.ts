@@ -374,7 +374,7 @@ export const BASE_OPTION_ABI = [
     type: 'function',
     name: 'returnExcessCollateral',
     inputs: [],
-    outputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
