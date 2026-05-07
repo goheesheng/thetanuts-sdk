@@ -13,7 +13,9 @@ import { ThetanutsClient } from '../src/client/ThetanutsClient.js';
 import type { OrderWithSignature } from '../src/types/index.js';
 
 // Configuration
-const BASE_MAINNET_RPC = 'https://mainnet.base.org';
+// Public Base RPC drops calls under burst load. Allow override with BASE_RPC_URL
+// env var (e.g. an Alchemy/QuickNode/Infura endpoint) for reliable runs.
+const BASE_MAINNET_RPC = process.env.BASE_RPC_URL ?? 'https://mainnet.base.org';
 const BASE_CHAIN_ID = 8453;
 
 // Base_r12 deployment (deployed 2026-05-05, block 45601440)
@@ -39,6 +41,28 @@ const results: TestResult[] = [];
 // Delay helper to avoid public RPC rate limits
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Public Base RPC (mainnet.base.org) intermittently returns CALL_EXCEPTION
+// with no revert data when bursts of read calls hit at once. The contract
+// itself is fine — every selector that fails this way succeeds on retry.
+// Wrap the few reads we make in a small backoff loop to keep the test suite
+// stable without hiding actual contract reverts.
+async function withRetry<T>(fn: () => Promise<T>, label: string, attempts = 5): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = (err as Error).message ?? '';
+      const isFlakeRpc = msg.includes('missing revert data') || msg.includes('CALL_EXCEPTION');
+      if (!isFlakeRpc || i === attempts - 1) throw err;
+      // Exponential-ish backoff: 500ms, 1s, 2s, 4s
+      await delay(500 * 2 ** i);
+    }
+  }
+  throw lastErr;
+}
+
 function log(message: string) {
   console.log(message);
 }
@@ -61,6 +85,14 @@ async function runTests() {
   // Initialize client
   log('Initializing client...');
   const provider = new ethers.JsonRpcProvider(BASE_MAINNET_RPC);
+
+  // Wrap the provider's `call` to retry transient CALL_EXCEPTION errors that
+  // public RPCs return when bursting reads. This catches both SDK-internal
+  // calls and ad-hoc ethers.Contract reads inside individual tests.
+  const originalCall = provider.call.bind(provider);
+  provider.call = async (tx: Parameters<typeof originalCall>[0]) =>
+    withRetry(() => originalCall(tx), 'provider.call');
+
   const client = new ThetanutsClient({
     chainId: BASE_CHAIN_ID,
     provider,
@@ -367,11 +399,19 @@ async function runTests() {
       ],
       provider,
     );
-    const [total, perToken, baseSplit] = await Promise.all([
-      factory.totalClaimableTransfers(ADDRESSES.SAMPLE_USER) as Promise<bigint>,
-      factory.claimableTransfers(ADDRESSES.SAMPLE_USER, ADDRESSES.USDC) as Promise<bigint>,
-      factory.baseSplitFee() as Promise<bigint>,
-    ]);
+    // Sequential reads — public RPC drops responses under simultaneous load.
+    const total = await withRetry(
+      () => factory.totalClaimableTransfers(ADDRESSES.SAMPLE_USER) as Promise<bigint>,
+      'totalClaimableTransfers',
+    );
+    const perToken = await withRetry(
+      () => factory.claimableTransfers(ADDRESSES.SAMPLE_USER, ADDRESSES.USDC) as Promise<bigint>,
+      'claimableTransfers',
+    );
+    const baseSplit = await withRetry(
+      () => factory.baseSplitFee() as Promise<bigint>,
+      'baseSplitFee',
+    );
     pass(
       `Escrow views: totalClaimable=${total.toString()}, USDC=${perToken.toString()}, baseSplitFee=${baseSplit.toString()}`,
     );
@@ -466,10 +506,14 @@ async function runTests() {
     await delay(500);
     const { OPTION_BOOK_ABI } = await import('../src/abis/optionBook.js');
     const book = new ethers.Contract(ADDRESSES.OPTION_BOOK, OPTION_BOOK_ABI, provider);
-    const result = await book.getValidNumContracts(
-      client.chainConfig.implementations.PUT,
-      [client.utils.toStrikeDecimals(2000)],
-      client.utils.toUsdcDecimals(100),
+    const result = await withRetry(
+      () =>
+        book.getValidNumContracts(
+          client.chainConfig.implementations.PUT,
+          [client.utils.toStrikeDecimals(2000)],
+          client.utils.toUsdcDecimals(100),
+        ),
+      'getValidNumContracts',
     );
     // ethers v6 returns a Result with both indexed and named accessors when the
     // ABI declares named outputs.
