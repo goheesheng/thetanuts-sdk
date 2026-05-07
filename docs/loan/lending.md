@@ -4,7 +4,7 @@ Earn yield by filling borrowers' limit orders with USDC. You provide USDC now an
 
 ## How Lending Works
 
-> **Note (v0.2.0 / Base_r12):** the contract no longer supports converting an
+> **Note (v0.2.1 / Base_r12):** the contract no longer supports converting an
 > unfilled RFQ into a limit order. The `keepOrderOpen` flag on `LoanRequest`
 > is now a no-op deprecation. The lending workflow described below remains
 > applicable only to historical loans tracked by the indexer that already

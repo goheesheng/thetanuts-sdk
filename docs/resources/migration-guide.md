@@ -4,7 +4,7 @@ Upgrade guide for existing users moving to the latest SDK patterns and APIs.
 
 ## Table of Contents
 
-- [Migrating to v0.2.x (Base_r12 deployment)](#migrating-to-v02x-base_r12-deployment)
+- [Migrating to v0.2.1 (Base_r12 deployment)](#migrating-to-v021-base_r12-deployment)
 - [Breaking Changes](#breaking-changes)
 - [New Helper Methods](#new-helper-methods)
 - [Code Migration Examples](#code-migration-examples)
@@ -13,9 +13,9 @@ Upgrade guide for existing users moving to the latest SDK patterns and APIs.
 
 ---
 
-## Migrating to v0.2.x (Base_r12 deployment)
+## Migrating to v0.2.1 (Base_r12 deployment)
 
-v0.2.0 cut over to the Base_r12 deployment with new contract addresses. v0.2.1 fixes 22 issues a code review found in the 0.2.0 surface. **Upgrade target: v0.2.1.**
+v0.2.1 is the first 0.2.x release published to npm. It bundles the Base_r12 deployment cutover with 22 fixes that three adversarial code-review passes found in the staged surface. v0.2.0 was prepared internally but never published — there is no v0.2.0 on npm.
 
 ### Pin to the deployment you want
 
@@ -51,9 +51,11 @@ v0.2.0 cut over to the Base_r12 deployment with new contract addresses. v0.2.1 f
 
 - **`RangerModule.reclaimCollateral` parameter renamed** from `recipient` to `ownedOption`. Positional callers unaffected; named callers using a TypeScript object-shape break.
 
-- **`LoanRequest.keepOrderOpen` is now a no-op.** The r12 contract dropped the limit-order conversion field. The SDK still accepts the field for source compatibility but the value is ignored.
+- **`LoanRequest.keepOrderOpen` is now a no-op.** The r12 contract dropped the limit-order conversion field. The SDK still accepts the field for source compatibility but the value is ignored. The internal `LoanCoordinator.requestLoan` parameter tuple no longer includes `convertToLimitOrder` either; the SDK no longer sends it.
 
-### What you should also know about 0.2.x
+- **`LoanIndexerLoan.convertToLimitOrder` is optional.** The lender-opportunity filter at `client.loan.getLendingOpportunities` only skips when the field is explicitly `false`; missing means eligible. If the r12 indexer drops the field entirely, your lender opportunity list still populates.
+
+### What you should also know about 0.2.1
 
 - New `client.ranger` module — see the [Modules Overview](../reference/modules-overview.md#clientranger--rangermodule).
 - `chainConfig.implementations.RANGER`, `LINEAR_CALL`, `INVERSE_CALL_SPREAD`, `CALL_LOAN` are new.
