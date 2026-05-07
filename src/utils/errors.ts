@@ -103,6 +103,14 @@ export function mapHttpError(error: unknown): ThetanutsError {
  * `OrderExpiredError`, `SlippageExceededError`, or `ContractRevertError`.
  */
 export function mapContractError(error: unknown): ThetanutsError {
+  // Pass-through: if the caller already raised a typed ThetanutsError
+  // (e.g. SIGNER_REQUIRED from requireSigner()), don't re-wrap it as a
+  // CONTRACT_REVERT. Re-wrapping loses the original code and confuses
+  // `instanceof` consumers.
+  if (isThetanutsError(error)) {
+    return error;
+  }
+
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
 
