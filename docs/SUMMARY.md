@@ -67,3 +67,7 @@
 * [Migration Guide](resources/migration-guide.md)
 * [Examples](resources/examples.md)
 * [Changelog](resources/changelog.md)
+
+## Release Notes
+
+* [v0.2.1 — Codex-found r12 fixes](releases/0.2.1.md)

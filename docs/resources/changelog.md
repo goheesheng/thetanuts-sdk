@@ -18,6 +18,8 @@ This SDK follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
 
 Bugfix release on top of v0.2.0. Two adversarial code-review passes flagged 22 issues across the r12 cutover; all are fixed and verified. Pin to v0.2.0 only if you specifically need that surface, otherwise upgrade.
 
+> **See the [full v0.2.1 release notes](../releases/0.2.1.md)** for per-commit detail, before/after migration code, and verification steps.
+
 **Production-revert fixes:**
 - `split` and `reclaimCollateral` are now correctly declared `payable`, and the SDK forwards `getSplitFee()` / `getReclaimFee(ownedOption)` as `msg.value`. Without this, calls would silently revert as soon as the contract owner set a non-zero fee.
 - `RangerModule.reclaimCollateral` now passes the option being reclaimed (not the caller's address) to `getReclaimFee`. The fee is keyed on the option, not the caller.
