@@ -320,6 +320,7 @@ export class OptionFactoryModule {
   async requestForQuotation(request: RFQRequest): Promise<TransactionReceipt> {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'requestForQuotation');
 
     if (request.params.strikes.length === 0) {
       throw createError('INVALID_PARAMS', 'At least one strike price is required');
@@ -1116,6 +1117,7 @@ export class OptionFactoryModule {
   encodeRequestForQuotation(request: RFQRequest): { to: string; data: string } {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'encodeRequestForQuotation');
 
     if (request.params.strikes.length === 0) {
       throw createError('INVALID_PARAMS', 'At least one strike price is required');
@@ -2247,6 +2249,27 @@ export class OptionFactoryModule {
     }
 
     return implementation;
+  }
+
+  /**
+   * Guard against passing a zero-address implementation to the on-chain RFQ.
+   *
+   * The seven physical multi-leg implementations (PHYSICAL_*_SPREAD/FLY/CONDOR/
+   * IRON_CONDOR) are stored as 0x000…000 in the chain registry until the
+   * contracts deploy. Without this guard, raw callers using
+   * `requestForQuotation` / `encodeRequestForQuotation` who pass
+   * `chainConfig.implementations.PHYSICAL_*` directly would otherwise produce
+   * calldata or send a transaction targeting the zero address — leading to a
+   * cryptic on-chain revert with no SDK-level explanation.
+   */
+  private assertImplementationDeployed(impl: string, where: string): void {
+    if (!impl || impl === '0x0000000000000000000000000000000000000000') {
+      throw createError(
+        'INVALID_PARAMS',
+        `${where}: implementation 0x000…000 — physical multi-leg contracts not yet deployed in r12. ` +
+        `If this is unexpected, check chainConfig.implementations for your option type.`,
+      );
+    }
   }
 
   /**
