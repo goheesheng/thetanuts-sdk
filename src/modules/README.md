@@ -583,8 +583,8 @@ const events = await client.events.queryEvents(params);
 Query events from individual option contracts (requires option address):
 
 ```typescript
-// Collateral returned to seller
-const events = await client.events.getCollateralReturnedEvents(optionAddress, filters?);
+// Excess collateral returned to seller (renamed from CollateralReturned in v0.2.1)
+const events = await client.events.getExcessCollateralReturnedEvents(optionAddress, filters?);
 
 // Option closed
 const events = await client.events.getOptionClosedEvents(optionAddress, filters?);

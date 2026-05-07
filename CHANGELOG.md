@@ -14,28 +14,32 @@ upgrade.
 
 - **`split` and `reclaimCollateral` are now correctly declared `payable`** in
   `option.ts`, `ranger.ts`, and `loan.ts` ABIs. The r12 contracts collect
-  `getSplitFee()` and `getReclaimFee(caller)` as `msg.value`. With the prior
-  `nonpayable` declaration, every call would silently revert as soon as the
-  contract owner set a non-zero fee.
+  `getSplitFee()` and `getReclaimFee(ownedOption)` as `msg.value`. With the
+  prior `nonpayable` declaration, every call would silently revert as soon
+  as the contract owner set a non-zero fee.
 - **`OptionModule.split` and `RangerModule.split`** now read `getSplitFee()`
   and forward the value with the transaction.
-- **`RangerModule.reclaimCollateral`** now reads `getReclaimFee(callerAddress)`
-  and forwards the value. Parameter renamed from `recipient` to `ownedOption`
-  to match the on-chain semantics — the address is the option being reclaimed
-  from, not a transfer destination.
+- **`RangerModule.reclaimCollateral`** now reads
+  `getReclaimFee(ownedOption)` and forwards the value. The fee is keyed
+  on the option being reclaimed, not on the caller. Parameter renamed
+  from `recipient` to `ownedOption` to match the on-chain semantics —
+  the address is the option being reclaimed from, not a transfer
+  destination.
 - **Raw `requestForQuotation` / `encodeRequestForQuotation` zero-address
   guard.** Both entry points now reject `params.implementation ===
   0x000…000` with a clear `INVALID_PARAMS` error before producing calldata
   or sending a transaction. The previous v0.2.0 guard only fired inside the
   high-level physical-RFQ builders; raw callers passing
   `chainConfig.implementations.PHYSICAL_*` directly bypassed it entirely.
-- **`OptionBook.getValidNumContracts`** ABI return corrected from
-  `uint256` to the actual r12 tuple `(uint256 validContracts,
-  uint256 collateralRequired)`. Input name corrected from `collateral` to
-  `implementation`.
-- **`optionType()`** ABI corrected to `pure returns (uint256)` in
-  `option.ts` and `ranger.ts`. Was `view returns (bytes32)` in
-  `ranger.ts`; was `view returns (uint256)` in `option.ts`.
+- **`OptionBook.getValidNumContracts`** ABI now matches the canonical
+  r12 shape: a single named tuple output `result { validContracts,
+  collateralRequired }`. Inputs match the canonical names —
+  `implementation` (was `collateral`) and `desiredContracts` (was
+  `numContracts`).
+- **`optionType()`** ABI corrected to match each contract's actual
+  state mutability — `view returns (uint256)` for `BaseOption.optionType`
+  and `pure returns (uint256)` for `RangerOption.optionType`. The v0.2.0
+  Ranger ABI declared `view returns (bytes32)`.
 - **`returnExcessCollateral()`** ABI now declares `returns (uint256)`. Was
   no-output.
 - **`LOAN_COORDINATOR_ABI.assetConfigs(bytes32)`** ABI now declares the
@@ -97,8 +101,11 @@ intentionally short.
 - `RangerModule.reclaimCollateral` — second parameter renamed from
   `recipient` to `ownedOption`. Positional callers unaffected; named
   callers using a TypeScript object-shape will break.
-- `RangerModule.optionType()` typed return is `Promise<bigint>` (was
-  `Promise<string>`).
+- The typed `RangerContract.optionType` interface (used internally and
+  exported as part of the `RangerModule` type surface) now declares
+  `Promise<bigint>` return — was `Promise<string>`. There is no public
+  `client.ranger.optionType()` method; this only affects callers
+  reading the typed contract interface directly.
 
 ## 0.2.0 — Base_r12 deployment
 

@@ -164,12 +164,13 @@ import { OPTION_ABI, BASE_OPTION_ABI } from '@thetanuts-finance/thetanuts-client
 **Events:**
 | Event | Parameters |
 |-------|------------|
-| `CollateralReturned` | `seller, amountReturned` |
+| `ExcessCollateralReturned` | `seller, collateralToken, collateralReturned` |
 | `OptionClosed` | `closedBy, collateralReturned` |
 | `OptionExpired` | `settlementPrice` |
+| `OptionInitialized` | `buyer, seller, createdBy, optionType, collateralToken, priceFeed, strikes, expiryTimestamp, numContracts, collateralAmount, extraOptionData` |
 | `OptionPayout` | `buyer, amountPaidOut` |
 | `OptionSettlementFailed` | _(no parameters)_ |
-| `OptionSplit` | `newOption, collateralAmount` |
+| `OptionSplit` | `newOption, collateralAmount, feePaid, counterparty` |
 | `RoleTransferred` | `from, to, isBuyer` |
 | `TransferApproval` | `target, from, isBuyer, isApproved` |
 | `ERC20Rescued` | `rescueAddress, tokenAddress, amount` |

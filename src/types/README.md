@@ -573,10 +573,10 @@ interface QuotationSettledEvent {
 ### BaseOption Events
 
 ```typescript
-interface CollateralReturnedEvent extends BaseEvent {
-  optionAddress: string;
+interface ExcessCollateralReturnedEvent extends BaseEvent {
   seller: string;
-  amountReturned: bigint;
+  collateralToken: string;
+  collateralReturned: bigint;
 }
 
 interface OptionClosedEvent extends BaseEvent {
