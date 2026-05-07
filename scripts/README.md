@@ -37,9 +37,9 @@ BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY npm test
 
 Initializing client...
 [Client] Chain ID: 8453
-[Client] OptionBook: 0xd58b814C7Ce700f251722b5555e25aE0fa8169A1
+[Client] OptionBook: 0x1bDff855d6811728acaDC00989e79143a2bdfDed
 [Client] API URL: https://round-snowflake-9c31.devops-118.workers.dev
-[Client] Indexer URL: https://optionbook-indexer.thetanuts.finance/api/v1
+[Client] Indexer URL: https://indexer.thetanuts.finance/api/v1/book
 
 --- 1. Client Configuration ---
   [PASS] Client initialized with correct config
@@ -50,15 +50,15 @@ Initializing client...
   [PASS] USDC decimals = 6
   [PASS] WETH decimals = 18
   [PASS] cbBTC decimals = 8
-  [PASS] USDC balance read: 15108.994814 USDC
+  [PASS] USDC balance read: 15112.674814 USDC
   [PASS] USDC allowance read: 0.0 USDC
 
 --- 3. API Module ---
-  [PASS] Fetched 284 orders from API
+  [PASS] Fetched 317 orders from API
   [PASS] Fetched protocol stats from indexer
-    Unique Users: 87
-    Total Options Tracked: 2582
-    Open Positions: 36
+    Unique Users: 129
+    Total Options Tracked: 10227
+    Open Positions: 5168
 
 --- 4. Utils Module ---
   [PASS] toStrikeDecimals: 100000 -> 10000000000000
@@ -68,20 +68,33 @@ Initializing client...
   [PASS] toPriceDecimals: 0.05 -> 5000000
 
 --- 5. OptionBook Module ---
-  [PASS] computeNonce: 99747721222730232110376224709836831380121251795636040855854444678578159737113
+  [PASS] computeNonce: 66163403902334715690952570010368202783036224428509971932248979246447638424331
   [PASS] getFees for USDC
-    USDC fees: 13930459
+    USDC fees: 0
 
---- 6. Pricing Module ---
+--- 6. MM Pricing Module ---
   [PASS] Pricing URL: https://pricing.thetanuts.finance
-  [PASS] Pricing module methods available
+  [PASS] MM Pricing module methods available
+
+--- 7. Base_r12 Additive Surface ---
+  [PASS] twapConsumer registered
+  [PASS] RANGER implementation registered
+  [PASS] Ranger reverse-lookup resolves
+  [PASS] OptionFactory.historicalTWAPConsumer() matches
+  [PASS] OptionBook thresholds
+  [PASS] OptionFactory escrow views
+  [PASS] client.ranger module surface available
+  [PASS] encodeRequestForQuotation rejects 7 zero-address placeholders
+  [PASS] client.ranger throws NETWORK_UNSUPPORTED on chains without RANGER
+  [PASS] getValidNumContracts decodes as tuple
+  [PASS] Butterfly reverse-lookup names: CALL_FLY / PUT_FLY
 
 ========================================
   Test Summary
 ========================================
 
-Total: 19 tests
-Passed: 19
+Total: 30 tests
+Passed: 30
 Failed: 0
 
 ========================================
@@ -107,9 +120,12 @@ The script uses these addresses (defined at top of file):
 const BASE_MAINNET_RPC = process.env.BASE_RPC_URL ?? 'https://mainnet.base.org';
 const BASE_CHAIN_ID = 8453;
 
+// Base_r12 deployment (deployed 2026-05-05, block 45601440)
 const ADDRESSES = {
-  OPTION_BOOK: '0x1bDff855d6811728acaDC00989e79143a2bdfDed',     // Base r12
-  OPTION_FACTORY: '0x8118daD971dEbffB49B9280047659174128A8B94',  // Base r12
+  OPTION_BOOK: '0x1bDff855d6811728acaDC00989e79143a2bdfDed',
+  OPTION_FACTORY: '0x8118daD971dEbffB49B9280047659174128A8B94',
+  TWAP_CONSUMER: '0xE909fb38767e0ac5F7a347DF9Dd4222217E10816',
+  RANGER_IMPL: '0x9980ec85bc6fE07340adb36c76FA093bb6D4FcBc',
   USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   WETH: '0x4200000000000000000000000000000000000006',
   cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
@@ -126,7 +142,8 @@ const ADDRESSES = {
 | API Module | Fetch orders, protocol stats |
 | Utils Module | Decimal conversions (strike, USDC, price) |
 | OptionBook Module | Compute nonce, get fees |
-| Pricing Module | URL configuration, method availability |
+| MM Pricing Module | URL configuration, method availability |
+| Base_r12 Additive Surface | TWAP consumer, RANGER implementation registration, OptionFactory escrow views, OptionBook thresholds, ranger module surface, zero-address guards, getValidNumContracts tuple shape, butterfly reverse-lookup names |
 
 ## NPM Scripts Reference
 

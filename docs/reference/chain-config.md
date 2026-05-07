@@ -2,7 +2,7 @@
 
 The chain configuration bundles all on-chain addresses, token metadata, price feeds, and API endpoints for a supported network. Access it via `client.chainConfig`.
 
-Currently supported: **Base Mainnet** (chain ID `8453`).
+Currently supported: **Base Mainnet** (chain ID `8453`) for the full options surface, and **Ethereum Mainnet** (chain ID `1`) for vault-only modules (`client.wheelVault`). See [Supported Chains](../getting-started/supported-chains.md) for the full breakdown.
 
 ## Accessing Chain Config
 
@@ -48,15 +48,19 @@ Used by both OptionBook (filling listed orders) and RFQ (creating custom options
 
 | Key | Address | Description |
 |-----|---------|-------------|
-| `PUT` | `0xF480F636301d50Ed570D026254dC5728b746A90F` | Vanilla PUT |
-| `INVERSE_CALL` | `0x3CeB524cBA83D2D4579F5a9F8C0D1f5701dd16FE` | Vanilla CALL |
-| `CALL_SPREAD` | `0x4D75654bC616F64F6010d512C3B277891FB52540` | Call spread (2 strikes) |
-| `PUT_SPREAD` | `0xC9767F9a2f1eADC7Fdcb7f0057E829D9d760E086` | Put spread (2 strikes) |
-| `CALL_FLY` | `0xD8EA785ab2A63a8a94C38f42932a54A3E45501c3` | Call butterfly (3 strikes) |
-| `PUT_FLY` | `0x1fE24872Ab7c83BbA26Dc761ce2EA735c9b96175` | Put butterfly (3 strikes) |
-| `CALL_CONDOR` | `0xbb5d2EB2D354D930899DaBad01e032C76CC3c28f` | Call condor (4 strikes) |
-| `PUT_CONDOR` | `0xbdAcC00Dc3F6e1928D9380c17684344e947aa3Ec` | Put condor (4 strikes) |
-| `IRON_CONDOR` | `0x494Cd61b866D076c45564e236D6Cb9e011a72978` | Iron condor (4 strikes) |
+| `PUT` | `0x7355EB92dfb0503DB558a70c10843618932ab290` | Vanilla PUT |
+| `INVERSE_CALL` | `0xE6c5756b0289e3f0994CB12eb8aB71Cd903Ed0Ea` | Vanilla CALL |
+| `LINEAR_CALL` | `0x051791df68223AE173Fade5217C48875e36eef61` | Linear CALL |
+| `CALL_SPREAD` | `0xfaeD63f7040E65b79cF0Ae29706fDc423eE249A9` | Call spread (2 strikes) |
+| `PUT_SPREAD` | `0x02Fe0d9635e0139DBB3768a5d5Db404Fd84d9134` | Put spread (2 strikes) |
+| `INVERSE_CALL_SPREAD` | `0x7Be48100b1B0349528A96D64953295Cd0Bbe4B70` | Inverse call spread (2 strikes) |
+| `CALL_FLY` | `0xa1d5f6b16A2e7f298F8d2cDF78F7779B4A20C4C2` | Call butterfly (3 strikes) |
+| `PUT_FLY` | `0x4fd2C6D271cC6FF3EbD2027da9815a0608d03AA3` | Put butterfly (3 strikes) |
+| `CALL_CONDOR` | `0x14476CF2ea9F7C448100F061670E390f17c78817` | Call condor (4 strikes) |
+| `PUT_CONDOR` | `0xC742E422c7BB43A7FDe1CEF47997bC9D5b543cDD` | Put condor (4 strikes) |
+| `IRON_CONDOR` | `0x9ebd7E23AfD52a48F557523019285EfEF2170D59` | Iron condor (4 strikes) |
+| `RANGER` | `0x9980ec85bc6fE07340adb36c76FA093bb6D4FcBc` | Zone-bound 4-strike payoff (r12) |
+| `CALL_LOAN` | `0x7c444A2375275DaB925b32493B64a407eE955DEd` | Loan handler (physically-settled call) |
 
 ### Physically Settled
 
@@ -64,8 +68,10 @@ Used by RFQ only, via `buildPhysicalOptionRFQ()`. Vanilla options only. At expir
 
 | Key | Address | Description |
 |-----|---------|-------------|
-| `PHYSICAL_CALL` | `0x07032ffb1df85eC006Be7c76249B9e6f39b60F32` | Vanilla physical CALL |
-| `PHYSICAL_PUT` | `0xAC5eCA7129909dE8c12e1a41102414B5a5f340AA` | Vanilla physical PUT |
+| `PHYSICAL_CALL` | `0x8c56100caE246f7daa4BC1EC4d1477d71178c563` | Vanilla physical CALL |
+| `PHYSICAL_PUT` | `0x6aD53DD058bea004829cCf58a282C21a7Df02DcA` | Vanilla physical PUT |
+
+> Multi-leg physical implementations (`PHYSICAL_*_SPREAD`, `PHYSICAL_*_FLY`, `PHYSICAL_*_CONDOR`, `PHYSICAL_IRON_CONDOR`) are placeholders set to `0x0…0` — the contracts are not yet deployed. The SDK's runtime guard throws a clear error if a user attempts to route through any of these zero addresses.
 
 ```typescript
 // Cash-settled
@@ -112,12 +118,14 @@ config.priceFeeds.AVAX;  // Chainlink AVAX/USD feed
 
 | Contract | Address |
 |----------|---------|
-| `optionBook` | `0xd58b814C7Ce700f251722b5555e25aE0fa8169A1` |
-| `optionFactory` | `0x1aDcD391CF15Fb699Ed29B1D394F4A64106886e5` |
+| `optionBook` | `0x1bDff855d6811728acaDC00989e79143a2bdfDed` |
+| `optionFactory` | `0x8118daD971dEbffB49B9280047659174128A8B94` |
+| `twapConsumer` | `0xE909fb38767e0ac5F7a347DF9Dd4222217E10816` |
 
 ```typescript
-config.contracts.optionBook;     // '0xd58b814C7Ce700f251722b5555e25aE0fa8169A1'
-config.contracts.optionFactory;  // '0x1aDcD391CF15Fb699Ed29B1D394F4A64106886e5'
+config.contracts.optionBook;      // '0x1bDff855d6811728acaDC00989e79143a2bdfDed'
+config.contracts.optionFactory;   // '0x8118daD971dEbffB49B9280047659174128A8B94'
+config.contracts.twapConsumer;    // '0xE909fb38767e0ac5F7a347DF9Dd4222217E10816'
 ```
 
 ## API Endpoints
@@ -193,7 +201,7 @@ import {
 // Full config
 const config = getChainConfigById(8453);
 console.log(config.name);                    // 'Base'
-console.log(config.contracts.optionBook);    // '0xd58b814...'
+console.log(config.contracts.optionBook);    // '0x1bDff855...'
 
 // Single token
 const usdc = getTokenConfigById(8453, 'USDC');
@@ -202,11 +210,11 @@ console.log(usdc.decimals);  // 6
 
 // All tokens
 const tokens = getSupportedTokensById(8453);
-// ['USDC', 'WETH', 'cbBTC']
+// ['USDC', 'WETH', 'cbBTC', 'aBasWETH', 'aBascbBTC', 'aBasUSDC', 'cbDOGE', 'cbXRP']
 
 // Chain support check
-isChainIdSupported(8453);  // true
-isChainIdSupported(1);     // false
+isChainIdSupported(8453);  // true (Base)
+isChainIdSupported(1);     // true (Ethereum, vault-only)
 ```
 
 ## Never Hardcode Addresses
