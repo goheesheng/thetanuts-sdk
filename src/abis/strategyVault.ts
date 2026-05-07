@@ -1,7 +1,7 @@
 /**
  * StrategyVault Contract ABIs (Base Mainnet)
  *
- * ABIs for Kairos fixed-strike vaults and CLVEX directional/condor strategy vaults.
+ * ABIs for fixed-strike vaults and CLVEX directional/condor strategy vaults.
  * Both share the same BaseVault interface.
  */
 

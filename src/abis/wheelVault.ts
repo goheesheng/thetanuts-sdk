@@ -1,7 +1,7 @@
 /**
  * WheelVault Contract ABIs (Ethereum Mainnet)
  *
- * ABIs for Gyro's wheel strategy vault contracts.
+ * ABIs for wheel strategy vault contracts.
  * Converted from ethers v5 JSON format to ethers v6 human-readable format.
  */
 

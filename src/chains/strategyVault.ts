@@ -1,7 +1,7 @@
 /**
  * StrategyVault Configuration Constants
  *
- * Contract addresses and configuration for Kairos fixed-strike vaults
+ * Contract addresses and configuration for Fixed-strike vaults
  * and CLVEX directional/condor strategy vaults on Base mainnet.
  */
 
@@ -12,8 +12,8 @@ export const STRATEGY_VAULT_CONFIG = {
   chainId: 8453 as const,
   chainName: 'Base',
 
-  /** Kairos fixed-strike vaults */
-  kairos: {
+  /** Fixed-strike vaults */
+  fixedStrike: {
     vaults: [
       { address: '0x5189180C5Bb1bB54f8479a6aeFdFFEd66Ea0951b', name: 'ETH-3000', strike: 3000 },
       { address: '0xf70088De12E325562dEbfd7740089d894d5b23ce', name: 'ETH-3500', strike: 3500 },

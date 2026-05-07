@@ -95,7 +95,7 @@ Relevant section: [Wheel Vault overview](../wheel-vault/overview.md)
 
 ### `client.strategyVault` — StrategyVaultModule
 
-Reads and interacts with the StrategyVault contracts (Kairos and CLVEX strategies) on Base. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 8453`.
+Reads and interacts with the StrategyVault contracts (fixed-strike and CLVEX strategies) on Base. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 8453`.
 
 Relevant section: [Strategy Vault overview](../strategy-vault/overview.md)
 

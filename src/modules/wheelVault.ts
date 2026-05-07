@@ -1,7 +1,7 @@
 /**
- * WheelVault Module — Gyro wheel strategy vaults on Ethereum mainnet
+ * WheelVault Module — Wheel strategy vaults on Ethereum mainnet
  *
- * Wraps Gyro's multi-series wheel strategy vault contracts. Each asset
+ * Wraps multi-series wheel strategy vault contracts. Each asset
  * (WBTC, XAUt, SPYon) has its own Vault, Markets, and MarketsLens contracts.
  * Shared infrastructure includes the Router, Lens, Multicall3, and Uniswap V3 NPM.
  *
@@ -246,7 +246,7 @@ export class WheelVaultModule {
     if (!allowed.some((allowedAddress) => allowedAddress.toLowerCase() === normalized)) {
       throw createError(
         'INVALID_PARAMS',
-        `${label} is not a configured Gyro contract address`
+        `${label} is not a configured wheel vault contract address`
       );
     }
   }

@@ -1,7 +1,7 @@
 /**
- * StrategyVault Module — Kairos fixed-strike + CLVEX directional/condor vaults on Base
+ * StrategyVault Module — Fixed-strike + CLVEX directional/condor vaults on Base
  *
- * Wraps 5 Kairos fixed-strike vaults and 3 CLVEX directional/condor strategy vaults,
+ * Wraps 5 fixed-strike vaults and 3 CLVEX directional/condor strategy vaults,
  * all sharing the same BaseVault interface. Uses Multicall3 for efficient batched reads.
  *
  * @example
@@ -11,7 +11,7 @@
  * // Get all vault states in one RPC call
  * const vaults = await client.strategyVault.getAllVaults();
  *
- * // Deposit into a Kairos vault
+ * // Deposit into a fixed-strike vault
  * const result = await client.strategyVault.deposit(
  *   '0x5189180C5Bb1bB54f8479a6aeFdFFEd66Ea0951b',
  *   ethers.parseUnits('1.0', 18),
@@ -114,7 +114,7 @@ export class StrategyVaultModule {
 
   private getConfiguredVaultAddresses(): string[] {
     return [
-      ...STRATEGY_VAULT_CONFIG.kairos.vaults.map((vault) => vault.address),
+      ...STRATEGY_VAULT_CONFIG.fixedStrike.vaults.map((vault) => vault.address),
       ...STRATEGY_VAULT_CONFIG.clvex.vaults.map((vault) => vault.address),
     ];
   }
@@ -373,7 +373,7 @@ export class StrategyVaultModule {
    * @throws {SignerRequiredError} If no signer is attached
    * @example
    * ```typescript
-   * // Deposit 1 aBasWETH into a Kairos vault
+   * // Deposit 1 aBasWETH into a fixed-strike vault
    * const result = await client.strategyVault.deposit(
    *   '0x5189180C5Bb1bB54f8479a6aeFdFFEd66Ea0951b',
    *   ethers.parseUnits('1.0', 18),
@@ -631,19 +631,19 @@ export class StrategyVaultModule {
   // ═══════════════════════════════════════════
 
   /**
-   * Get the state of all 5 Kairos fixed-strike vaults.
+   * Get the state of all 5 fixed-strike vaults.
    *
-   * @returns Array of vault states for all Kairos vaults
+   * @returns Array of vault states for all fixed-strike vaults
    * @example
    * ```typescript
-   * const kairos = await client.strategyVault.getKairosVaults();
-   * for (const v of kairos) {
+   * const fixedStrike = await client.strategyVault.getFixedStrikeVaults();
+   * for (const v of fixedStrike) {
    *   console.log(`${v.name}: TVL = ${v.assets.totalAssets}`);
    * }
    * ```
    */
-  async getKairosVaults(): Promise<StrategyVaultState[]> {
-    const addresses = STRATEGY_VAULT_CONFIG.kairos.vaults.map((v) => v.address);
+  async getFixedStrikeVaults(): Promise<StrategyVaultState[]> {
+    const addresses = STRATEGY_VAULT_CONFIG.fixedStrike.vaults.map((v) => v.address);
     return this.getAllVaultStates(addresses);
   }
 
@@ -665,7 +665,7 @@ export class StrategyVaultModule {
   }
 
   /**
-   * Get the state of all 8 strategy vaults (5 Kairos + 3 CLVEX) in a single RPC call.
+   * Get the state of all 8 strategy vaults (5 fixed-strike + 3 CLVEX) in a single RPC call.
    *
    * @returns Array of all vault states
    * @example
@@ -675,8 +675,8 @@ export class StrategyVaultModule {
    * ```
    */
   async getAllVaults(): Promise<StrategyVaultState[]> {
-    const kairosAddresses = STRATEGY_VAULT_CONFIG.kairos.vaults.map((v) => v.address);
+    const fixedStrikeAddresses = STRATEGY_VAULT_CONFIG.fixedStrike.vaults.map((v) => v.address);
     const clvexAddresses = STRATEGY_VAULT_CONFIG.clvex.vaults.map((v) => v.address);
-    return this.getAllVaultStates([...kairosAddresses, ...clvexAddresses]);
+    return this.getAllVaultStates([...fixedStrikeAddresses, ...clvexAddresses]);
   }
 }

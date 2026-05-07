@@ -1,5 +1,5 @@
 /**
- * StrategyVault Types — Kairos fixed-strike + CLVEX directional/condor vaults on Base
+ * StrategyVault Types — Fixed-strike + CLVEX directional/condor vaults on Base
  *
  * Types for the BaseVault / FixedStrikeStrategyVault / DirectionalStrategyVault /
  * MeanRevertingCondorStrategyVault contracts. All share the same BaseVault interface.
