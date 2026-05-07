@@ -1,0 +1,80 @@
+# Thetanuts Finance SDK
+
+> TypeScript SDK for Thetanuts Finance V4 — options trading on EVM chains. Targets Base mainnet (chainId 8453) for the full options surface and Ethereum mainnet (chainId 1) for vault-only modules.
+
+The SDK exposes 14 modules via a single `ThetanutsClient` constructor: cash-settled and physically-settled options on the OptionBook (fill listed orders) and OptionFactory RFQ (sealed-bid auctions), plus zone-bound RangerOptions, non-liquidatable loans, and fixed-strike + CLVEX strategy vaults on Base, plus Gyro-style wheel-strategy vaults on Ethereum mainnet.
+
+The package ships ESM + CJS + types from a single npm install: `@thetanuts-finance/thetanuts-client`.
+
+## Getting started
+
+- [README — installation and quick start](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/README.md): the canonical entry point. Install snippet, signer-vs-read-only flow, full client config options.
+- [Quick Start guide](https://docs.thetanuts.finance/sdk/getting-started/quick-start): walk through reading market data, fetching orders, previewing a fill, with no signer.
+- [Configuration](https://docs.thetanuts.finance/sdk/getting-started/configuration): every constructor option, environment defaults, custom RPC + indexer overrides.
+- [Supported Chains](https://docs.thetanuts.finance/sdk/getting-started/supported-chains): which modules work on which chain.
+
+## Module reference
+
+- [Modules Overview](https://docs.thetanuts.finance/sdk/reference/modules-overview): full list of `client.*` modules with one-paragraph descriptions and links to per-module guides.
+- [Chain Config](https://docs.thetanuts.finance/sdk/reference/chain-config): every contract address, token, price feed, and implementation key per chain.
+- [Type Exports](https://docs.thetanuts.finance/sdk/reference/type-exports): every TypeScript type the package re-exports.
+- [Decimal Reference](https://docs.thetanuts.finance/sdk/reference/decimals): USDC=6, WETH=18, cbBTC=8, prices/strikes=8, numContracts=18.
+
+## OptionBook (fill listed maker orders)
+
+- [Overview](https://docs.thetanuts.finance/sdk/optionbook/overview): when to use OptionBook vs RFQ. Cash-settled only; supports vanilla, spread, butterfly, condor, iron condor.
+- [Browse and filter orders](https://docs.thetanuts.finance/sdk/optionbook/browse-filter-orders): `client.api.fetchOrders()`, `client.api.filterOrders()`, indexer stat helpers.
+- [Preview fills](https://docs.thetanuts.finance/sdk/optionbook/preview-fills): why preview before fill (PUT collateral math), `previewFillOrder`, `callStaticFillOrder`.
+- [Fill orders](https://docs.thetanuts.finance/sdk/optionbook/fill-orders): `fillOrder`, `swapAndFillOrder`, `cancelOrder`.
+- [Multi-leg structures](https://docs.thetanuts.finance/sdk/optionbook/multi-leg-structures): spreads, butterflies, condors, iron condors on the book.
+- [Referrer fees](https://docs.thetanuts.finance/sdk/optionbook/referrer-fees): whitelist-by-owner referral system; self-claim flow.
+- [Encode for external wallets](https://docs.thetanuts.finance/sdk/optionbook/encode-external-wallets): pure encoders for viem/wagmi handoff.
+
+## RFQ / OptionFactory (sealed-bid auctions)
+
+- [RFQ Overview](https://docs.thetanuts.finance/sdk/rfq/overview): how the sealed-bid auction works, when to use it, structures supported.
+- [Create an RFQ](https://docs.thetanuts.finance/sdk/rfq/create-rfq): `buildRFQRequest`, key generation, submission.
+- [RFQ Lifecycle](https://docs.thetanuts.finance/sdk/rfq/lifecycle): four-phase walkthrough — request, offer, reveal, settle. Includes maker-side flow.
+- [Multi-leg structures](https://docs.thetanuts.finance/sdk/rfq/multi-leg-structures): RFQ-side spread/fly/condor builders.
+- [Physical options](https://docs.thetanuts.finance/sdk/rfq/physical-options): vanilla physical CALL/PUT only; multi-leg physical placeholders not yet deployed.
+- [Early settlement](https://docs.thetanuts.finance/sdk/rfq/early-settlement): decrypt a maker's offer and accept before the deadline.
+- [Key Management](https://docs.thetanuts.finance/sdk/rfq/key-management): ECDH keypair storage, encryption details for the sealed-bid flow.
+- [Referrals](https://docs.thetanuts.finance/sdk/rfq/referrals): self-service `referralId` registration. Distinct from OptionBook referrals — owner-only fee withdrawal.
+
+## Position and structure modules
+
+- [Position Management](https://docs.thetanuts.finance/sdk/guides/position-management): close, transfer, split, payout for any BaseOption-derived contract.
+- [Ranger Options](https://docs.thetanuts.finance/sdk/guides/ranger): zone-bound 4-strike payoff. r12-only.
+- [Wheel Vault (Ethereum)](https://docs.thetanuts.finance/sdk/wheel-vault/overview): WBTC/XAUt/SPYon Gyro-style wheel-strategy vaults. Chain-gated.
+- [Strategy Vault (Base)](https://docs.thetanuts.finance/sdk/strategy-vault/overview): fixed-strike covered-call vaults + CLVEX directional/condor vaults.
+- [Loan module](https://docs.thetanuts.finance/sdk/loan/overview): non-liquidatable lending via physically-settled calls.
+
+## Pricing
+
+- [MM Pricing Overview](https://docs.thetanuts.finance/sdk/pricing/mm-pricing): `getAllPricing`, `getTickerPricing`, `getPricingArray`. Fee-adjustment formula.
+- [Position & Spread Pricing](https://docs.thetanuts.finance/sdk/pricing/position-spread-pricing): `getPositionPricing`, `getSpreadPricing`, `getButterflyPricing`, `getCondorPricing` with collateral cost.
+- [Filters & Utilities](https://docs.thetanuts.finance/sdk/pricing/filters-utilities): array helpers for sorting and filtering pricing arrays.
+- [Collateral Cost Reference](https://docs.thetanuts.finance/sdk/pricing/collateral-cost): per-asset APR rates (cbBTC 1%, WETH 4%, USDC 7%) and the carrying-cost formula.
+
+## Cross-cutting guides
+
+- [Token Operations](https://docs.thetanuts.finance/sdk/guides/token-operations): ERC20 approvals, balances, transfers via `client.erc20`.
+- [Blockchain Events](https://docs.thetanuts.finance/sdk/guides/events): `client.events.*` plus `getRfqHistory` and `queryEvents`.
+- [WebSocket Subscriptions](https://docs.thetanuts.finance/sdk/guides/websocket): real-time updates via `client.ws.*`.
+- [Error Handling](https://docs.thetanuts.finance/sdk/guides/error-handling): typed `ThetanutsError` codes — `SIGNER_REQUIRED`, `NETWORK_UNSUPPORTED`, `CONTRACT_REVERT`, etc.
+- [Production Checklist](https://docs.thetanuts.finance/sdk/guides/production-checklist): RPC reliability, slippage, monitoring, key custody.
+- [MCP Server](https://docs.thetanuts.finance/sdk/guides/mcp-server): connect an LLM to the SDK as a Model Context Protocol server.
+
+## Resources
+
+- [Migration Guide](https://docs.thetanuts.finance/sdk/resources/migration-guide): v0.1.x → v0.2.x breaking changes and step-by-step upgrade.
+- [Changelog](https://docs.thetanuts.finance/sdk/resources/changelog): user-facing summary of recent releases.
+- [Examples](https://docs.thetanuts.finance/sdk/resources/examples): runnable copy-paste snippets.
+- [GitHub Releases](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases): canonical per-version detail with full commit log.
+- [`CHANGELOG.md`](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/CHANGELOG.md): terse per-version log shipped in the npm tarball.
+
+## Optional
+
+- [Contributing](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/CONTRIBUTING.md): local setup, the four required gates, the `/codex review` + `/codex challenge` review process, and the npm publish flow.
+- [Security](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/SECURITY.md): vulnerability reporting policy and supported-versions table.
+- [`llms-full.txt`](https://raw.githubusercontent.com/Thetanuts-Finance/thetanuts-sdk/main/llms-full.txt): single-file long-form context with embedded module overviews, key types, common patterns, and gotchas. Use this if you want everything an LLM needs in one fetch.

@@ -38,6 +38,10 @@ import {
   type ProductName,
 } from '@thetanuts-finance/thetanuts-client';
 
+// Auto-generated at build time from <repo-root>/llms.txt and llms-full.txt.
+// Lets the MCP server return SDK context without filesystem access at runtime.
+import { LLMS_TXT, LLMS_FULL_TXT, LLMS_FULL_TXT_BYTES } from './sdk-context.generated.js';
+
 // ============ Configuration ============
 const RPC_URL = process.env.THETANUTS_RPC_URL || 'https://mainnet.base.org';
 const CHAIN_ID = 8453; // Base mainnet
@@ -58,6 +62,46 @@ function getClient(): ThetanutsClient {
 
 // ============ Tool Definitions ============
 const tools: Tool[] = [
+  // === SDK Context ===
+  // CALL THESE FIRST when starting a new SDK-related task. They return embedded
+  // documentation (llms.txt + llms-full.txt) so the LLM has full context on the
+  // SDK surface without making external fetches.
+  {
+    name: 'get_sdk_context',
+    description:
+      'Return the full embedded SDK context (long-form): every module, key types, common workflows, and gotchas. ' +
+      'This is the file you want if you only fetch one thing before answering questions about the Thetanuts SDK ' +
+      'or generating code that uses it. Roughly 35 KiB of markdown — fetch once per session.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_sdk_context_index',
+    description:
+      'Return the curated index of SDK docs (llmstxt.org spec format). Lighter than get_sdk_context — ' +
+      'returns only links to canonical docs grouped by topic. Use this when the long-form context is ' +
+      'too verbose or when you want to know which doc page to fetch next.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_sdk_context_size',
+    description:
+      'Return the byte size of the embedded SDK context. Useful for callers that want to budget context ' +
+      'before pulling the full content.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+
   // === Market Data ===
   {
     name: 'get_market_data',
@@ -1408,6 +1452,16 @@ const tools: Tool[] = [
 
 // ============ Tool Handlers ============
 async function handleTool(name: string, args: Record<string, unknown>): Promise<string> {
+  // SDK context tools don't need a chain connection — return embedded docs and exit early.
+  switch (name) {
+    case 'get_sdk_context':
+      return LLMS_FULL_TXT;
+    case 'get_sdk_context_index':
+      return LLMS_TXT;
+    case 'get_sdk_context_size':
+      return JSON.stringify({ bytes: LLMS_FULL_TXT_BYTES, kib: Number((LLMS_FULL_TXT_BYTES / 1024).toFixed(1)) }, null, 2);
+  }
+
   const c = getClient();
 
   try {
@@ -2518,15 +2572,18 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
         const optionAddr = args.optionAddress as string;
         // Use sequential mode to avoid RPC batch limits (max 10 calls)
         const fullInfo = await c.option.getFullOptionInfo(optionAddr, { sequential: true });
+        // info can be null for proxy contracts with incompatible ABI versions
+        // (documented behavior in src/modules/option.ts:1013). Return what we have.
+        const info = fullInfo.info;
         return JSON.stringify({
           // From OptionInfo (nested in info)
-          address: fullInfo.info.address,
-          optionType: fullInfo.info.optionType,
-          strikes: fullInfo.info.strikes?.map(s => s.toString()),
-          expiry: fullInfo.info.expiry?.toString(),
-          expiryDate: fullInfo.info.expiry ? new Date(Number(fullInfo.info.expiry) * 1000).toISOString() : null,
-          collateralToken: fullInfo.info.collateralToken,
-          underlyingToken: fullInfo.info.underlyingToken,
+          address: info?.address ?? null,
+          optionType: info?.optionType ?? null,
+          strikes: info?.strikes?.map((s) => s.toString()) ?? null,
+          expiry: info?.expiry?.toString() ?? null,
+          expiryDate: info?.expiry ? new Date(Number(info.expiry) * 1000).toISOString() : null,
+          collateralToken: info?.collateralToken ?? null,
+          underlyingToken: info?.underlyingToken ?? null,
           // From FullOptionInfo
           buyer: fullInfo.buyer,
           seller: fullInfo.seller,
