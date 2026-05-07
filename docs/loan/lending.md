@@ -4,7 +4,13 @@ Earn yield by filling borrowers' limit orders with USDC. You provide USDC now an
 
 ## How Lending Works
 
-When a borrower enables `keepOrderOpen: true` and no market maker fills during the initial auction, the request becomes a limit order. Any user can fill it by providing the requested USDC amount.
+> **Note (v0.2.0 / Base_r12):** the contract no longer supports converting an
+> unfilled RFQ into a limit order. The `keepOrderOpen` flag on `LoanRequest`
+> is now a no-op deprecation. The lending workflow described below remains
+> applicable only to historical loans tracked by the indexer that already
+> carry that flag; new r12 loans will not surface here.
+
+When a borrower enabled `keepOrderOpen: true` (pre-r12) and no market maker filled during the initial auction, the request became a limit order. Any user could fill it by providing the requested USDC amount.
 
 At expiry, if the borrower exercises (repays), you receive your USDC back plus the spread. If the borrower walks away, you receive the collateral instead.
 

@@ -18,7 +18,7 @@ Package: `@thetanuts-finance/thetanuts-client` (v0.1.6)
 - RFQ is cash-settled by default via `buildRFQRequest()`. Physical settlement is optional via `buildPhysicalOptionRFQ()` (vanilla only)
 - Both OptionBook and RFQ use the same cash-settled implementation contracts
 - Physical multi-leg implementations are NOT deployed (zero addresses). Only PHYSICAL_CALL and PHYSICAL_PUT have real addresses
-- Implementation names: `PUT_FLY` / `CALL_FLY` (not FLYS). Internal optionImplementations map uses FLYS but public API uses FLY
+- Implementation names: `PUT_FLY` / `CALL_FLY` (not FLYS). Reconciled in v0.2.1 — both the `ImplementationAddresses` keys and the `optionImplementations` reverse-lookup `name` fields use the FLY form.
 - Iron condor params: `strike1, strike2, strike3, strike4` (not putLowerStrike/callLowerStrike)
 - RFQ expiry: any future Unix timestamp works (no Friday 8:00 UTC restriction at contract level)
 
