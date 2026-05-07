@@ -23,6 +23,9 @@ npm run test:mainnet:standalone
 
 # Directly with tsx
 npx tsx scripts/run-mainnet-tests.ts
+
+# With your own RPC (recommended — public RPC throttles bursts)
+BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY npm test
 ```
 
 #### Output
@@ -111,7 +114,10 @@ Failed: 0
 The script uses these addresses (defined at top of file):
 
 ```typescript
-const BASE_MAINNET_RPC = 'https://mainnet.base.org';
+// Public Base RPC by default. Override with BASE_RPC_URL env var
+// (e.g. an Alchemy/QuickNode/Infura endpoint) for reliable runs —
+// the public RPC drops bursts of read calls under load.
+const BASE_MAINNET_RPC = process.env.BASE_RPC_URL ?? 'https://mainnet.base.org';
 const BASE_CHAIN_ID = 8453;
 
 // Base_r12 deployment (deployed 2026-05-05, block 45601440)

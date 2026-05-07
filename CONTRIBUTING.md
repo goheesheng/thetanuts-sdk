@@ -57,6 +57,12 @@ npm test             # scripts/run-mainnet-tests.ts (live Base mainnet)
 
 `npm test` hits live mainnet RPC and the indexer API. If you're offline or those are down, document that in the PR.
 
+The default RPC is the public `https://mainnet.base.org`, which throttles bursts of read calls. The runner has retry logic to handle this, but if you have a paid endpoint (Alchemy, QuickNode, Infura) you can skip the flake entirely:
+
+```bash
+BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY npm test
+```
+
 ### 3. Commit messages
 
 Use conventional-commit prefixes: `feat(modules): …`, `fix(abi): …`, `docs: …`, `chore: …`, `release: …`. Multi-line bodies are encouraged for non-trivial changes — explain *why*, not just *what*.

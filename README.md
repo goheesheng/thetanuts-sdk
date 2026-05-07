@@ -951,6 +951,11 @@ Copy-paste ready examples in `docs/examples/`:
 
 MIT
 
+## Contributing & Security
+
+- [Contributing guide](CONTRIBUTING.md) — local setup, the four required gates, PR conventions
+- [Security policy](SECURITY.md) — supported versions, vulnerability reporting
+
 ## Links
 
 - [Thetanuts Finance](https://thetanuts.finance)
