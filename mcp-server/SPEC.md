@@ -236,6 +236,64 @@ Get chain configuration.
 
 ---
 
+### Ranger Tools (RangerOption)
+
+`client.ranger` is gated to chains where `chainConfig.implementations.RANGER` is non-zero. On Base mainnet (the default RPC), all tools work. Other chains throw `NETWORK_UNSUPPORTED`.
+
+| Tool | Input | Output (key fields) |
+|------|-------|---------------------|
+| `get_ranger_info` | `rangerAddress` | Full `RangerInfo` struct (buyer, seller, strikes, zone, expiry) |
+| `get_ranger_zone` | `rangerAddress` | `{ zoneLower, zoneUpper }` (8-decimal price strings) |
+| `get_ranger_spread_width` | `rangerAddress` | `{ spreadWidth }` |
+| `get_ranger_twap` | `rangerAddress` | `{ twap }` (current 8-decimal price) |
+| `calculate_ranger_payout` | `rangerAddress, price` | `{ payout }` (collateral-token decimals) |
+| `simulate_ranger_payout` | `rangerAddress, price, strikes[], numContracts` | `{ payout }` |
+| `calculate_ranger_required_collateral` | `rangerAddress, strikes[], numContracts` | `{ requiredCollateral }` |
+
+### Loan Tools
+
+| Tool | Input | Output |
+|------|-------|--------|
+| `get_lending_opportunities` | `?{ underlying, excludeAddress }` | Array of `LoanLendingOpportunity` |
+| `get_loan_request` | `quotationId` | `LoanState` |
+| `get_user_loans` | `address` | Array of `LoanIndexerLoan` |
+| `get_loan_option_info` | `optionAddress` | `LoanOptionInfo` |
+| `is_loan_option_itm` | `optionAddress` | `{ isITM: boolean }` |
+| `fetch_loan_pricing` | None | `DeribitPricingMap` |
+| `get_loan_strike_options` | `underlying, ?{ minDurationDays, maxStrikes, sortOrder }` | Array of `LoanStrikeOptionGroup` |
+
+### WheelVault Tools (Ethereum mainnet — chainId 1)
+
+WheelVault is gated to chainId 1. Set `THETANUTS_RPC_URL` to an Ethereum RPC before invoking these. Otherwise the tool throws `NETWORK_UNSUPPORTED`.
+
+| Tool | Input | Output |
+|------|-------|--------|
+| `get_wheel_vault_state` | `vaultAddress, seriesId` | `VaultState` (full snapshot) |
+| `get_wheel_vault_series` | `vaultAddress, seriesId` | Raw `VaultSeries` |
+| `get_wheel_vault_series_count` | `vaultAddress` | `{ seriesCount }` |
+| `preview_wheel_deposit` | `vaultAddress, seriesId, baseAmt, quoteAmt` | `{ expectedShares }` |
+| `preview_wheel_withdraw` | `vaultAddress, seriesId, shares` | `WithdrawPreview` (base + quote) |
+| `get_wheel_depth_chart` | `lensAddress, seriesId, isCall, maxIvBps` | `DepthChartResult` |
+| `get_wheel_buyer_options` | `lensAddress, buyerAddress, fromId, maxCount` | Array of `BuyerOption` (paginated) |
+| `get_wheel_seller_positions` | `lensAddress, sellerAddress, seriesId, maxIvBps, maxEntries` | Array of `SellerPosition` |
+| `get_wheel_claimable_summary` | `lensAddress, sellerAddress, seriesIds[]` | `ClaimableSummary` |
+
+### StrategyVault Tools (Base — Fixed-strike + CLVEX)
+
+| Tool | Input | Output |
+|------|-------|--------|
+| `get_strategy_vault_state` | `vaultAddress` | `StrategyVaultState` |
+| `get_strategy_vault_total_assets` | `vaultAddress` | `StrategyVaultAssets` |
+| `get_strategy_vault_share_balance` | `vaultAddress, userAddress` | `{ shareBalance }` |
+| `get_strategy_vault_next_expiry` | `vaultAddress` | `{ nextExpiry }` (Unix ts) |
+| `can_strategy_vault_create_option` | `vaultAddress` | `{ canCreateOption: boolean }` |
+| `is_strategy_vault_recovery_mode` | `vaultAddress` | `{ isRecoveryMode: boolean }` |
+| `get_all_strategy_vaults` | None | Array of `StrategyVaultState` (every vault) |
+| `get_fixed_strike_vaults` | None | Array of `StrategyVaultState` (fixed-strike only) |
+| `get_clvex_vaults` | None | Array of `StrategyVaultState` (CLVEX only) |
+
+---
+
 ## Testing
 
 ### Manual Testing
