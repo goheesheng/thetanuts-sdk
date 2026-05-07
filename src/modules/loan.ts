@@ -562,7 +562,11 @@ export class LoanModule {
       const results: LoanLendingOpportunity[] = [];
 
       for (const loan of loans) {
-        if (!loan.convertToLimitOrder) continue;
+        // r12 indexer no longer surfaces convertToLimitOrder. Treat missing
+        // field as eligible; only skip when it's explicitly false. This
+        // avoids returning an empty list against an r12 indexer that just
+        // dropped the field.
+        if (loan.convertToLimitOrder === false) continue;
         if (loan.optionAddress) continue;
         if (loan.status === 'settled' || loan.status === 'cancelled') continue;
         if (loan.expiryTimestamp <= now) continue;
