@@ -88,8 +88,25 @@ export interface RangerInfo {
  */
 export class RangerModule {
   private contractCache = new Map<string, RangerContract>();
+  private readonly _disabled: boolean;
 
-  constructor(private readonly client: ThetanutsClient) {}
+  constructor(private readonly client: ThetanutsClient) {
+    // RANGER is registered in chainConfig.implementations only on chains
+    // where the on-chain RangerOption is deployed. On chains without it
+    // (Ethereum mainnet today), every method throws NETWORK_UNSUPPORTED
+    // up front instead of failing deep inside ethers with a cryptic
+    // eth_call error.
+    this._disabled = !client.chainConfig.implementations.RANGER;
+  }
+
+  private ensureEnabled(): void {
+    if (this._disabled) {
+      throw createError(
+        'NETWORK_UNSUPPORTED',
+        `RangerModule requires a chain with RangerOption deployed; chainId ${this.client.chainId} has no RANGER implementation.`,
+      );
+    }
+  }
 
   private getReadContract(rangerAddress: string): RangerContract {
     const cacheKey = rangerAddress.toLowerCase();
@@ -120,6 +137,7 @@ export class RangerModule {
    * Get a structured snapshot of a Ranger option.
    */
   async getInfo(rangerAddress: string): Promise<RangerInfo> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     const contract = this.getReadContract(rangerAddress);
 
@@ -159,12 +177,14 @@ export class RangerModule {
 
   /** Strikes (4 values) defining the ranger's payoff curve. */
   async getStrikes(rangerAddress: string): Promise<bigint[]> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).getStrikes();
   }
 
   /** Zone bounds: { zoneLower, zoneUpper } — buyer's max-payout range. */
   async getZone(rangerAddress: string): Promise<{ zoneLower: bigint; zoneUpper: bigint }> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     const [zoneLower, zoneUpper] = await this.getReadContract(rangerAddress).getZone();
     return { zoneLower, zoneUpper };
@@ -172,18 +192,21 @@ export class RangerModule {
 
   /** Per-leg spread width. */
   async getSpreadWidth(rangerAddress: string): Promise<bigint> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).getSpreadWidth();
   }
 
   /** Current TWAP from the configured Chainlink consumer. */
   async getTWAP(rangerAddress: string): Promise<bigint> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).getTWAP();
   }
 
   /** Compute payout at a given settlement price using on-chain logic. */
   async calculatePayout(rangerAddress: string, price: bigint): Promise<bigint> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).calculatePayout(price);
   }
@@ -198,6 +221,7 @@ export class RangerModule {
     strikes: bigint[],
     numContracts: bigint,
   ): Promise<bigint> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).simulatePayout(price, strikes, numContracts);
   }
@@ -208,6 +232,7 @@ export class RangerModule {
     strikes: bigint[],
     numContracts: bigint,
   ): Promise<bigint> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     return this.getReadContract(rangerAddress).calculateRequiredCollateral(strikes, numContracts);
   }
@@ -216,6 +241,7 @@ export class RangerModule {
 
   /** Execute payout after expiry — claims the buyer's settlement. */
   async payout(rangerAddress: string): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     try {
       const contract = this.getWriteContract(rangerAddress);
@@ -234,6 +260,7 @@ export class RangerModule {
 
   /** Close a Ranger position before expiry (mutual cancellation). */
   async close(rangerAddress: string): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     try {
       const contract = this.getWriteContract(rangerAddress);
@@ -252,6 +279,7 @@ export class RangerModule {
 
   /** Split a Ranger by a portion of its collateral; returns the new child option address. */
   async split(rangerAddress: string, splitCollateralAmount: bigint): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     if (splitCollateralAmount <= 0n) {
       throw createError('INVALID_PARAMS', 'Split collateral amount must be positive');
@@ -285,6 +313,7 @@ export class RangerModule {
     isBuyer: boolean,
     target: string,
   ): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     validateAddress(target, 'target');
     try {
@@ -318,6 +347,7 @@ export class RangerModule {
     rangerAddress: string,
     ownedOption: string,
   ): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     validateAddress(ownedOption, 'ownedOption');
     try {
@@ -348,6 +378,7 @@ export class RangerModule {
 
   /** Return any excess collateral the Ranger still holds. */
   async returnExcessCollateral(rangerAddress: string): Promise<TransactionReceipt> {
+    this.ensureEnabled();
     validateAddress(rangerAddress, 'rangerAddress');
     try {
       const contract = this.getWriteContract(rangerAddress);
