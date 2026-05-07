@@ -1,0 +1,34 @@
+name: Question / support
+description: How do I do X with the SDK?
+title: "[question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a question, please check:
+        - [GitBook docs](https://docs.thetanuts.finance/sdk) — most questions have an answer here
+        - [Migration Guide](https://docs.thetanuts.finance/sdk/resources/migration-guide) if you're upgrading
+        - [Examples](https://docs.thetanuts.finance/sdk/resources/examples) for common patterns
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Code snippet of your current attempt is most helpful.
+      render: typescript
+
+  - type: input
+    id: sdk-version
+    attributes:
+      label: SDK version
+      placeholder: "0.2.1"
+    validations:
+      required: true
