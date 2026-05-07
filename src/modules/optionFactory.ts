@@ -1371,6 +1371,7 @@ export class OptionFactoryModule {
   async callStaticCreateRFQ(request: RFQRequest): Promise<CallStaticResult<bigint>> {
     validateAddress(request.params.requester, 'requester');
     validateAddress(request.params.collateral, 'collateral');
+    this.assertImplementationDeployed(request.params.implementation, 'callStaticCreateRFQ');
 
     if (request.params.strikes.length === 0) {
       return {

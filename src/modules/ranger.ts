@@ -103,8 +103,10 @@ export class RangerModule {
     // eth_call error. Treat both an unset value and the zero-address
     // placeholder as disabled, so a custom or partially-populated
     // chain config can't smuggle a 0x0…0 implementation past the guard.
+    // Comparison is case-insensitive: ethers normalizes addresses on
+    // read but a hand-typed config could use mixed case.
     const ranger = client.chainConfig.implementations.RANGER;
-    this._disabled = !ranger || ranger === '0x0000000000000000000000000000000000000000';
+    this._disabled = !ranger || ranger.toLowerCase() === '0x0000000000000000000000000000000000000000';
   }
 
   private ensureEnabled(): void {
