@@ -43,9 +43,9 @@ interface RangerContract {
   // ─── Writes ───
   payout(): Promise<ContractTransactionResponse>;
   close(): Promise<ContractTransactionResponse>;
-  split(splitCollateralAmount: bigint): Promise<ContractTransactionResponse>;
+  split(splitCollateralAmount: bigint, overrides?: { value?: bigint }): Promise<ContractTransactionResponse>;
   transfer(isBuyer: boolean, target: string): Promise<ContractTransactionResponse>;
-  reclaimCollateral(recipient: string): Promise<ContractTransactionResponse>;
+  reclaimCollateral(ownedOption: string, overrides?: { value?: bigint }): Promise<ContractTransactionResponse>;
   returnExcessCollateral(): Promise<ContractTransactionResponse>;
 }
 
@@ -257,13 +257,21 @@ export class RangerModule {
       throw createError('INVALID_PARAMS', 'Split collateral amount must be positive');
     }
     try {
+      // r12 split() is payable: forward getSplitFee() as msg.value.
+      const readContract = this.getReadContract(rangerAddress);
+      const splitFee = await readContract.getSplitFee();
+
       const contract = this.getWriteContract(rangerAddress);
-      const tx = await contract.split(splitCollateralAmount);
+      const tx = await contract.split(splitCollateralAmount, { value: splitFee });
       const receipt = await tx.wait();
       if (!receipt) {
         throw createError('CONTRACT_REVERT', 'Transaction failed - no receipt returned');
       }
-      this.client.logger.info('Ranger position split', { rangerAddress, txHash: receipt.hash });
+      this.client.logger.info('Ranger position split', {
+        rangerAddress,
+        txHash: receipt.hash,
+        splitFee: splitFee.toString(),
+      });
       return receipt;
     } catch (error) {
       this.client.logger.error('Ranger split failed', { error, rangerAddress });
@@ -296,24 +304,44 @@ export class RangerModule {
     }
   }
 
-  /** Reclaim collateral after settlement to the supplied recipient. */
+  /**
+   * Reclaim collateral from an owned option after settlement.
+   *
+   * @param rangerAddress - Ranger contract to call.
+   * @param ownedOption  - Address of the option whose collateral the caller is reclaiming.
+   *   In r12 the contract treats this as the owned position to reclaim from, not a transfer
+   *   destination. The reclaimed collateral goes to the caller (the signer).
+   *
+   * Sends `getReclaimFee(caller)` as msg.value (the r12 contract is payable).
+   */
   async reclaimCollateral(
     rangerAddress: string,
-    recipient: string,
+    ownedOption: string,
   ): Promise<TransactionReceipt> {
     validateAddress(rangerAddress, 'rangerAddress');
-    validateAddress(recipient, 'recipient');
+    validateAddress(ownedOption, 'ownedOption');
     try {
+      const signer = this.client.requireSigner();
+      const callerAddress = await signer.getAddress();
+
+      const readContract = this.getReadContract(rangerAddress);
+      const reclaimFee = await readContract.getReclaimFee(callerAddress);
+
       const contract = this.getWriteContract(rangerAddress);
-      const tx = await contract.reclaimCollateral(recipient);
+      const tx = await contract.reclaimCollateral(ownedOption, { value: reclaimFee });
       const receipt = await tx.wait();
       if (!receipt) {
         throw createError('CONTRACT_REVERT', 'Transaction failed - no receipt returned');
       }
-      this.client.logger.info('Ranger collateral reclaimed', { rangerAddress, recipient, txHash: receipt.hash });
+      this.client.logger.info('Ranger collateral reclaimed', {
+        rangerAddress,
+        ownedOption,
+        reclaimFee: reclaimFee.toString(),
+        txHash: receipt.hash,
+      });
       return receipt;
     } catch (error) {
-      this.client.logger.error('Ranger reclaim failed', { error, rangerAddress, recipient });
+      this.client.logger.error('Ranger reclaim failed', { error, rangerAddress, ownedOption });
       throw mapContractError(error);
     }
   }

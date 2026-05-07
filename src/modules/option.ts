@@ -48,10 +48,14 @@ interface OptionContract {
   packExtraOptionData(): Promise<string>;
   unpackOptionType(): Promise<[boolean, boolean, number, number]>;
 
+  // === r12 fee views ===
+  getSplitFee(): Promise<bigint>;
+  getReclaimFee(caller: string): Promise<bigint>;
+
   // === Write Functions ===
   close(): Promise<ContractTransactionResponse>;
   payout(): Promise<ContractTransactionResponse>;
-  split(splitCollateralAmount: bigint): Promise<ContractTransactionResponse>;
+  split(splitCollateralAmount: bigint, overrides?: { value?: bigint }): Promise<ContractTransactionResponse>;
   transfer(isBuyer: boolean, target: string): Promise<ContractTransactionResponse>;
   approveTransfer(isBuyer: boolean, target: string, isApproved: boolean): Promise<ContractTransactionResponse>;
   rescueERC20(token: string): Promise<ContractTransactionResponse>;
@@ -235,12 +239,18 @@ export class OptionModule {
     });
 
     try {
+      // r12 split() is payable: caller must forward the on-chain split fee
+      // as msg.value. Fetch fresh per call so the SDK never sends stale fee.
+      const readContract = this.getReadContract(optionAddress);
+      const splitFee = await readContract.getSplitFee();
+
       const contract = this.getWriteContract(optionAddress);
-      const tx = await contract.split(splitCollateralAmount);
+      const tx = await contract.split(splitCollateralAmount, { value: splitFee });
 
       this.client.logger.info('Position split successfully', {
         txHash: tx.hash,
         optionAddress,
+        splitFee: splitFee.toString(),
       });
 
       return {
