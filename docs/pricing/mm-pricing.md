@@ -145,6 +145,22 @@ console.log(pricing.byCollateral.ETH.mmAskPrice);
 
 ---
 
+## getPricingArray
+
+Convenience wrapper that flattens `getAllPricing(...)` into a single sorted, non-expired array. Useful when you want to paginate or filter across all expiries at once instead of walking the nested `expirations[]` shape.
+
+```typescript
+const all = await client.mmPricing.getPricingArray('ETH');
+
+// Already sorted by expiry, then strike. Expired options filtered out.
+const calls = all.filter((p) => p.isCall);
+const nearTerm = all.filter((p) => p.expiry < someThreshold);
+```
+
+For richer slicing (by date range, strike range, type), pair this with the helpers in [Filters & Utilities](./filters-utilities.md).
+
+---
+
 ## MMPricingModule Method Table
 
 | Method | Description | Signer Required |

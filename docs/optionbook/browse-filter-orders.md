@@ -123,6 +123,27 @@ Greeks may be `null` for illiquid options or very short-dated options near expir
 
 ---
 
+## Indexer stat helpers
+
+Beyond order browsing, the `client.api` module exposes aggregate read endpoints backed by the same indexer. All are read-only.
+
+```typescript
+// OptionBook market metadata (orderbook depth, last prices, expiry buckets)
+const market = await client.api.getMarketData();
+
+// OptionFactory (RFQ) state
+const activeRfqs = await client.api.getFactoryRfqs('active');
+const factoryStats = await client.api.getFactoryStats();
+
+// Per-referrer accrual on the OptionFactory side (paired with
+// docs/rfq/referrals.md). Useful for dashboards and audit trails.
+const referrerStats = await client.api.getFactoryReferrerStats(referrerAddress);
+```
+
+For protocol-wide aggregates, use `client.api.getProtocolStats()` (book + factory combined) or its scoped siblings `getBookProtocolStats()` / `getFactoryProtocolStats()`. Daily breakdowns are exposed via `getDailyStats()`.
+
+---
+
 ## See Also
 
 - [Overview](overview.md)

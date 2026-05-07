@@ -67,6 +67,15 @@ console.log(`Fee split: ${feeBps} bps (${Number(feeBps) / 100}%)`);
 // 0 means not whitelisted — contact the protocol team
 ```
 
+#### Setting splits (owner-only)
+
+`setReferrerFeeSplit(referrer, feeBps)` configures the share of protocol fees a whitelisted referrer earns. The contract reverts for non-owner callers — only the OptionBook owner can call this. Third-party referrers must request whitelisting from the Thetanuts team.
+
+```typescript
+// Owner-only: reverts for everyone else.
+await client.optionBook.setReferrerFeeSplit(referrer, 2500n);  // 25%
+```
+
 ### Check a single token
 
 ```typescript

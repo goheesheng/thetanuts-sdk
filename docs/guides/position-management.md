@@ -89,6 +89,18 @@ const payout = client.utils.calculatePayout({
 });
 ```
 
+#### simulatePayout (current spot)
+
+When you want the current expected payout without supplying a price, use `simulatePayout()`. It reads the option's TWAP from the on-chain consumer and runs `calculatePayout` against it. Pass an explicit `price` to override.
+
+```typescript
+// Use the current TWAP
+const live = await client.option.simulatePayout(optionAddress);
+
+// Or override with an arbitrary price
+const stress = await client.option.simulatePayout(optionAddress, 180000000000n);
+```
+
 ### Close a Position
 
 Both buyer and seller can close a position before expiry if both agree (bilateral close). Requires a signer.

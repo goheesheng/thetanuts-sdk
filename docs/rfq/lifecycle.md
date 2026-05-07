@@ -194,6 +194,35 @@ During the offer period, **only the signature** is stored on-chain. The actual o
 - Not stored on-chain (privacy)
 - Revealed in Phase 3
 
+### MM-Side SDK Calls
+
+Three SDK methods cover the MM side of the offer flow. All require a signer.
+
+```typescript
+// 1. Submit an encrypted offer during the offer period.
+//    The SDK does the EIP-712 signing and ECDH encryption for you.
+await client.optionFactory.makeOfferForQuotation({
+  quotationId,
+  offerAmount: ethers.parseUnits('25', 6),  // raw bid in token units
+  requesterPublicKey,                        // pulled from QuotationRequested event
+  // Optional: pass a pre-generated nonce. SDK auto-generates one if omitted.
+});
+
+// 2. Cancel an outstanding offer before the reveal period ends.
+//    Refunds any deposit the MM posted.
+await client.optionFactory.cancelOfferForQuotation(quotationId);
+
+// 3. Reveal the offer once the offer period closes.
+//    Must match the signature submitted in step 1.
+await client.optionFactory.revealOffer({
+  quotationId,
+  offerAmount,   // same value as in makeOfferForQuotation
+  nonce,         // same nonce
+});
+```
+
+The reveal pairs with the keypair flow described in [Key Management](key-management.md). MMs that miss the reveal window forfeit any chance of winning the RFQ even if they had the best offer.
+
 ---
 
 ## Phase 3: Reveal Phase

@@ -62,6 +62,50 @@ console.log('Bid (USD):', (spread.netMmBidPrice * ethPrice).toFixed(2));
 
 ---
 
+## getButterflyPricing
+
+Returns net pricing for a three-leg butterfly. Strikes are passed in the order `[lower, middle, upper]` (8-decimal price units). Width-based collateral cost mirrors the spread case.
+
+```typescript
+const fly = await client.mmPricing.getButterflyPricing({
+  underlying: 'ETH',
+  strikes: [180000000000n, 200000000000n, 220000000000n],  // $1800, $2000, $2200
+  expiry: 1774627200,
+  isCall: true,
+});
+
+console.log('Width (USD):', fly.widthUsd);
+console.log('Net ask (ETH):', fly.netMmAskPrice);
+console.log('Net bid (ETH):', fly.netMmBidPrice);
+```
+
+---
+
+## getCondorPricing
+
+Returns net pricing for a four-leg condor (`[strike1, strike2, strike3, strike4]`, ascending). Same collateral-cost model as butterfly — based on the wider wing.
+
+```typescript
+const condor = await client.mmPricing.getCondorPricing({
+  underlying: 'ETH',
+  strikes: [
+    160000000000n,  // $1600
+    180000000000n,  // $1800
+    220000000000n,  // $2200
+    240000000000n,  // $2400
+  ],
+  expiry: 1774627200,
+  isCall: false,
+});
+
+console.log('Net ask (ETH):', condor.netMmAskPrice);
+console.log('Net bid (ETH):', condor.netMmBidPrice);
+```
+
+For iron condors and richer 4-strike combinations, validate parameters with `validateCondor` / `validateIronCondor` from the rfqCalculations helpers before submitting.
+
+---
+
 ## How rfqCalculations, mmPricing, and optionFactory Fit Together
 
 The three modules divide responsibilities cleanly:

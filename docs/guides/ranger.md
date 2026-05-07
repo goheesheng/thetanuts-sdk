@@ -49,6 +49,12 @@ const payout = await client.ranger.simulatePayout(
   await client.ranger.getStrikes(rangerAddress),
   await client.ranger.getInfo(rangerAddress).then(i => i.numContracts),
 );
+
+// On-chain payout at an exact settlement price (no off-chain math)
+const exact = await client.ranger.calculatePayout(rangerAddress, settlementPrice);
+
+// Current TWAP from the option's price-feed consumer
+const twap = await client.ranger.getTWAP(rangerAddress);
 ```
 
 ## Lifecycle
