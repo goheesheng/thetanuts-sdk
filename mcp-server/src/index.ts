@@ -42,6 +42,14 @@ import {
 const RPC_URL = process.env.THETANUTS_RPC_URL || 'https://mainnet.base.org';
 const CHAIN_ID = 8453; // Base mainnet
 
+// JSON.stringify replacer that serializes bigints as decimal strings.
+// Many SDK reads return nested bigint values (vault state, RangerInfo, etc.);
+// without this, JSON.stringify throws "Do not know how to serialize a BigInt".
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  return value;
+}
+
 // ============ Initialize Client (read-only, no signer) ============
 let client: ThetanutsClient | null = null;
 
@@ -1404,6 +1412,389 @@ const tools: Tool[] = [
       required: ['numContracts', 'premium', 'price'],
     },
   },
+
+  // === Ranger (RangerOption — zone-bound 4-strike payoff) ===
+  {
+    name: 'get_ranger_info',
+    description: 'Get full state of a RangerOption position (buyer, seller, strikes, zone, spread width, expiry, settlement state)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+      },
+      required: ['rangerAddress'],
+    },
+  },
+  {
+    name: 'get_ranger_zone',
+    description: 'Get the inner zone bounds (zoneLower, zoneUpper) where the buyer earns max payout',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+      },
+      required: ['rangerAddress'],
+    },
+  },
+  {
+    name: 'get_ranger_spread_width',
+    description: 'Get the per-leg spread width of a RangerOption (s2-s1 == s4-s3)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+      },
+      required: ['rangerAddress'],
+    },
+  },
+  {
+    name: 'get_ranger_twap',
+    description: 'Read the current TWAP from a Ranger option price-feed consumer',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+      },
+      required: ['rangerAddress'],
+    },
+  },
+  {
+    name: 'calculate_ranger_payout',
+    description: 'Compute on-chain payout for a Ranger position at a specific settlement price (no off-chain math)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+        price: { type: 'string', description: 'Settlement price (in 8 decimals)' },
+      },
+      required: ['rangerAddress', 'price'],
+    },
+  },
+  {
+    name: 'simulate_ranger_payout',
+    description: 'Simulate Ranger payout for hypothetical strikes/numContracts at a price (pure function — does not require option to be initialized)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+        price: { type: 'string', description: 'Settlement price (in 8 decimals)' },
+        strikes: { type: 'array', items: { type: 'string' }, description: 'Array of 4 strikes [s1, s2, s3, s4] in 8 decimals' },
+        numContracts: { type: 'string', description: 'Number of contracts (in 18 decimals)' },
+      },
+      required: ['rangerAddress', 'price', 'strikes', 'numContracts'],
+    },
+  },
+  {
+    name: 'calculate_ranger_required_collateral',
+    description: 'Compute required collateral for given Ranger strikes + numContracts',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rangerAddress: { type: 'string', description: 'RangerOption contract address (0x...)' },
+        strikes: { type: 'array', items: { type: 'string' }, description: 'Array of 4 strikes [s1, s2, s3, s4] in 8 decimals' },
+        numContracts: { type: 'string', description: 'Number of contracts (in 18 decimals)' },
+      },
+      required: ['rangerAddress', 'strikes', 'numContracts'],
+    },
+  },
+
+  // === Loan (Non-liquidatable lending via physically-settled calls) ===
+  {
+    name: 'get_lending_opportunities',
+    description: 'Fetch unfilled loan limit orders from the loan indexer (lender-side discovery). Optional filters: underlying (ETH|BTC), excludeAddress (skip a specific borrower address)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        underlying: { type: 'string', description: 'Filter by underlying asset (e.g., "ETH" or "BTC")' },
+        excludeAddress: { type: 'string', description: 'Skip opportunities posted by this address (0x...)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_loan_request',
+    description: 'Query on-chain state for a specific loan quotation',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        quotationId: { type: 'string', description: 'Loan quotation ID (bigint as string)' },
+      },
+      required: ['quotationId'],
+    },
+  },
+  {
+    name: 'get_user_loans',
+    description: 'Get all loans for an address from the loan indexer',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'User address (0x...)' },
+      },
+      required: ['address'],
+    },
+  },
+  {
+    name: 'get_loan_option_info',
+    description: 'Get details for a loan-issued option (strike, expiry, collateral token, underlying)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        optionAddress: { type: 'string', description: 'Loan option contract address (0x...)' },
+      },
+      required: ['optionAddress'],
+    },
+  },
+  {
+    name: 'is_loan_option_itm',
+    description: 'Check whether a loan-issued option is currently in-the-money',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        optionAddress: { type: 'string', description: 'Loan option contract address (0x...)' },
+      },
+      required: ['optionAddress'],
+    },
+  },
+  {
+    name: 'fetch_loan_pricing',
+    description: 'Fetch Deribit-style option pricing for the loan module (30s cache)',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_loan_strike_options',
+    description: 'Get filtered strike options grouped by expiry for a loan underlying. Optional settings narrow the result (minDurationDays, maxStrikes, sortOrder)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        underlying: { type: 'string', description: 'Loan underlying (ETH or BTC)' },
+        minDurationDays: { type: 'number', description: 'Minimum duration in days (default 7)' },
+        maxStrikes: { type: 'number', description: 'Maximum strikes to return (default 20)' },
+        sortOrder: { type: 'string', description: 'Sort order: "highestStrike" or "lowestStrike" (default highestStrike)' },
+      },
+      required: ['underlying'],
+    },
+  },
+
+  // === WheelVault (Ethereum mainnet — chainId 1) ===
+  // NOTE: WheelVault is gated to chainId 1; tools will throw NETWORK_UNSUPPORTED unless THETANUTS_RPC_URL points at Ethereum mainnet.
+  {
+    name: 'get_wheel_vault_state',
+    description: 'Get full state of a WheelVault series (balances, shares, last price, options outstanding). Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'WheelVault contract address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index (0-based)' },
+      },
+      required: ['vaultAddress', 'seriesId'],
+    },
+  },
+  {
+    name: 'get_wheel_vault_series',
+    description: 'Get the raw on-chain series struct for a WheelVault. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'WheelVault contract address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index (0-based)' },
+      },
+      required: ['vaultAddress', 'seriesId'],
+    },
+  },
+  {
+    name: 'get_wheel_vault_series_count',
+    description: 'Get the total number of series in a WheelVault. Use count-1 for the active series. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'WheelVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'preview_wheel_deposit',
+    description: 'Pre-flight: compute expected shares minted for a paired (base, quote) deposit. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'WheelVault contract address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index' },
+        baseAmt: { type: 'string', description: 'Base asset amount (in base decimals)' },
+        quoteAmt: { type: 'string', description: 'Quote asset amount (in quote decimals)' },
+      },
+      required: ['vaultAddress', 'seriesId', 'baseAmt', 'quoteAmt'],
+    },
+  },
+  {
+    name: 'preview_wheel_withdraw',
+    description: 'Pre-flight: compute expected base/quote returned for a share redemption. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'WheelVault contract address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index' },
+        shares: { type: 'string', description: 'Shares to redeem (bigint as string)' },
+      },
+      required: ['vaultAddress', 'seriesId', 'shares'],
+    },
+  },
+  {
+    name: 'get_wheel_depth_chart',
+    description: 'Get depth-chart data for a WheelVault Markets series across IV buckets. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lensAddress: { type: 'string', description: 'WheelMarketsLens contract address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index (0-based)' },
+        isCall: { type: 'boolean', description: 'true for calls, false for puts' },
+        maxIvBps: { type: 'number', description: 'Max IV in bps (e.g. 20000 for 200%)' },
+      },
+      required: ['lensAddress', 'seriesId', 'isCall', 'maxIvBps'],
+    },
+  },
+  {
+    name: 'get_wheel_buyer_options',
+    description: 'List options held by a buyer address across a WheelVault Markets contract. Page through optionIds with fromId + maxCount. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lensAddress: { type: 'string', description: 'WheelMarketsLens contract address (0x...)' },
+        buyerAddress: { type: 'string', description: 'Buyer address (0x...)' },
+        fromId: { type: 'string', description: 'Starting optionId for pagination (bigint as string, "0" for first page)' },
+        maxCount: { type: 'string', description: 'Maximum options to return (bigint as string, e.g. "100")' },
+      },
+      required: ['lensAddress', 'buyerAddress', 'fromId', 'maxCount'],
+    },
+  },
+  {
+    name: 'get_wheel_seller_positions',
+    description: 'List a seller\'s exposures within a WheelVault Markets series. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lensAddress: { type: 'string', description: 'WheelMarketsLens contract address (0x...)' },
+        sellerAddress: { type: 'string', description: 'Seller address (0x...)' },
+        seriesId: { type: 'number', description: 'Series index (0-based)' },
+        maxIvBps: { type: 'number', description: 'Max IV in bps (e.g. 20000 for 200%)' },
+        maxEntries: { type: 'number', description: 'Maximum entries to return (e.g. 100)' },
+      },
+      required: ['lensAddress', 'sellerAddress', 'seriesId', 'maxIvBps', 'maxEntries'],
+    },
+  },
+  {
+    name: 'get_wheel_claimable_summary',
+    description: 'Get aggregate claimable amounts for an address across multiple WheelVault series. Ethereum-only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lensAddress: { type: 'string', description: 'WheelMarketsLens contract address (0x...)' },
+        sellerAddress: { type: 'string', description: 'Seller address (0x...)' },
+        seriesIds: { type: 'array', items: { type: 'number' }, description: 'Series indices to query (e.g. [0, 1, 2])' },
+      },
+      required: ['lensAddress', 'sellerAddress', 'seriesIds'],
+    },
+  },
+
+  // === StrategyVault (Base — Fixed-strike + CLVEX directional/condor vaults) ===
+  {
+    name: 'get_strategy_vault_state',
+    description: 'Get full state of a StrategyVault (assets, shares, next expiry, recovery state)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'get_strategy_vault_total_assets',
+    description: 'Get total base + quote assets currently held by a StrategyVault',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'get_strategy_vault_share_balance',
+    description: "Get a user's share balance in a StrategyVault",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+        userAddress: { type: 'string', description: 'User address (0x...)' },
+      },
+      required: ['vaultAddress', 'userAddress'],
+    },
+  },
+  {
+    name: 'get_strategy_vault_next_expiry',
+    description: 'Get the next option-creation expiry timestamp for a StrategyVault',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'can_strategy_vault_create_option',
+    description: 'Check whether createOption() is currently eligible on a StrategyVault',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'is_strategy_vault_recovery_mode',
+    description: 'Check whether a StrategyVault is paused for emergency withdrawals',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultAddress: { type: 'string', description: 'StrategyVault contract address (0x...)' },
+      },
+      required: ['vaultAddress'],
+    },
+  },
+  {
+    name: 'get_all_strategy_vaults',
+    description: 'Live state of every StrategyVault (fixed-strike + CLVEX) in a single call',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_fixed_strike_vaults',
+    description: 'Live state of all fixed-strike StrategyVaults (Base) only',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_clvex_vaults',
+    description: 'Live state of all CLVEX directional/condor StrategyVaults (Base) only',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // ============ Tool Handlers ============
@@ -2518,15 +2909,18 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
         const optionAddr = args.optionAddress as string;
         // Use sequential mode to avoid RPC batch limits (max 10 calls)
         const fullInfo = await c.option.getFullOptionInfo(optionAddr, { sequential: true });
+        // info can be null for proxy contracts with incompatible ABI versions
+        // (documented behavior in src/modules/option.ts:1013). Return what we have.
+        const info = fullInfo.info;
         return JSON.stringify({
           // From OptionInfo (nested in info)
-          address: fullInfo.info.address,
-          optionType: fullInfo.info.optionType,
-          strikes: fullInfo.info.strikes?.map(s => s.toString()),
-          expiry: fullInfo.info.expiry?.toString(),
-          expiryDate: fullInfo.info.expiry ? new Date(Number(fullInfo.info.expiry) * 1000).toISOString() : null,
-          collateralToken: fullInfo.info.collateralToken,
-          underlyingToken: fullInfo.info.underlyingToken,
+          address: info?.address ?? null,
+          optionType: info?.optionType ?? null,
+          strikes: info?.strikes?.map((s) => s.toString()) ?? null,
+          expiry: info?.expiry?.toString() ?? null,
+          expiryDate: info?.expiry ? new Date(Number(info.expiry) * 1000).toISOString() : null,
+          collateralToken: info?.collateralToken ?? null,
+          underlyingToken: info?.underlyingToken ?? null,
           // From FullOptionInfo
           buyer: fullInfo.buyer,
           seller: fullInfo.seller,
@@ -2575,6 +2969,204 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
             price: price.toString(),
           },
         }, null, 2);
+      }
+
+      // === Ranger ===
+      case 'get_ranger_info': {
+        const info = await c.ranger.getInfo(args.rangerAddress as string);
+        return JSON.stringify(info, jsonReplacer, 2);
+      }
+      case 'get_ranger_zone': {
+        const zone = await c.ranger.getZone(args.rangerAddress as string);
+        return JSON.stringify(zone, jsonReplacer, 2);
+      }
+      case 'get_ranger_spread_width': {
+        const width = await c.ranger.getSpreadWidth(args.rangerAddress as string);
+        return JSON.stringify({ spreadWidth: width.toString() }, null, 2);
+      }
+      case 'get_ranger_twap': {
+        const twap = await c.ranger.getTWAP(args.rangerAddress as string);
+        return JSON.stringify({ twap: twap.toString() }, null, 2);
+      }
+      case 'calculate_ranger_payout': {
+        const payout = await c.ranger.calculatePayout(
+          args.rangerAddress as string,
+          BigInt(args.price as string),
+        );
+        return JSON.stringify({ payout: payout.toString() }, null, 2);
+      }
+      case 'simulate_ranger_payout': {
+        const strikes = (args.strikes as string[]).map((s) => BigInt(s));
+        const payout = await c.ranger.simulatePayout(
+          args.rangerAddress as string,
+          BigInt(args.price as string),
+          strikes,
+          BigInt(args.numContracts as string),
+        );
+        return JSON.stringify({ payout: payout.toString() }, null, 2);
+      }
+      case 'calculate_ranger_required_collateral': {
+        const strikes = (args.strikes as string[]).map((s) => BigInt(s));
+        const collateral = await c.ranger.calculateRequiredCollateral(
+          args.rangerAddress as string,
+          strikes,
+          BigInt(args.numContracts as string),
+        );
+        return JSON.stringify({ requiredCollateral: collateral.toString() }, null, 2);
+      }
+
+      // === Loan ===
+      case 'get_lending_opportunities': {
+        const options: { underlying?: 'ETH' | 'BTC'; excludeAddress?: string } = {};
+        if (args.underlying) options.underlying = args.underlying as 'ETH' | 'BTC';
+        if (args.excludeAddress) options.excludeAddress = args.excludeAddress as string;
+        const opps = await c.loan.getLendingOpportunities(options);
+        return JSON.stringify(opps, jsonReplacer, 2);
+      }
+      case 'get_loan_request': {
+        const state = await c.loan.getLoanRequest(BigInt(args.quotationId as string));
+        return JSON.stringify(state, jsonReplacer, 2);
+      }
+      case 'get_user_loans': {
+        const loans = await c.loan.getUserLoans(args.address as string);
+        return JSON.stringify(loans, jsonReplacer, 2);
+      }
+      case 'get_loan_option_info': {
+        const info = await c.loan.getOptionInfo(args.optionAddress as string);
+        return JSON.stringify(info, jsonReplacer, 2);
+      }
+      case 'is_loan_option_itm': {
+        const itm = await c.loan.isOptionITM(args.optionAddress as string);
+        return JSON.stringify({ isITM: itm }, null, 2);
+      }
+      case 'fetch_loan_pricing': {
+        const pricing = await c.loan.fetchPricing();
+        return JSON.stringify(pricing, jsonReplacer, 2);
+      }
+      case 'get_loan_strike_options': {
+        const settings: { minDurationDays?: number; maxStrikes?: number; sortOrder?: 'highestStrike' | 'lowestStrike' } = {};
+        if (args.minDurationDays !== undefined) settings.minDurationDays = args.minDurationDays as number;
+        if (args.maxStrikes !== undefined) settings.maxStrikes = args.maxStrikes as number;
+        if (args.sortOrder) settings.sortOrder = args.sortOrder as 'highestStrike' | 'lowestStrike';
+        const groups = await c.loan.getStrikeOptions(
+          args.underlying as 'ETH' | 'BTC',
+          settings,
+        );
+        return JSON.stringify(groups, jsonReplacer, 2);
+      }
+
+      // === WheelVault (Ethereum only) ===
+      case 'get_wheel_vault_state': {
+        const state = await c.wheelVault.getVaultState(
+          args.vaultAddress as string,
+          args.seriesId as number,
+        );
+        return JSON.stringify(state, jsonReplacer, 2);
+      }
+      case 'get_wheel_vault_series': {
+        const series = await c.wheelVault.getSeries(
+          args.vaultAddress as string,
+          args.seriesId as number,
+        );
+        return JSON.stringify(series, jsonReplacer, 2);
+      }
+      case 'get_wheel_vault_series_count': {
+        const count = await c.wheelVault.getSeriesCount(args.vaultAddress as string);
+        return JSON.stringify({ seriesCount: count }, null, 2);
+      }
+      case 'preview_wheel_deposit': {
+        const shares = await c.wheelVault.previewDeposit(
+          args.vaultAddress as string,
+          args.seriesId as number,
+          BigInt(args.baseAmt as string),
+          BigInt(args.quoteAmt as string),
+        );
+        return JSON.stringify({ expectedShares: shares.toString() }, null, 2);
+      }
+      case 'preview_wheel_withdraw': {
+        const preview = await c.wheelVault.previewWithdraw(
+          args.vaultAddress as string,
+          args.seriesId as number,
+          BigInt(args.shares as string),
+        );
+        return JSON.stringify(preview, jsonReplacer, 2);
+      }
+      case 'get_wheel_depth_chart': {
+        const chart = await c.wheelVault.getDepthChart(
+          args.lensAddress as string,
+          args.seriesId as number,
+          args.isCall as boolean,
+          args.maxIvBps as number,
+        );
+        return JSON.stringify(chart, jsonReplacer, 2);
+      }
+      case 'get_wheel_buyer_options': {
+        const opts = await c.wheelVault.getBuyerOptions(
+          args.lensAddress as string,
+          args.buyerAddress as string,
+          BigInt(args.fromId as string),
+          BigInt(args.maxCount as string),
+        );
+        return JSON.stringify(opts, jsonReplacer, 2);
+      }
+      case 'get_wheel_seller_positions': {
+        const positions = await c.wheelVault.getSellerPositions(
+          args.lensAddress as string,
+          args.sellerAddress as string,
+          args.seriesId as number,
+          args.maxIvBps as number,
+          args.maxEntries as number,
+        );
+        return JSON.stringify(positions, jsonReplacer, 2);
+      }
+      case 'get_wheel_claimable_summary': {
+        const summary = await c.wheelVault.getClaimableSummary(
+          args.lensAddress as string,
+          args.sellerAddress as string,
+          args.seriesIds as number[],
+        );
+        return JSON.stringify(summary, jsonReplacer, 2);
+      }
+
+      // === StrategyVault (Base) ===
+      case 'get_strategy_vault_state': {
+        const state = await c.strategyVault.getVaultState(args.vaultAddress as string);
+        return JSON.stringify(state, jsonReplacer, 2);
+      }
+      case 'get_strategy_vault_total_assets': {
+        const assets = await c.strategyVault.getTotalAssets(args.vaultAddress as string);
+        return JSON.stringify(assets, jsonReplacer, 2);
+      }
+      case 'get_strategy_vault_share_balance': {
+        const balance = await c.strategyVault.getShareBalance(
+          args.vaultAddress as string,
+          args.userAddress as string,
+        );
+        return JSON.stringify({ shareBalance: balance.toString() }, null, 2);
+      }
+      case 'get_strategy_vault_next_expiry': {
+        const expiry = await c.strategyVault.getNextExpiry(args.vaultAddress as string);
+        return JSON.stringify({ nextExpiry: expiry }, null, 2);
+      }
+      case 'can_strategy_vault_create_option': {
+        const can = await c.strategyVault.canCreateOption(args.vaultAddress as string);
+        return JSON.stringify({ canCreateOption: can }, null, 2);
+      }
+      case 'is_strategy_vault_recovery_mode': {
+        const recovery = await c.strategyVault.isRecoveryMode(args.vaultAddress as string);
+        return JSON.stringify({ isRecoveryMode: recovery }, null, 2);
+      }
+      case 'get_all_strategy_vaults': {
+        const vaults = await c.strategyVault.getAllVaults();
+        return JSON.stringify(vaults, jsonReplacer, 2);
+      }
+      case 'get_fixed_strike_vaults': {
+        const vaults = await c.strategyVault.getFixedStrikeVaults();
+        return JSON.stringify(vaults, jsonReplacer, 2);
+      }
+      case 'get_clvex_vaults': {
+        const vaults = await c.strategyVault.getClvexVaults();
+        return JSON.stringify(vaults, jsonReplacer, 2);
       }
 
       default:
