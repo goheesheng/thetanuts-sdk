@@ -4,11 +4,63 @@ Upgrade guide for existing users moving to the latest SDK patterns and APIs.
 
 ## Table of Contents
 
+- [Migrating to v0.2.x (Base_r12 deployment)](#migrating-to-v02x-base_r12-deployment)
 - [Breaking Changes](#breaking-changes)
 - [New Helper Methods](#new-helper-methods)
 - [Code Migration Examples](#code-migration-examples)
 - [Deprecation Notices](#deprecation-notices)
 - [Indexer Migration Notes](#indexer-migration-notes)
+
+---
+
+## Migrating to v0.2.x (Base_r12 deployment)
+
+v0.2.0 cut over to the Base_r12 deployment with new contract addresses. v0.2.1 fixes 22 issues a code review found in the 0.2.0 surface. **Upgrade target: v0.2.1.**
+
+### Pin to the deployment you want
+
+- `@thetanuts-finance/thetanuts-client@^0.1.x` — prior Base deployment (immutable on npm; use only if you need to keep talking to the old contracts).
+- `@thetanuts-finance/thetanuts-client@^0.2.1` — Base_r12 deployment (recommended).
+
+### Breaking changes from 0.1.x → 0.2.1
+
+- **`client.events.getCollateralReturnedEvents` was renamed to `getExcessCollateralReturnedEvents`** with a new field shape:
+
+  ```typescript
+  // ❌ OLD (0.1.x):
+  const events = await client.events.getCollateralReturnedEvents(option);
+  // events[i] had { optionAddress, seller, amountReturned }
+
+  // ✅ NEW (0.2.1):
+  const events = await client.events.getExcessCollateralReturnedEvents(option);
+  // events[i] has { seller, collateralToken, collateralReturned }
+  ```
+
+- **`OptionSplitEvent` gained two fields.** If you were destructuring, add `feePaid` and `counterparty`:
+
+  ```typescript
+  // ❌ OLD: { newOption, collateralAmount }
+  // ✅ NEW: { newOption, collateralAmount, feePaid, counterparty }
+  ```
+
+- **`TransferApprovalEvent` field order is fixed** to match r12: `{ target, from, isBuyer, isApproved }`. The 0.1.x SDK had `target` and `from` swapped in the typed wrapper for `RangerOption` events specifically.
+
+- **`OptionSettlementFailedEvent` no longer has fields** at the contract level. The SDK still populates `optionAddress` from the filter context for caller convenience.
+
+- **Butterfly reverse-lookup names reconciled.** `getOptionImplementationInfo(addr).name` returns `'CALL_FLY'` / `'PUT_FLY'` instead of `'CALL_FLYS'` / `'PUT_FLYS'`. The `ProductName` union in `client.utils` follows.
+
+- **`RangerModule.reclaimCollateral` parameter renamed** from `recipient` to `ownedOption`. Positional callers unaffected; named callers using a TypeScript object-shape break.
+
+- **`LoanRequest.keepOrderOpen` is now a no-op.** The r12 contract dropped the limit-order conversion field. The SDK still accepts the field for source compatibility but the value is ignored.
+
+### What you should also know about 0.2.x
+
+- New `client.ranger` module — see the [Modules Overview](../reference/modules-overview.md#clientranger--rangermodule).
+- `chainConfig.implementations.RANGER`, `LINEAR_CALL`, `INVERSE_CALL_SPREAD`, `CALL_LOAN` are new.
+- `chainConfig.twapConsumer` (string | null) surfaces the HistoricalPriceConsumerV3_TWAP address.
+- Ethereum mainnet (`chainId 1`) is now supported as a vault-only chain (only `client.wheelVault` works there).
+- Every RFQ entry point now rejects the seven undeployed `PHYSICAL_*` placeholder addresses with a clear `INVALID_PARAMS` error.
+- `RANGER_OPTION_ABI` is exported from the package root.
 
 ---
 
