@@ -108,8 +108,8 @@ Loans qualifying for promo get reduced costs:
 
 | Contract | Address |
 |----------|---------|
-| LoanCoordinator | `0x6278B8B09Df960599fb19EBa4b79aed0ED6B077b` |
-| LoanHandler | `0x6e0019bF9a44B60d57435a032Cb86b716629C08E` |
+| LoanCoordinator | `0x9FB75b24d9d6f7c29D6BdE2870697A4FE0395994` |
+| LoanHandler | `0x7c444A2375275DaB925b32493B64a407eE955DEd` |
 | USDC (settlement) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | WETH (ETH collateral) | `0x4200000000000000000000000000000000000006` |
 | cbBTC (BTC collateral) | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` |
