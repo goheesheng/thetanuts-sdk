@@ -100,8 +100,11 @@ export class RangerModule {
     // where the on-chain RangerOption is deployed. On chains without it
     // (Ethereum mainnet today), every method throws NETWORK_UNSUPPORTED
     // up front instead of failing deep inside ethers with a cryptic
-    // eth_call error.
-    this._disabled = !client.chainConfig.implementations.RANGER;
+    // eth_call error. Treat both an unset value and the zero-address
+    // placeholder as disabled, so a custom or partially-populated
+    // chain config can't smuggle a 0x0…0 implementation past the guard.
+    const ranger = client.chainConfig.implementations.RANGER;
+    this._disabled = !ranger || ranger === '0x0000000000000000000000000000000000000000';
   }
 
   private ensureEnabled(): void {
