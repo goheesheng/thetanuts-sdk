@@ -91,9 +91,13 @@ Relevant section: [Loan overview](../loan/overview.md)
 
 Reads and interacts with the WheelVault contracts on Ethereum mainnet. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 1`.
 
+Relevant section: [Wheel Vault overview](../wheel-vault/overview.md)
+
 ### `client.strategyVault` — StrategyVaultModule
 
 Reads and interacts with the StrategyVault contracts (Kairos and CLVEX strategies) on Base. The module is chain-gated — methods throw `NETWORK_UNSUPPORTED` when the client is configured for any chain other than `chainId 8453`.
+
+Relevant section: [Strategy Vault overview](../strategy-vault/overview.md)
 
 ## Quick Reference
 

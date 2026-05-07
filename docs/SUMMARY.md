@@ -36,6 +36,14 @@
 * [Lending](loan/lending.md)
 * [Pricing & Calculation](loan/pricing.md)
 
+## Wheel Vault (Ethereum)
+
+* [Overview](wheel-vault/overview.md)
+
+## Strategy Vault (Base)
+
+* [Overview](strategy-vault/overview.md)
+
 ## Pricing
 
 * [MM Pricing Overview](pricing/mm-pricing.md)
