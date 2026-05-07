@@ -4,21 +4,65 @@ Version history for the Thetanuts Finance SDK.
 
 ## Current Version
 
-**v0.2.1** — [View all releases on GitHub](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases)
+**v0.2.3** — [View all releases on GitHub](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases)
 
 This SDK follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. Patch releases contain bug fixes and non-breaking improvements. Minor releases add new functionality in a backwards-compatible manner. Major releases may contain breaking changes and will be accompanied by a migration guide.
 
-> **Looking for the full per-line release notes?** See [`CHANGELOG.md`](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/CHANGELOG.md) in the repo. The summaries below are the user-facing highlights.
+> **Where to look for release notes:**
+> - [GitHub Releases](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases) — canonical per-version detail (commit log, before/after diffs, verification steps).
+> - [`CHANGELOG.md`](https://github.com/Thetanuts-Finance/thetanuts-sdk/blob/main/CHANGELOG.md) in the repo — terse per-version log, ships with the npm package.
+> - The summaries below are the user-facing highlights for the latest few releases.
 
 ---
 
 ## Release History
 
+### v0.2.3 — Whitelabel rename (BREAKING)
+
+Naming-only release that drops partner-protocol names from the public SDK surface and docs. Behavior, ABIs, and contract addresses are unchanged.
+
+> **Heads up:** despite the patch-level version bump, the two API renames below are **breaking**. Anyone using `STRATEGY_VAULT_CONFIG.kairos` or `client.strategyVault.getKairosVaults()` in v0.2.2 must update on upgrade. There are no deprecated aliases — the old names are gone.
+
+**Breaking renames:**
+
+```diff
+- const vault = STRATEGY_VAULT_CONFIG.kairos.vaults[0].address;
++ const vault = STRATEGY_VAULT_CONFIG.fixedStrike.vaults[0].address;
+
+- const vaults = await client.strategyVault.getKairosVaults();
++ const vaults = await client.strategyVault.getFixedStrikeVaults();
+```
+
+All sub-fields of `STRATEGY_VAULT_CONFIG.kairos` (`vaults`, `baseAsset`, `quoteAsset`, `oracle`) move with the rename. Migration is a straight find-and-replace; return shapes are identical.
+
+**Prose updates:** comments, JSDoc, runtime error messages, and docs use neutral language. "Kairos fixed-strike" → "fixed-strike", "Gyro wheel strategy" → "wheel strategy". No symbol changes beyond the two breaking renames above.
+
+**Test runner:** `scripts/run-mainnet-tests.ts` now retries transient `CALL_EXCEPTION` errors from public RPCs (the public Base RPC drops bursts of read calls; the test suite was failing 28/30 instead of 30/30 because of dropped responses, not contract bugs). Runner accepts a `BASE_RPC_URL` env var to override the public default.
+
+**Unchanged:** `STRATEGY_VAULT_CONFIG.clvex`, `getClvexVaults()`, `getAllVaults()`, all on-chain contract addresses, ABIs, and module shapes.
+
+### v0.2.2 — DX polish
+
+Polish release with no new features and no breaking changes. Came out of a live `/devex-review` audit.
+
+**Bug fixes:**
+- `mapContractError` no longer clobbers typed `ThetanutsError` instances (e.g. `SIGNER_REQUIRED` from `requireSigner()`). Calling `client.optionBook.claimFees(token)` without a signer now reports `code: 'SIGNER_REQUIRED'` instead of generic `code: 'CONTRACT_REVERT'`.
+- `NETWORK_UNSUPPORTED` error message now derives the supported-chains list dynamically from `CHAIN_CONFIGS_BY_ID`. Previous hardcoded string `"Supported chains: 8453 (Base)"` omitted Ethereum (added in v0.2.1).
+
+**Project hygiene:**
+- New `CONTRIBUTING.md` documents local setup, the four required gates, the `/codex review` + `/codex challenge` review process, and the npm publish flow.
+- New `SECURITY.md` — vulnerability reporting policy and supported-versions table.
+- New `.github/ISSUE_TEMPLATE/{bug_report,feature_request,question,config}.yml` and `PULL_REQUEST_TEMPLATE.md`.
+
+**Documentation:**
+- Fixed broken link in `docs/resources/migration-guide.md` (pointed at non-existent `reference/error-codes.md`; now points at `guides/error-handling.md`).
+- Backfilled v0.1.x history in repo-root `CHANGELOG.md`.
+
 ### v0.2.1 — Base_r12 deployment + codex-found fixes
 
 The first 0.2.x release published to npm. Bundles the **Base_r12 deployment cutover** with **22 fixes** that three adversarial code-review passes found in the staged surface. v0.2.0 was prepared internally but never published; everything ships in this single release.
 
-> **See the [full v0.2.1 release notes](../releases/0.2.1.md)** for per-commit detail, before/after migration code, and verification steps.
+> See the [v0.2.1 GitHub Release](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases/tag/v0.2.1) for per-commit detail, before/after migration code, and verification steps.
 
 **Base_r12 cutover:**
 - All chainId-8453 contract addresses point at the r12 deployment (`optionBook`, `optionFactory`, all 13 implementations, LoanCoordinator, LoanHandler).
