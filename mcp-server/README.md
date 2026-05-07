@@ -9,6 +9,19 @@ Read-only MCP (Model Context Protocol) server for the Thetanuts SDK.
 - Handle private keys
 - Perform any state-changing operations
 
+### LLM context (call this first)
+
+If you are an LLM connecting to this server for the first time, your single best move is to call `get_sdk_context` once and cache the result for the rest of the session. It returns the full embedded SDK context (every module, key types, common workflows, gotchas) — the same content as `<repo-root>/llms-full.txt`. Roughly 35 KiB of markdown.
+
+#### Context Tools
+| Tool | Description |
+|------|-------------|
+| `get_sdk_context` | Full long-form SDK context. Call this first — covers every module and the common gotchas |
+| `get_sdk_context_index` | Curated index of canonical SDK docs (llmstxt.org spec) — links only |
+| `get_sdk_context_size` | Byte size of the embedded context — use to budget before fetching |
+
+The context is embedded at build time via the `prebuild` npm script (`scripts/embed-sdk-context.ts`), which reads `<repo-root>/llms.txt` and `<repo-root>/llms-full.txt` and writes them as TypeScript string constants into `src/sdk-context.generated.ts`. No filesystem access needed at runtime.
+
 ### Available Tools
 
 #### Indexer API Tools (OptionBook data)

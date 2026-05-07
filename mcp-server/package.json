@@ -8,9 +8,10 @@
     "thetanuts-mcp": "./dist/index.js"
   },
   "scripts": {
+    "prebuild": "tsx scripts/embed-sdk-context.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx scripts/embed-sdk-context.ts && tsx src/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

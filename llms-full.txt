@@ -1,0 +1,723 @@
+# Thetanuts Finance SDK — Full LLM Context
+
+> Self-contained reference for the @thetanuts-finance/thetanuts-client TypeScript SDK. If you only fetch one file before answering questions about this SDK or generating code that uses it, fetch this one.
+
+This document covers what the SDK does, every public module on the `ThetanutsClient`, every key type a caller will encounter, the most common workflows (with runnable code), and the gotchas that bite real users. It is intentionally long — it replaces the need for multiple page-fetches for typical LLM tasks.
+
+For curated links into the canonical docs, see `llms.txt` next to this file.
+
+---
+
+## What this SDK is
+
+`@thetanuts-finance/thetanuts-client` is the official TypeScript SDK for [Thetanuts Finance](https://thetanuts.finance), a decentralized options protocol on Base mainnet (chainId 8453) and Ethereum mainnet (chainId 1).
+
+The SDK lets a developer:
+
+- **Fill listed maker orders** on the OptionBook (cash-settled vanilla, spread, butterfly, condor, iron condor).
+- **Create custom options** via the OptionFactory RFQ system (sealed-bid auction; cash-settled by default; physical settlement for vanilla calls/puts).
+- **Manage positions** — read state, close, split, transfer, claim payouts.
+- **Trade RangerOptions** — a 4-strike zone-bound payoff structure unique to Thetanuts.
+- **Borrow against ETH/BTC** with no liquidation risk via the loan module (physically-settled calls under the hood).
+- **Deposit into strategy vaults** — fixed-strike weekly covered calls (Base) and Gyro-style wheel-strategy vaults (Ethereum, WBTC/XAUt/SPYon).
+- **Read MM pricing**, fetch user history, query events, subscribe to real-time updates.
+
+The package ships ESM + CJS + types from a single `npm install @thetanuts-finance/thetanuts-client`.
+
+The current published version is `0.2.3`. Source of truth for the latest: `package.json` at the repo root.
+
+---
+
+## Architecture
+
+### One client, fourteen modules
+
+You construct one `ThetanutsClient` and access every feature through namespaced modules:
+
+```typescript
+import { ethers } from 'ethers';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
+
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const client = new ThetanutsClient({
+  chainId: 8453,
+  provider,
+  signer,        // optional — read-only without it
+  referrer: '0x...',  // optional, OptionBook fee-share
+});
+```
+
+The 14 modules:
+
+| Module | Purpose |
+|---|---|
+| `client.erc20` | Token approvals, balances, transfers |
+| `client.optionBook` | Fill listed maker orders, claim referrer fees |
+| `client.api` | Indexer reads — orders, positions, history, stats, RFQ state |
+| `client.optionFactory` | RFQ lifecycle — request, offer, reveal, settle, cancel, register referral |
+| `client.option` | Position management for any BaseOption-derived contract |
+| `client.ranger` | Zone-bound RangerOption position management (Base only, r12+) |
+| `client.events` | Query historical contract events from any module's contracts |
+| `client.ws` | WebSocket subscriptions for real-time updates |
+| `client.utils` | Decimal conversions, payout math, validation helpers |
+| `client.rfqKeys` | ECDH keypair generation + encryption for sealed-bid RFQs |
+| `client.mmPricing` | Market-Maker pricing with fee adjustment + collateral carrying cost |
+| `client.loan` | Non-liquidatable lending via physically-settled calls |
+| `client.wheelVault` | Gyro-style wheel-strategy vaults (Ethereum mainnet only) |
+| `client.strategyVault` | Fixed-strike + CLVEX directional/condor vaults (Base only) |
+
+### Read-only vs write
+
+- **Read-only client:** pass only `provider`. Every read method works (`fetchOrders`, `getOptionInfo`, `getMarketPrices`, etc.).
+- **Write-capable client:** also pass `signer`. Required for `fillOrder`, `requestForQuotation`, `claimFees`, `deposit`, etc. Methods that need a signer call `requireSigner()` internally and throw `code: 'SIGNER_REQUIRED'` if missing.
+
+### Chain support
+
+| Chain | chainId | What works |
+|---|---|---|
+| Base mainnet | 8453 | Full options surface (OptionBook, OptionFactory, Ranger, Loan, StrategyVault) |
+| Ethereum mainnet | 1 | Wheel Vault only — `client.wheelVault` |
+
+`client.ranger`, `client.optionBook`, `client.optionFactory`, `client.loan`, `client.strategyVault` throw `NETWORK_UNSUPPORTED` when called from chainId 1. `client.wheelVault` throws `NETWORK_UNSUPPORTED` when called from chainId 8453. The chain-gating is enforced at module-construction time.
+
+---
+
+## Key concepts
+
+### OptionBook vs RFQ — when to use which
+
+Both systems trade options against the same underlying implementation contracts. Pick based on the trade you want.
+
+**OptionBook** — fill an existing market-maker order:
+- Quick, immediate execution.
+- Cash-settled only.
+- All structures supported (vanilla, spread, butterfly, condor, iron condor).
+- Premium paid upfront by the taker.
+- Indexer endpoint: `/api/v1/book/`.
+
+**RFQ (OptionFactory)** — create a custom option via sealed-bid auction:
+- Any strike, any expiry within contract limits.
+- Cash-settled by default; physical settlement available for vanilla calls/puts.
+- Sealed-bid: all market makers submit encrypted offers; only the requester can decrypt.
+- Two settlement paths: early settle (requester accepts one offer) or normal settle (after reveal phase, anyone settles best offer).
+- `collateralAmount` in the RFQ params is **always 0** — collateral is pulled at settlement, not at creation.
+- Indexer endpoint: `/api/v1/factory/`.
+
+### Decimals
+
+Every on-chain numeric value uses one of these decimal scales:
+
+| Type | Decimals | Example |
+|---|---|---|
+| USDC amounts | 6 | 1000 USDC = `1000000000n` |
+| WETH amounts | 18 | 1 WETH = `1000000000000000000n` |
+| cbBTC amounts | 8 | 1 cbBTC = `100000000n` |
+| Strike / settlement price | 8 | $1850 = `185000000000n` |
+| numContracts | 18 | 1 contract = `1000000000000000000n` |
+
+Use `client.utils.toBigInt(value, decimals)` and `client.utils.fromBigInt(bn, decimals)` for safe conversion. Use `client.utils.toPriceDecimals(numberInUsd)` and `client.utils.toStrikeDecimals(numberInUsd)` for prices/strikes (they shift by 8).
+
+### Collateral by option type
+
+The seller always provides collateral. The amount depends on the option structure:
+
+| Type | Formula |
+|---|---|
+| PUT | `strike × numContracts / 1e8` (in USDC) |
+| CALL (inverse) | `numContracts` (in WETH or cbBTC, base-asset side) |
+| Spread | `(upperStrike − lowerStrike) × numContracts / 1e8` |
+| Butterfly | `(middle − lower) × numContracts / 1e8` |
+| Condor | `(strike2 − strike1) × numContracts / 1e8` |
+
+The SDK exposes `calculateCollateralRequired(numContracts, type, strikes)` to compute this for you. **Do not hand-roll.**
+
+### Decimal precision when closing positions
+
+When you close a position, pass `numContracts` as the **exact bigint from the chain**, not a number you computed. Floating-point math will round and the contract will reject the close. Read it from `client.option.getOptionInfo(addr).numContracts` and pass that bigint directly.
+
+---
+
+## Module reference
+
+### `client.erc20`
+
+Token approval, balance, allowance, transfer. Wraps every ERC20 the protocol cares about.
+
+Key methods:
+- `getBalance(token, address?)` — bigint balance
+- `getAllowance(token, owner, spender)` — bigint allowance
+- `approve(token, spender, amount)` — write tx
+- `ensureAllowance(token, spender, amount)` — approve only if current allowance is too low
+- `getDecimals(token)` / `getSymbol(token)` — token metadata
+- `transfer(token, to, amount)` — write tx
+- `encodeApprove(...)` / `encodeTransfer(...)` — pure encoders for viem/wagmi
+
+Cache: decimals are cached per address per client instance. Call `clearDecimalsCache()` if needed.
+
+### `client.optionBook`
+
+OptionBook = the maker-order book. Listed orders, immediate fills.
+
+Key methods:
+- `fillOrder(orderWithSig, numContracts, address?)` — fill a maker order
+- `swapAndFillOrder(swapParams, orderWithSig, numContracts)` — swap+fill in one tx
+- `previewFillOrder(orderWithSig, usdcAmount?)` — pure dry-run; **always preview before fill** for PUTs and spreads
+- `cancelOrder(orderWithSig)` — taker-side cancel
+- `getFees(token, referrer)` — pending fees for a referrer
+- `getAllClaimableFees(address)` — every collateral token in one call
+- `claimFees(token)` / `claimAllFees(address?)` — referrer self-claim
+- `setReferrerFeeSplit(referrer, feeBps)` — owner-only; reverts for non-owners
+- `callStaticFillOrder(...)` / `callStaticCancelOrder(...)` — pre-flight without paying gas
+
+### `client.api`
+
+API/indexer reads. Read-only; no signer needed.
+
+Order side (OptionBook):
+- `fetchOrders()` — all live orders
+- `filterOrders(filters)` — server-side filter by isCall, minExpiry, etc.
+- `getMarketData()` / `getMarketPrices()` — current prices
+- `getUserPositionsFromIndexer(address)`
+- `getUserHistoryFromIndexer(address)`
+- `getReferrerStatsFromIndexer(address)` — book-side referrer stats
+
+RFQ side (OptionFactory):
+- `getFactoryRfqs(status?)` — RFQs by status
+- `getFactoryStats()` — protocol-wide RFQ stats
+- `getFactoryReferrerStats(address)` — RFQ-side referrer stats
+- `getRfq(id)`, `getUserRfqs(address)`, `getUserOffersFromRfq(address)`, `getUserOptionsFromRfq(address)`
+- `getFactoryOption(addr)` / `getBookOption(addr)` — per-option indexer detail
+
+Aggregates: `getProtocolStats()`, `getDailyStats()` (combines book + factory) plus scoped variants.
+
+### `client.optionFactory`
+
+RFQ lifecycle. Cash-settled by default; physical settlement for vanilla only.
+
+Builders (compose RFQ params for you):
+- `buildRFQRequest(params)` — generic, auto-detects structure from strikes length
+- `buildVanillaRFQ`, `buildSpreadRFQ`, `buildButterflyRFQ`, `buildCondorRFQ`, `buildIronCondorRFQ`
+- `buildPhysicalOptionRFQ` (vanilla only); `buildPhysicalSpreadRFQ` etc. exist but throw `INVALID_PARAMS` because the contracts are not yet deployed (zero-address placeholders in r12)
+
+Lifecycle:
+- `requestForQuotation(request)` — submit an RFQ on chain
+- `makeOfferForQuotation(params)` — maker side; encrypt + sign + submit an offer
+- `revealOffer(params)` — maker reveals during reveal phase
+- `settleQuotation(quotationId)` — anyone, after reveal phase
+- `settleQuotationEarly(quotationId, offerAmount, nonce, offeror)` — requester only, accept a specific offer before deadline
+- `cancelQuotation(quotationId)` — requester only
+- `cancelOfferForQuotation(quotationId)` — maker cancels their offer
+
+Reads: `getQuotation(id)`, `getQuotationCount()`, `getQuotationTracking(id)`, `calculateFee(numContracts, premium, price)`.
+
+Referrals (RFQ side, distinct from OptionBook):
+- `registerReferral(QuotationParameters)` — self-service ID minting, no whitelist
+- `getReferralOwner(id)`, `getReferralFees(id)`, `getReferralParameters(id)` — read state
+- `withdrawFees(token, ids[])` — **owner-only**, reverts for non-owners. Third-party referrers track via `getReferralFees(id)`; payout cadence is protocol-side.
+
+`swapAndCall(params)` — swap a source token through an aggregator and call any OptionFactory function in one tx.
+
+Static reflection: `callStaticCreateRFQ`, `callStaticMakeOffer`, `callStaticRevealOffer`, `callStaticSettleQuotation`.
+
+### `client.option`
+
+Position management for any BaseOption-derived contract — works for OptionBook fills and RFQ-created options alike.
+
+Lifecycle writes:
+- `close(optionAddress)` — bilateral close (both parties must agree off-chain; on-chain it's one call)
+- `transfer(optionAddress, to, approved?)` — transfer a position
+- `split(optionAddress, splitCollateralAmount)` — split a position by collateral. **`payable` in r12** — SDK reads `getSplitFee()` and forwards as `msg.value`.
+- `payout(optionAddress)` — claim payout post-expiry
+
+State reads:
+- `getOptionInfo(optionAddress)` — basic option details
+- `getFullOptionInfo(optionAddress)` — single-RPC batch of every field. Note: returns nullable `info` for proxy contracts with incompatible ABI versions.
+- `calculatePayout(addr, settlementPrice)` — on-chain payout at a price
+- `simulatePayout(addr, price?)` — uses TWAP if no price passed
+- `getStrikes`, `getExpiry`, `isExpired`, `isSettled`, `getOptionType`, `unpackOptionType`
+- `getBuyer`, `getSeller`, `getCollateralToken`, `getCollateralAmount`, `getNumContracts`
+- `getChainlinkPriceFeed`, `getHistoricalTWAPConsumer`, `getTWAP`, `getTwapPeriod`
+- `calculateRequiredCollateral(addr, strikePrice?)`
+
+Off-chain math: `client.utils.calculatePayout({type, strikes, settlementPrice, numContracts})` runs locally without RPC calls. Use this for payoff diagrams.
+
+### `client.ranger`
+
+RangerOption — 4-strike zone-bound payoff. Buyer gets max payout when settlement lands inside the zone (between strikes 2 and 3), with linearly decaying payouts outside. Available on Base r12+.
+
+Reads:
+- `getInfo(rangerAddress)`, `getStrikes`, `getZone`, `getSpreadWidth`
+- `getTWAP`, `calculatePayout(addr, price)`, `simulatePayout(addr, price, strikes, numContracts)`
+- `calculateRequiredCollateral(addr, strikes, numContracts)`
+
+Writes:
+- `payout`, `close`, `split`, `transfer`, `reclaimCollateral(ownedOption)`, `returnExcessCollateral`
+
+`split` and `reclaimCollateral` are **`payable` in r12** — SDK forwards `getSplitFee()` / `getReclaimFee(ownedOption)` as `msg.value`. The address arg to `reclaimCollateral` is the option being reclaimed FROM, not a transfer destination — collateral goes to the caller.
+
+The module is **chain-gated**: throws `NETWORK_UNSUPPORTED` on chains where `RANGER` is not deployed (Ethereum, etc.).
+
+### `client.events`
+
+Historical event queries against OptionBook, OptionFactory, and per-option contracts.
+
+Auto-chunks block ranges into 10,000-block segments — no manual splitting needed. When `fromBlock` is omitted, queries search backward from latest.
+
+Most-used:
+- `getOrderFillEvents(filters?)` — OptionBook fills
+- `getQuotationRequestedEvents` / `getOfferMadeEvents` / `getOfferRevealedEvents` / `getQuotationSettledEvents` — full RFQ lifecycle
+- `getRfqHistory(quotationId, filters?)` — convenience batcher: returns `{ requested, offers, reveals, settlement }` chronologically
+- `queryEvents({contract, eventName, fromBlock})` — generic catch-all
+- Per-option: `getPositionClosedEvents(option)`, `getOptionSplitEvents(option)`, `getExcessCollateralReturnedEvents(filters?)`
+
+Note v0.2.1 rename: `getCollateralReturnedEvents` → `getExcessCollateralReturnedEvents`. Field shape also changed.
+
+### `client.ws`
+
+WebSocket subscriptions for real-time updates. Returns an unsubscribe function from each subscribe call.
+
+Sugar: `subscribeOrders`, `subscribePrices`, `subscribePositions`, `subscribeTrades`, `subscribeQuotations`.
+
+RFQ-specific: `subscribeToRfq(quotationId, callbacks)`, `subscribeToFactory({onQuotationRequested, onOfferMade, onOfferRevealed, onSettled, onCancelled})`, `subscribeToBook({onOrderFilled, onOrderCancelled, onNewOrder})`.
+
+Connection: `connect()` / `disconnect()`; `onStateChange(handler)`, `onError(handler)`.
+
+### `client.utils`
+
+Pure helpers. Sync, no chain calls.
+
+- `toBigInt(value, decimals)` / `fromBigInt(bn, decimals)` — decimal conversion
+- `toPriceDecimals(value)` / `fromPriceDecimals(bn)` — 8-decimal prices
+- `toStrikeDecimals(value)` / `fromStrikeDecimals(bn)` — 8-decimal strikes
+- `toUsdcDecimals(value)` / `fromUsdcDecimals(bn)` — 6-decimal USDC
+- `calculatePayout({type, strikes, settlementPrice, numContracts})` — local payoff for diagrams
+
+Validation helpers (named exports, not on client.utils):
+- `validateButterfly`, `validateCondor`, `validateIronCondor`, `validateRanger`
+- `validateAddress`, `validateOrderExpiry`, `validateFillSize`, `validateBuySlippage`, `validateSellSlippage`
+- `calculateNumContracts`, `calculateCollateralRequired`, `calculateReservePrice`, `calculateDeliveryAmount`
+- `premiumPerContract`, `isPhysicalProduct`, `isBaseCollateral`
+
+### `client.rfqKeys`
+
+ECDH keypair management for sealed-bid RFQs.
+
+Defaults to filesystem storage (`.thetanuts-keys/`) on Node.js, localStorage in browsers. Custom storage via `keyStorageProvider` option on the client.
+
+- `generateKeyPair()` — sync
+- `getOrCreateKeyPair()` — load or generate-and-store
+- `loadKeyPair()`, `hasStoredKey()`, `storeKeyPair(kp)`, `removeStoredKey()`
+- `exportPrivateKey()`, `importFromPrivateKey(priv, store?)`
+- `encryptOffer(offerAmount, nonce, requesterPublicKey, keyPair?)` — maker side
+- `decryptOffer(encryptedOffer, nonce)` — requester side
+
+The keypair is sensitive. Back it up. Without it, you cannot decrypt offers.
+
+### `client.mmPricing`
+
+Market-Maker pricing with fee adjustment and collateral carrying cost.
+
+Per-option:
+- `getAllPricing(underlying)` — every live option
+- `getTickerPricing(ticker)` — single option (e.g. `'ETH-16FEB26-1800-P'`)
+- `getPricingArray(underlying)` — flattened, sorted, non-expired
+
+Per-position:
+- `getPositionPricing({ticker, isLong, numContracts, collateralToken})` — direction-aware with collateral cost
+- `getSpreadPricing({underlying, strikes, expiry, isCall})` — 2-leg spread
+- `getButterflyPricing({underlying, strikes, expiry, isCall})` — 3-leg fly
+- `getCondorPricing({underlying, strikes, expiry, isCall})` — 4-leg condor
+
+Fee adjustment formula:
+```
+feeAdjustment = min(0.0003, rawPrice × 0.125)
+adjustedAsk = rawAsk + feeAdjustment
+adjustedBid = rawBid - feeAdjustment
+```
+
+Collateral carrying cost (added to short positions): `collateralValue × APR × timeToExpiry` where APR is `cbBTC: 1%, WETH: 4%, USD: 7%`.
+
+Helpers: `parseTicker(ticker)`, `buildTicker({underlying, expiry, strike, optionType})`, `applyFeeAdjustment(price, side)`, `calculateCollateralCost(value, t, asset)`. Constant: `COLLATERAL_APR`.
+
+### `client.loan`
+
+Non-liquidatable lending. Borrowers deposit ETH or BTC collateral and receive USDC. At expiry, repay USDC to reclaim collateral, or walk away (keep USDC, forfeit collateral). No margin calls. Built on top of physically-settled call options.
+
+Borrower side:
+- `requestLoan(params)` — initiate a loan request
+- `acceptOffer(quotationId, offerAmount, nonce, offeror)` — accept a specific lender offer
+- `cancelLoan(quotationId)` — cancel before any offer is accepted
+- `exerciseOption(optionAddress)` — repay USDC, get collateral back
+- `doNotExercise(optionAddress)` — walk away
+- `swapAndExercise(optionAddress, swapRouter, swapSrcToken, swapSrcAmount, swapCallData)` — swap collateral to USDC then exercise
+
+Lender side:
+- `lend(quotationId)` — fund a loan request
+- `getLendingOpportunities({underlying?, excludeAddress?})` — fetch unfilled requests
+
+Reads:
+- `getLoanRequest(quotationId)` — on-chain state
+- `getUserLoans(address)` — borrower's loan history
+- `getOptionInfo(optionAddress)` — loan-issued option details
+- `isOptionITM(optionAddress)` — in-the-money check
+- `fetchPricing()` — Deribit-style option pricing (30s cache)
+- `getStrikeOptions(underlying, settings?)` — strikes grouped by expiry
+
+Promo pricing eligibility: >90 days to expiry AND <50% LTV. Benefits: option premium waived, fixed 5.68% APR. Limits: $250k per person, $2M pool.
+
+### `client.wheelVault`
+
+Gyro-style wheel-strategy vaults on **Ethereum mainnet only**. Each vault holds a paired position (e.g. WBTC + USDC) and sells weekly options against it.
+
+Vault state reads:
+- `getVaultState(vault, seriesId)`, `getSeries`, `getSeriesCount`, `getSnapshots`, `getEpochExpiries`, `getShareValueInQuote`, `getSeriesAssets`, `bsBaseDelta`
+
+Pre-flight:
+- `previewDeposit(vault, seriesId, baseAmt, quoteAmt)`, `previewWithdraw(vault, seriesId, shares)`, `estimateDepositSplit(vault, seriesId, depositAmount)`
+
+Vault writes:
+- `deposit(vault, seriesId, baseAmt, quoteAmt, expectedPrice)` — both assets
+- `withdraw`, `withdrawIdle`, `poke` (settle expired without triggering next), `trigger` (settle + start next cycle)
+- Router variants: `depositSingle`, `depositDual`, `withdrawSingle`, `withdrawSingleWithPermit`
+
+Markets/options layer:
+- `marketFill`, `depositToBucket`, `cancelDeposit`, `claim`, `exercise`, `expire`, `swapAndExercise`
+
+Lens reads:
+- `getDepthChart`, `previewFillPremium`, `getBuyerOptions`, `getSellerPositions`, `getClaimableSummary`, `previewExercise`, `getUniswapPositions`
+
+Configuration: `WHEEL_VAULT_CONFIG` exports vault, markets, lens, router addresses for WBTC, XAUt, SPYon. Markets constants: `ivMin = 2000` (20%), `ivMax = 20000` (200%), `ivTick = 500` (5%), `exerciseWindow = 3600s`.
+
+The module is **chain-gated**: throws `NETWORK_UNSUPPORTED` on any chain other than Ethereum mainnet.
+
+### `client.strategyVault`
+
+Fixed-strike covered-call vaults (Kairos line, renamed in v0.2.3 to "fixed-strike") + CLVEX directional/condor strategy vaults — both on **Base only**.
+
+Two vault families behind one module:
+- **Fixed-strike vaults** sell weekly covered calls on aBasWETH at a strike encoded in the vault name (`ETH-3000`, `ETH-3500`, ...).
+- **CLVEX vaults** run pre-defined directional or condor strategies (`bull`, `bear`, `condor`).
+
+Discovery:
+- `getAllVaults()` — every vault in both families
+- `getFixedStrikeVaults()` — fixed-strike only (in v0.2.3+; was `getKairosVaults` in v0.2.2)
+- `getClvexVaults()` — CLVEX only
+- `getAllVaultStates(addresses[])` — batch lookup
+
+State:
+- `getVaultState(vault)`, `getTotalAssets`, `getShareBalance(vault, addr)`, `getNextExpiry`, `canCreateOption`, `isRecoveryMode`
+
+Writes:
+- `deposit(vault, amount, assetIndex)` — `assetIndex 0 = base`, `1 = quote`
+- `withdraw(vault, shares)`
+- `createOption(vault)` — anyone can call when eligible
+
+Configuration: `STRATEGY_VAULT_CONFIG.fixedStrike.vaults` (5 ETH strikes 3000–5000), `STRATEGY_VAULT_CONFIG.clvex.vaults` (Bull, Bear, Condor), plus `optionFactory` (vault-side, distinct from `chainConfig.contracts.optionFactory`), `aave` pool config, `deploymentBlock`.
+
+---
+
+## Common workflows
+
+### Read market data without a signer
+
+```typescript
+import { ethers } from 'ethers';
+import { ThetanutsClient } from '@thetanuts-finance/thetanuts-client';
+
+const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+const client = new ThetanutsClient({ chainId: 8453, provider });
+
+const orders = await client.api.fetchOrders();
+const market = await client.api.getMarketData();
+console.log(`${orders.length} orders, ETH = $${market.prices.ETH}`);
+```
+
+### Fill a maker order on the OptionBook
+
+```typescript
+const orders = await client.api.fetchOrders();
+const order = orders[0];
+
+// Always preview first — `availableAmount` is collateral budget, NOT contract count
+const preview = client.optionBook.previewFillOrder(order, 10_000000n);  // 10 USDC
+console.log(`Will receive ${preview.numContracts} contracts`);
+
+// Approve the collateral token if needed
+await client.erc20.ensureAllowance(
+  preview.collateralToken,
+  client.chainConfig.contracts.optionBook,
+  preview.totalCollateral,
+);
+
+// Fill
+const receipt = await client.optionBook.fillOrder(order, 10_000000n);
+console.log(`Filled: ${receipt.hash}`);
+```
+
+### Create a custom RFQ (sealed-bid)
+
+```typescript
+const userAddress = await signer.getAddress();
+const keyPair = await client.rfqKeys.getOrCreateKeyPair();
+
+const rfqRequest = client.optionFactory.buildRFQRequest({
+  requester: userAddress,
+  underlying: 'ETH',
+  optionType: 'PUT',
+  strike: 2000,
+  expiry: Math.floor(Date.now() / 1000) + 86400 * 7,  // 7 days
+  numContracts: 1.5,
+  isLong: true,                  // BUY (the user wants to be long the put)
+  offerDeadlineMinutes: 60,
+  collateralToken: 'USDC',
+  reservePrice: 0.015,           // max premium per contract
+  requesterPublicKey: keyPair.compressedPublicKey,
+});
+
+const receipt = await client.optionFactory.requestForQuotation(rfqRequest);
+console.log(`RFQ created: ${receipt.hash}`);
+```
+
+After the offer period:
+
+```typescript
+// Listen for offers, decrypt, accept the best one early
+const events = await client.events.getOfferMadeEvents({ quotationId, fromBlock });
+const offer = events[0];
+const decrypted = await client.rfqKeys.decryptOffer(
+  offer.signedOfferForRequester,
+  offer.signingKey,
+);
+await client.optionFactory.settleQuotationEarly(
+  quotationId,
+  decrypted.offerAmount,
+  decrypted.nonce,
+  offer.offeror,
+);
+```
+
+### Manage a position (close, payout, split)
+
+```typescript
+const info = await client.option.getFullOptionInfo(optionAddress);
+console.log(`${info.numContracts} contracts, expires ${new Date(Number(info.info?.expiry ?? 0n) * 1000)}`);
+
+// Close before expiry (bilateral, both parties agreed off-chain)
+await client.option.close(optionAddress);
+
+// Or claim payout after expiry (split fee forwarded as msg.value automatically)
+await client.option.payout(optionAddress);
+```
+
+### Borrow USDC against ETH (loan module)
+
+```typescript
+const groups = await client.loan.getStrikeOptions('ETH');
+const opt = groups[0].options[0];
+
+const calc = client.loan.calculateLoan({
+  depositAmount: '1.0',
+  underlying: 'ETH',
+  strike: opt.strike,
+  expiryTimestamp: opt.expiry,
+  askPrice: opt.askPrice,
+  underlyingPrice: opt.underlyingPrice,
+});
+console.log(`Receive ${calc.formatted.receive} USDC, repay ${calc.formatted.repay} (${calc.formatted.apr}% APR)`);
+
+const result = await client.loan.requestLoan({
+  underlying: 'ETH',
+  collateralAmount: '1.0',
+  strike: opt.strike,
+  expiryTimestamp: opt.expiry,
+  minSettlementAmount: calc.finalLoanAmount,
+});
+```
+
+### Deposit into a strategy vault (Base, fixed-strike)
+
+```typescript
+import { STRATEGY_VAULT_CONFIG } from '@thetanuts-finance/thetanuts-client';
+
+const states = await client.strategyVault.getAllVaults();
+const vault = STRATEGY_VAULT_CONFIG.fixedStrike.vaults[0].address;  // ETH-3000
+
+const result = await client.strategyVault.deposit(
+  vault,
+  ethers.parseUnits('1.0', 18),  // 1 aBasWETH
+  0,                              // assetIndex 0 = base asset
+);
+```
+
+### Subscribe to real-time updates
+
+```typescript
+await client.ws.connect();
+const unsubscribe = client.ws.subscribePrices((update) => {
+  console.log('Price:', update);
+}, 'ETH');
+
+// Later
+unsubscribe();
+client.ws.disconnect();
+```
+
+---
+
+## Error handling
+
+Every error the SDK raises is a `ThetanutsError` subclass with a typed `code`:
+
+```typescript
+import { ThetanutsError, isThetanutsError } from '@thetanuts-finance/thetanuts-client';
+
+try {
+  await client.optionBook.claimFees(usdcAddress);
+} catch (err) {
+  if (isThetanutsError(err)) {
+    console.log(err.code);   // e.g. 'SIGNER_REQUIRED', 'NETWORK_UNSUPPORTED'
+    console.log(err.message);
+    console.log(err.cause);  // original error if any
+  }
+}
+```
+
+Codes you will encounter:
+
+| Code | Meaning |
+|---|---|
+| `SIGNER_REQUIRED` | Method needs a signer; you constructed a read-only client |
+| `NETWORK_UNSUPPORTED` | Module not deployed on this chain (e.g. ranger on Ethereum) |
+| `INVALID_PARAMS` | Bad input — wrong address, wrong strike count, zero-address implementation |
+| `CONTRACT_REVERT` | The chain reverted; check `cause` for the underlying ethers error |
+| `INSUFFICIENT_ALLOWANCE` | Approve the token first; or use `ensureAllowance` |
+| `INSUFFICIENT_BALANCE` | Top up the user's balance |
+| `ORDER_EXPIRED` | OptionBook order is past its expiry |
+| `SLIPPAGE_EXCEEDED` | Price moved more than your tolerance during fill |
+| `HTTP_ERROR` | Indexer / API call failed |
+| `RATE_LIMIT` | RPC or API rate limit |
+
+Subclasses: `APIError`, `BadRequestError`, `NotFoundError`, `RateLimitError`, `ContractRevertError`, `InsufficientAllowanceError`, `InsufficientBalanceError`, `OrderExpiredError`, `SlippageExceededError`, `SignerRequiredError`, `InvalidParamsError`, `NetworkUnsupportedError`, `WebSocketError`, `KeyNotFoundError`, `InvalidKeyError`, `EncryptionError`, `DecryptionError`. Use `instanceof` against any of these to narrow.
+
+---
+
+## Gotchas (read these before debugging)
+
+These are the recurring footguns. If something is failing in a way that matches one of these descriptions, this is likely the cause.
+
+### `availableAmount` is collateral budget, not contract count
+
+The `availableAmount` field on a maker order is the maker's collateral budget in collateral-token decimals — NOT the number of contracts you can buy. A 10,000 USDC budget at a $95k strike PUT yields ~0.105 contracts. **Always call `previewFillOrder()` before `fillOrder()`** for any non-trivial structure.
+
+### `collateralAmount` in RFQ params is always 0
+
+Collateral is pulled at settlement, not at RFQ creation. The `buildRFQRequest` helpers enforce `collateralAmount = 0` automatically. If you hand-build the request struct and pass a non-zero `collateralAmount`, the contract will revert.
+
+### `split` and `reclaimCollateral` are payable in r12
+
+`OptionModule.split`, `RangerModule.split`, and `RangerModule.reclaimCollateral` consume the on-chain `getSplitFee()` / `getReclaimFee(ownedOption)` as `msg.value`. The SDK reads the fee and forwards it for you. If you bypass the SDK and call the contract directly, you must forward the fee or the call reverts.
+
+### `getReclaimFee` is keyed on the option, not the caller
+
+The argument to `getReclaimFee` and `reclaimCollateral` is the address of **the option being reclaimed FROM**, not the caller's address. Reclaimed collateral goes to `msg.sender`. Conflating these two would have shipped a P1 bug; the v0.2.1 release caught it.
+
+### Physical multi-leg implementations are not deployed
+
+Only `PHYSICAL_CALL` and `PHYSICAL_PUT` have real addresses on Base r12. The seven slots `PHYSICAL_CALL_SPREAD`, `PHYSICAL_PUT_SPREAD`, `PHYSICAL_*_FLY`, `PHYSICAL_*_CONDOR`, `PHYSICAL_IRON_CONDOR` are placeholders set to `0x0…0`. Every RFQ entry point validates against the zero address and throws `INVALID_PARAMS` if you try to route through one.
+
+### Butterfly names changed in v0.2.1
+
+Internal lookup names were `'CALL_FLYS'` / `'PUT_FLYS'` in v0.1.x; they are now `'CALL_FLY'` / `'PUT_FLY'`. If you have string-equality checks against the old names, update them.
+
+### Strategy vault config field renamed in v0.2.3
+
+`STRATEGY_VAULT_CONFIG.kairos` → `STRATEGY_VAULT_CONFIG.fixedStrike`. `client.strategyVault.getKairosVaults()` → `getFixedStrikeVaults()`. No deprecated aliases — old names do not exist in v0.2.3+.
+
+### OptionBook is cash-settled only
+
+OptionBook never delivers the underlying. All payouts are in the collateral token (USDC for PUTs, WETH for inverse CALLs, etc.). Physical settlement is RFQ-only.
+
+### Public RPCs throttle bursts
+
+The default Base RPC `https://mainnet.base.org` drops calls under burst load, surfacing as `CALL_EXCEPTION` with no revert data. Pass your own RPC to the client constructor for production:
+
+```typescript
+new ethers.JsonRpcProvider('https://base-mainnet.g.alchemy.com/v2/YOUR_KEY')
+```
+
+### `mapContractError` pre-v0.2.2 clobbered typed errors
+
+If you are catching `code === 'CONTRACT_REVERT'` to detect a missing-signer state, that worked in v0.1.x and v0.2.1, but is wrong in v0.2.2+. Use `code === 'SIGNER_REQUIRED'` instead. v0.2.2 stopped re-wrapping typed errors as generic CONTRACT_REVERT.
+
+### `getValidNumContracts` returns a tuple in r12
+
+The OptionBook contract method returns `{validContracts, collateralRequired}` — not a single bigint. The SDK ABI declares the tuple correctly; if you read the ABI and decode by hand, decode as a tuple.
+
+### Decimal precision when closing positions
+
+`numContracts` you compute from a number can drift by 1 wei from the exact bigint stored on chain. Always read `info.numContracts` as a bigint and pass it directly when closing/splitting.
+
+### `client.pricing` does not exist
+
+The pricing module is `client.mmPricing`. Older docs and AI-generated code sometimes write `client.pricing` — that's wrong.
+
+### WheelVault is Ethereum-only
+
+`client.wheelVault.getVaultState(...)` on a Base-configured client throws `NETWORK_UNSUPPORTED` immediately. Construct a separate Ethereum-configured client for vault interactions:
+
+```typescript
+const ethClient = new ThetanutsClient({ chainId: 1, provider: new ethers.JsonRpcProvider('https://eth.llamarpc.com') });
+```
+
+### Ranger and StrategyVault are Base-only
+
+Same chain-gating, opposite direction. They throw `NETWORK_UNSUPPORTED` from chainId 1.
+
+### v0.1.x users on the prior Base deployment
+
+If you're on `@^0.1.x` and want to keep talking to the prior Base deployment, stay there. v0.1.x continues to receive the prior chain config. v0.2.x onwards points at Base_r12 (deployed 2026-05-05, block 45601440). There is no in-process version selector — pin the npm version.
+
+---
+
+## Versioning
+
+The SDK follows semver: MAJOR.MINOR.PATCH.
+
+- **0.x patches and minors may include breaking changes** (the project flagged v0.2.3 as BREAKING despite the patch-level number).
+- For locked behavior, install an exact version: `npm install @thetanuts-finance/thetanuts-client@0.2.3`.
+- A caret range `@^0.2.3` permits any future `0.2.x` update — useful for security patches.
+
+Per-version detail lives at:
+- `CHANGELOG.md` (repo root, ships in tarball) — terse log
+- [GitHub Releases](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases) — canonical body, full commit log
+- `docs/resources/changelog.md` (GitBook) — user-facing summary for the latest few releases
+
+---
+
+## Contract addresses (Base mainnet, r12)
+
+| Contract | Address |
+|---|---|
+| OptionBook | `0x1bDff855d6811728acaDC00989e79143a2bdfDed` |
+| OptionFactory (canonical) | `0x8118daD971dEbffB49B9280047659174128A8B94` |
+| TWAP Consumer | `0xE909fb38767e0ac5F7a347DF9Dd4222217E10816` |
+| LoanCoordinator | `0x9FB75b24d9d6f7c29D6BdE2870697A4FE0395994` |
+| LoanHandler | `0x7c444A2375275DaB925b32493B64a407eE955DEd` |
+
+**Implementation registry** (used to interpret on-chain options): r12 cash-settled keys are `PUT`, `INVERSE_CALL`, `LINEAR_CALL`, `CALL_SPREAD`, `PUT_SPREAD`, `INVERSE_CALL_SPREAD`, `CALL_FLY`, `PUT_FLY`, `CALL_CONDOR`, `PUT_CONDOR`, `IRON_CONDOR`, `RANGER`. Physical: `PHYSICAL_CALL`, `PHYSICAL_PUT`. Loan: `CALL_LOAN`. Pull live addresses from `client.chainConfig.implementations` — never hardcode.
+
+**Tokens**: USDC, WETH, cbBTC (primary collateral); aBasWETH, aBasUSDC, aBascbBTC (Aave-wrapped, used by strategy vaults); cbDOGE, cbXRP (additional underlyings). All on Base.
+
+**Price feeds (Chainlink on Base)**: ETH, BTC, SOL, DOGE, XRP, BNB, PAXG, AVAX. Pull from `client.chainConfig.priceFeeds`.
+
+---
+
+## See also
+
+- [`llms.txt`](./llms.txt) — curated index of canonical docs (what to fetch deeper).
+- [`README.md`](./README.md) — repo entry point with install snippet.
+- [`CHANGELOG.md`](./CHANGELOG.md) — terse per-version log.
+- [`docs/`](./docs/) — full GitBook source.
+- [`mcp-server/`](./mcp-server/) — Model Context Protocol server that exposes these reads as LLM tools.
