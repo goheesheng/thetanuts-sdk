@@ -124,6 +124,30 @@ const preview = client.optionBook.previewFillOrder(order, 10_000000n);
 
 ---
 
+## On-chain pre-flight (callStatic)
+
+`previewFillOrder()` runs the math locally. If you also want to confirm the contract itself would not revert under current state (allowance, nonce reuse, order cancellation, transient reverts) without paying gas, use the `callStatic` helpers — they execute the call against the node and return the would-be result or the revert reason.
+
+```typescript
+// Pre-flight a fill: returns the option address that would be created/transferred.
+const fillResult = await client.optionBook.callStaticFillOrder(order, 10_000000n);
+if (!fillResult.ok) {
+  console.error('Fill would revert:', fillResult.error);
+} else {
+  console.log('Would create option at:', fillResult.value);
+}
+
+// Pre-flight a cancel.
+const cancelResult = await client.optionBook.callStaticCancelOrder(order);
+if (!cancelResult.ok) {
+  console.error('Cancel would revert:', cancelResult.error);
+}
+```
+
+Both methods return a `CallStaticResult` (`{ ok: true, value }` or `{ ok: false, error }`). Useful inside form UIs to disable the submit button when the chain says the call would fail.
+
+---
+
 ## See Also
 
 - [Browse and Filter Orders](browse-filter-orders.md)

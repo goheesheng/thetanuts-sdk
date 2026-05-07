@@ -113,6 +113,32 @@ const reveals = await client.events.getOfferRevealedEvents({ quotationId });
 const settlements = await client.events.getQuotationSettledEvents({ quotationId });
 ```
 
+### Full RFQ History in One Call
+
+`getRfqHistory(quotationId, filters?)` is a convenience that batches the four RFQ-lifecycle event queries (`requested`, `offerMade`, `offerRevealed`, `settled`) for a single quotation and returns them sorted in chronological order. Skips the bookkeeping you'd do manually:
+
+```typescript
+const history = await client.events.getRfqHistory(quotationId);
+console.log(history.requested);   // single QuotationRequested event
+console.log(history.offers);      // OfferMade events
+console.log(history.reveals);     // OfferRevealed events
+console.log(history.settlement);  // QuotationSettled event (or null if not settled)
+```
+
+### queryEvents — generic catch-all
+
+If you need to scan the OptionBook or OptionFactory ABIs for an arbitrary event signature not covered by a typed helper, fall through to `queryEvents`:
+
+```typescript
+const events = await client.events.queryEvents({
+  contract: 'optionBook',                    // or 'optionFactory'
+  eventName: 'SomeUnusualEvent',
+  fromBlock: currentBlock - 1000,
+});
+```
+
+Most users should reach for the typed helpers above. `queryEvents` is the escape hatch for protocol introspection or custom indexers.
+
 ### Using OfferMade Events for Early Settlement
 
 The `getOfferMadeEvents()` result includes the encrypted offer data needed for `settleQuotationEarly()`:

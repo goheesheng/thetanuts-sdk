@@ -112,6 +112,25 @@ The SDK detects the structure automatically from the length of the `strikes` arr
 
 ---
 
+## Advanced: Swap and Create in One Tx
+
+`client.optionFactory.swapAndCall(params)` lets a user swap a source token through a DEX aggregator and then call any OptionFactory function (most commonly `requestForQuotation`) in a single atomic transaction. Useful when the user holds the wrong token for collateral and doesn't want to send two separate transactions.
+
+```typescript
+await client.optionFactory.swapAndCall({
+  swapRouter,        // aggregator router address
+  swapSrcToken,      // token the user is paying with
+  swapDstToken,      // token expected as collateral / escrow
+  swapSrcAmount,     // amount of source token to swap
+  swapCallData,      // encoded swap calldata from the aggregator
+  call,              // encoded call to OptionFactory (e.g. requestForQuotation)
+});
+```
+
+The aggregator's calldata must be quoted client-side; the SDK passes it through unchanged.
+
+---
+
 ## See Also
 
 - [Create an RFQ](create-rfq.md) — Step-by-step guide to submitting your first RFQ
