@@ -390,14 +390,8 @@ export const BASE_OPTION_ABI = [
   // ============ Events ============
   {
     type: 'event',
-    name: 'CollateralReturned',
+    name: 'ExcessCollateralReturned',
     inputs: [
-      {
-        name: 'optionAddress',
-        type: 'address',
-        indexed: true,
-        internalType: 'address',
-      },
       {
         name: 'seller',
         type: 'address',
@@ -405,11 +399,35 @@ export const BASE_OPTION_ABI = [
         internalType: 'address',
       },
       {
-        name: 'amountReturned',
+        name: 'collateralToken',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'collateralReturned',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
       },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OptionInitialized',
+    inputs: [
+      { name: 'buyer', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'seller', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'createdBy', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'optionType', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'collateralToken', type: 'address', indexed: false, internalType: 'address' },
+      { name: 'priceFeed', type: 'address', indexed: false, internalType: 'address' },
+      { name: 'strikes', type: 'uint256[]', indexed: false, internalType: 'uint256[]' },
+      { name: 'expiryTimestamp', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'numContracts', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'collateralAmount', type: 'uint256', indexed: false, internalType: 'uint256' },
+      { name: 'extraOptionData', type: 'bytes', indexed: false, internalType: 'bytes' },
     ],
     anonymous: false,
   },
@@ -528,6 +546,18 @@ export const BASE_OPTION_ABI = [
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
+      },
+      {
+        name: 'feePaid',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'counterparty',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
     ],
     anonymous: false,
