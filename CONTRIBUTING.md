@@ -113,27 +113,43 @@ If both Claude and Codex flag the same line, fix it. If only one flags it, treat
 
 ## Releases
 
-The release flow is two PRs:
+Release notes live in three places. Keep them in sync; they have different audiences.
+
+| Source | Audience | Format |
+|---|---|---|
+| `CHANGELOG.md` (repo root) | npm users, ships in tarball | Terse per-version log |
+| GitHub Releases | People browsing the repo, `gh release view`, dependabot | Per-version body, copy-paste from `CHANGELOG.md` |
+| `docs/resources/changelog.md` (GitBook) | Devs reading docs.thetanuts.finance/sdk | User-facing highlights for the latest few releases |
+
+The release flow:
 
 1. **Code PR** (e.g. `release: v0.2.1 — Base_r12 cutover + codex-found fixes`)
    - Bumps `package.json` version
-   - Adds CHANGELOG entry
-   - Updates `docs/resources/changelog.md` and `docs/releases/<version>.md` if substantial
+   - Adds `CHANGELOG.md` entry at the top
+   - Adds matching summary to `docs/resources/changelog.md` (latest 3-5 releases shown there; older ones are listed terse)
    - All four gates green before merge
-2. **Doc PR** (e.g. `docs: add v0.2.1 release notes`)
-   - Optional but recommended for major releases — full `docs/releases/<version>.md` with per-commit log, before/after migration code, verification commands
 
-After both merge, publish to npm:
+2. **npm publish** from `main` after merge:
 
-```bash
-git checkout main && git pull --ff-only
-npm whoami                              # confirm you have publish rights
-npm pack --dry-run                      # eyeball the tarball contents
-npm publish --dry-run --access public   # final preflight
-npm publish --access public             # go live (requires 2FA OTP)
-git tag -a v<version> -m "v<version> — <subject>"
-git push upstream v<version>
-```
+   ```bash
+   git checkout main && git pull --ff-only
+   npm whoami                              # confirm publish rights
+   npm pack --dry-run                      # eyeball tarball contents
+   npm publish --dry-run --access public   # final preflight
+   npm publish --access public             # go live (requires 2FA OTP)
+   git tag -a v<version> -m "v<version> — <subject>"
+   git push upstream v<version>
+   ```
+
+3. **GitHub Release** after the tag is pushed:
+
+   ```bash
+   gh release create v<version> \
+     --title "v<version> — <subject>" \
+     --notes-file - <<'EOF'
+   <paste the corresponding section from CHANGELOG.md>
+   EOF
+   ```
 
 `prepublishOnly` re-runs the build automatically. Don't manually edit `dist/` — it gets clobbered.
 

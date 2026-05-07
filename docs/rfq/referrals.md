@@ -57,7 +57,7 @@ const receipt = await client.optionFactory.registerReferral({
 // Or, simpler: query the on-chain quotationCount before vs after to derive it.
 ```
 
-> **Zero-address guard (v0.2.1+):** if `params.implementation` resolves to `0x000…000`, the SDK throws `INVALID_PARAMS` before the transaction is built. The seven `PHYSICAL_*_SPREAD/FLY/CONDOR/IRON_CONDOR` slots are placeholders in r12. See [v0.2.1 release notes](../releases/0.2.1.md#safety-upgrades).
+> **Zero-address guard (v0.2.1+):** if `params.implementation` resolves to `0x000…000`, the SDK throws `INVALID_PARAMS` before the transaction is built. The seven `PHYSICAL_*_SPREAD/FLY/CONDOR/IRON_CONDOR` slots are placeholders in r12. See the [v0.2.1 GitHub Release](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases/tag/v0.2.1) for the safety-upgrade details.
 
 ### Reading the new referralId
 
@@ -132,4 +132,4 @@ Listen for this event if you want to reconcile your expected accrual against on-
 - [OptionBook Referrer Fees](../optionbook/referrer-fees.md) — the other referral system, with self-claim
 - [Create an RFQ](./create-rfq.md) — the full `requestForQuotation` walkthrough where you'd attach your `referralId`
 - [Modules Overview — `client.optionFactory`](../reference/modules-overview.md) — full OptionFactory module surface
-- [v0.2.1 release notes](../releases/0.2.1.md) — context on the zero-address guards and r12 changes that affect referral registration
+- [v0.2.1 GitHub Release](https://github.com/Thetanuts-Finance/thetanuts-sdk/releases/tag/v0.2.1) — context on the zero-address guards and r12 changes that affect referral registration
