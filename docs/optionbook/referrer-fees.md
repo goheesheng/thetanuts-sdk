@@ -9,7 +9,7 @@ Earn a share of trading fees by attaching your address as referrer on OptionBook
 3. Fees accrue **per collateral token**: PUT fills accrue USDC fees, CALL fills accrue WETH or cbBTC fees.
 4. You call `claimAllFees()` (or `claimFees(token)` for one token at a time) to withdraw.
 
-**OptionFactory (RFQ) fees are separate.** RFQ fees use the `referralId` system and can only be withdrawn by the contract owner. Only OptionBook fees are self-claimable.
+**OptionFactory (RFQ) fees are separate.** RFQ fees use the `referralId` system and can only be withdrawn by the contract owner. Only OptionBook fees are self-claimable. See the [RFQ Referrals](../rfq/referrals.md) guide for the OptionFactory side.
 
 ## Setting up a referrer
 

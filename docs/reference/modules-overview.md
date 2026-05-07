@@ -41,7 +41,7 @@ Fetches data from Thetanuts APIs. Methods are read-only and organized by source:
 
 ### `client.optionFactory` — OptionFactoryModule
 
-Manages the full RFQ (Request for Quotation) lifecycle: building parameters, submitting requests, polling quotation state, revealing offers, and settling. Supports vanilla, spread, butterfly, condor, iron condor, and physically settled structures.
+Manages the full RFQ (Request for Quotation) lifecycle: building parameters, submitting requests, polling quotation state, revealing offers, and settling. Supports vanilla, spread, butterfly, condor, iron condor, and physically settled structures. Also exposes the RFQ-side referral surface (`registerReferral`, `getReferralOwner`, `getReferralFees`, `withdrawFees`) — see the [RFQ Referrals](../rfq/referrals.md) guide.
 
 Relevant section: [RFQ overview](../rfq/overview.md)
 

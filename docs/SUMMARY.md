@@ -26,6 +26,7 @@
 * [RFQ Lifecycle](rfq/lifecycle.md)
 * [Early Settlement](rfq/early-settlement.md)
 * [Key Management](rfq/key-management.md)
+* [Referrals](rfq/referrals.md)
 * [Physical Options](rfq/physical-options.md)
 
 ## Loan
