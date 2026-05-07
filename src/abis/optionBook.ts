@@ -126,11 +126,18 @@ export const OPTION_BOOK_ABI = [
     inputs: [
       { name: 'implementation', type: 'address', internalType: 'address' },
       { name: 'strikes', type: 'uint256[]', internalType: 'uint256[]' },
-      { name: 'numContracts', type: 'uint256', internalType: 'uint256' },
+      { name: 'desiredContracts', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
-      { name: 'validContracts', type: 'uint256', internalType: 'uint256' },
-      { name: 'collateralRequired', type: 'uint256', internalType: 'uint256' },
+      {
+        name: 'result',
+        type: 'tuple',
+        internalType: 'struct OptionBook.ValidContractsResult',
+        components: [
+          { name: 'validContracts', type: 'uint256', internalType: 'uint256' },
+          { name: 'collateralRequired', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
     stateMutability: 'view',
   },
