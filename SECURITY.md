@@ -52,7 +52,7 @@ What IS in scope:
 
 ## Best practices for users
 
-- Pin the SDK version (`@^0.2.1`, not `@latest`) so a future release can't silently change behavior.
+- Pin the SDK version (`@0.2.3`, not `@latest`) so a major release can't silently change behavior. A caret range like `@^0.2.3` still permits future `0.2.x` updates within the minor; if you need to lock against any update at all, use the exact version. We follow semver — minor bumps signal new features (additive) and major bumps signal breaking changes.
 - Run your own integration tests against your specific chain + token combinations.
 - Always inspect transactions before signing. The SDK builds them, you sign them — don't outsource that step.
 - For production deployments, see the [Production Checklist](https://docs.thetanuts.finance/sdk/guides/production-checklist) in the GitBook docs.
