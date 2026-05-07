@@ -137,9 +137,9 @@ Fixed-strike quote asset: aBasUSDC `0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB`
 
 ### Shared
 
-| Contract | Address |
-|----------|---------|
-| OptionFactory (Base r12) | `0x1D1Fee494dDEAF32626dcd50e0Cd83890574730f` |
+| Contract | Address | Notes |
+|----------|---------|-------|
+| Vault-side OptionFactory | `0x1D1Fee494dDEAF32626dcd50e0Cd83890574730f` | Used internally by the strategy vaults to mint weekly options. Distinct from `chainConfig.contracts.optionFactory` (`0x8118daD9…`), which is the canonical user-facing OptionFactory for direct RFQs. |
 
 ---
 
