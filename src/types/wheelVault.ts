@@ -1,5 +1,5 @@
 /**
- * WheelVault Types — Gyro wheel strategy vaults on Ethereum
+ * WheelVault Types — Wheel strategy vaults on Ethereum
  *
  * Types for the WheelVault, WheelVaultRouter, WheelVaultLens,
  * Markets, MarketsLens, and VaultMath contracts.

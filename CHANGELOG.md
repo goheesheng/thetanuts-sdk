@@ -2,6 +2,46 @@
 
 All notable changes to `@thetanuts-finance/thetanuts-client` are documented here.
 
+## 0.2.3 — Whitelabel rename (BREAKING)
+
+Neutralizes partner-protocol names in the public SDK surface and docs. The behavior
+and contract addresses are unchanged — this is a naming-only release.
+
+> **Heads up:** despite the patch-level version bump, the two API renames below
+> are **breaking**. Anyone using `STRATEGY_VAULT_CONFIG.kairos` or
+> `client.strategyVault.getKairosVaults()` by name in v0.2.2 must update on
+> upgrade. There are no deprecated aliases — the old names are gone.
+
+### Breaking
+
+- **`STRATEGY_VAULT_CONFIG.kairos` → `STRATEGY_VAULT_CONFIG.fixedStrike`.**
+  All sub-fields (`vaults`, `baseAsset`, `quoteAsset`, `oracle`) move with it.
+  ```diff
+  - const vault = STRATEGY_VAULT_CONFIG.kairos.vaults[0].address;
+  + const vault = STRATEGY_VAULT_CONFIG.fixedStrike.vaults[0].address;
+  ```
+- **`client.strategyVault.getKairosVaults()` → `client.strategyVault.getFixedStrikeVaults()`.**
+  Same return type and behavior — only the method name changes.
+  ```diff
+  - const vaults = await client.strategyVault.getKairosVaults();
+  + const vaults = await client.strategyVault.getFixedStrikeVaults();
+  ```
+
+### Changed
+
+- Comments, JSDoc, runtime error messages, and docs use neutral language:
+  "Kairos fixed-strike" → "fixed-strike", "Gyro wheel strategy" → "wheel strategy".
+  No symbol changes beyond the two breaking renames above.
+
+### Unchanged
+
+- `STRATEGY_VAULT_CONFIG.clvex`, `getClvexVaults()`, `getAllVaults()` — all preserved.
+- The loan indexer URL (`zendfi-loan-indexer-v1.devops-118.workers.dev`) — kept as-is
+  since it's a live endpoint.
+- All on-chain contract addresses, ABIs, and module shapes.
+
+---
+
 ## 0.2.2 — DX polish
 
 Small follow-ups from a live `/devex-review` audit. No new features or breaking

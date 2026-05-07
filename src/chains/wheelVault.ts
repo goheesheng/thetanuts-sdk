@@ -2,7 +2,7 @@
  * WheelVault Configuration Constants
  *
  * Contract addresses, per-asset vault addresses, shared infrastructure,
- * and market constants for Gyro wheel strategy vaults on Ethereum mainnet.
+ * and market constants for wheel strategy vaults on Ethereum mainnet.
  */
 
 import type { WheelVaultAssetConfig } from '../types/wheelVault.js';

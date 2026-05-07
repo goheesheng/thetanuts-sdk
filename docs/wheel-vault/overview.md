@@ -1,6 +1,6 @@
 # Wheel Vault Module
 
-Deposit into Gyro wheel-strategy vaults on Ethereum mainnet. Each vault sells covered calls and cash-secured puts on a single underlying (WBTC, XAUt, SPYon) and routes premiums back to LPs.
+Deposit into wheel-strategy vaults on Ethereum mainnet. Each vault sells covered calls and cash-secured puts on a single underlying (WBTC, XAUt, SPYon) and routes premiums back to LPs.
 
 ## Chain
 

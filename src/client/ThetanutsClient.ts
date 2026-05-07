@@ -150,12 +150,12 @@ export class ThetanutsClient {
   public readonly loan: LoanModule;
 
   /**
-   * WheelVault module - Gyro wheel strategy vaults on Ethereum
+   * WheelVault module - Wheel strategy vaults on Ethereum
    */
   public readonly wheelVault: WheelVaultModule;
 
   /**
-   * StrategyVault module - Kairos fixed-strike + CLVEX directional/condor vaults on Base
+   * StrategyVault module - Fixed-strike + CLVEX directional/condor vaults on Base
    */
   public readonly strategyVault: StrategyVaultModule;
 
