@@ -26,8 +26,8 @@ export type ProductName =
   | 'CALL_SPREAD'
   | 'INVERSE_CALL_SPREAD'
   | 'PUT_SPREAD'
-  | 'CALL_FLYS'
-  | 'PUT_FLYS'
+  | 'CALL_FLY'
+  | 'PUT_FLY'
   | 'CALL_CONDOR'
   | 'PUT_CONDOR'
   | 'IRON_CONDOR'
@@ -225,7 +225,7 @@ export function premiumPerContract(
  *   PUT:                   tradeAmount / strike
  *   CALL_SPREAD:           tradeAmount / (K_max - K_min)
  *   PUT_SPREAD:            tradeAmount / |K1 - K2|
- *   CALL_FLYS/PUT_FLYS:    tradeAmount / wingWidth
+ *   CALL_FLY/PUT_FLY:    tradeAmount / wingWidth
  *   CALL_CONDOR/PUT_CONDOR/IRON_CONDOR: tradeAmount / wingWidth
  *
  * BUY formulas:
@@ -315,7 +315,7 @@ export function calculateNumContracts(params: {
 
     default: {
       // All other multi-leg USD products: tradeAmount / (K_max - K_min)
-      // Covers CALL_SPREAD, PUT_SPREAD, CALL_FLYS, PUT_FLYS,
+      // Covers CALL_SPREAD, PUT_SPREAD, CALL_FLY, PUT_FLY,
       //         CALL_CONDOR, PUT_CONDOR
       const sorted = strikes.filter((s) => s > 0).sort((a, b) => a - b);
       const k0 = sorted[0];
@@ -424,7 +424,7 @@ export function calculateCollateralRequired(
 
     default: {
       // All other multi-leg USD products: width × numContracts
-      // Covers CALL_SPREAD, PUT_SPREAD, CALL_FLYS, PUT_FLYS,
+      // Covers CALL_SPREAD, PUT_SPREAD, CALL_FLY, PUT_FLY,
       //         CALL_CONDOR, PUT_CONDOR
       const sorted = strikes.filter((s) => s > 0).sort((a, b) => a - b);
       const k0 = sorted[0];
@@ -530,7 +530,7 @@ export function calculateDeliveryAmount(
  * 5. PUT_SPREAD sell, 500 USDC, strikes [2000, 2500]
  *    → width = 500, numContracts = 1
  *
- * 6. CALL_FLYS sell, 100 USDC, strikes [1900, 2000, 2100]
+ * 6. CALL_FLY sell, 100 USDC, strikes [1900, 2000, 2100]
  *    → width = 100, numContracts = 1
  *
  * 7. CALL_CONDOR sell, 100 USDC, strikes [1800, 1900, 2100, 2200]
