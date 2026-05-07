@@ -2,6 +2,37 @@
 
 All notable changes to `@thetanuts-finance/thetanuts-client` are documented here.
 
+## 0.2.2 — DX polish
+
+Small follow-ups from a live `/devex-review` audit. No new features or breaking
+changes; fixes a few rough edges that surfaced in error paths and docs.
+
+### Fixed
+
+- **Error mapping no longer clobbers typed errors.** `mapContractError` previously
+  re-wrapped `ThetanutsError` instances (e.g. `SIGNER_REQUIRED` from
+  `requireSigner()`) as generic `CONTRACT_REVERT`. It now passes them through
+  unchanged. Calling `client.optionBook.claimFees(token)` without a signer now
+  reports `code: 'SIGNER_REQUIRED'` instead of `code: 'CONTRACT_REVERT'`.
+- **Stale chain list in NETWORK_UNSUPPORTED error message.** The error string
+  hardcoded `"Supported chains: 8453 (Base)"` and didn't mention Ethereum
+  (chainId 1, added in 0.2.1). Now derives the supported list dynamically from
+  `CHAIN_CONFIGS_BY_ID`.
+- **Broken doc link.** `docs/resources/migration-guide.md` linked to a
+  non-existent `reference/error-codes.md`; now points at the real
+  `guides/error-handling.md`.
+
+### Added
+
+- `CONTRIBUTING.md` documents the setup, the four required local gates, the
+  `/codex review` + `/codex challenge` review process, and the npm publish flow.
+- `SECURITY.md` — vulnerability reporting policy and supported-versions table.
+- `.github/ISSUE_TEMPLATE/{bug_report,feature_request,question,config}.yml` and
+  `.github/PULL_REQUEST_TEMPLATE.md` — structured templates that pre-fill the
+  fields a maintainer needs to triage.
+- Backfilled v0.1.x entries into `CHANGELOG.md` so the repo changelog matches
+  the GitBook changelog history.
+
 ## 0.2.1 — Base_r12 deployment + codex-found fixes
 
 The first 0.2.x release published to npm. Bundles the Base_r12 deployment cutover with 22 fixes that three adversarial code-review passes found in the staged 0.2.0 surface. v0.2.0 was prepared internally but never published to npm; everything its CHANGELOG promised plus everything 0.2.1 fixes ships in this single release.
@@ -106,3 +137,33 @@ Already-shipped admin-ish methods on existing modules (`sweepProtocolFees`, `set
 - **Pin to the deployment you want.** v0.1.x tracks the prior Base deployment; v0.2.x tracks Base_r12. Don't mix.
 - The seven physical multi-leg implementation slots (`PHYSICAL_CALL_SPREAD`, `PHYSICAL_PUT_SPREAD`, `PHYSICAL_*_FLY`, `PHYSICAL_*_CONDOR`, `PHYSICAL_IRON_CONDOR`) remain `0x000…000` in r12. The runtime guards in `optionFactory.ts` throw a clear `INVALID_PARAMS` error if any RFQ flow tries to route through one.
 - See [`docs/releases/0.2.1.md`](docs/releases/0.2.1.md) for the full per-commit deep-dive, before/after migration code, and verification commands.
+
+## 0.1.6
+
+- Added `getAllClaimableFees()` and `claimAllFees()` helpers on `optionBook` for batch fee claiming across all collateral tokens.
+
+## 0.1.5
+
+- Added `getFactoryReferrerStats()` for the `/factory/referrer/:address/state` endpoint.
+- Narrowed catch-block errors from `any` to `unknown` for stricter type safety.
+
+## 0.1.4
+
+- Added Yarn Classic (v1) and Yarn Berry (v2+) publish support.
+- Fixed `numContracts` precision handling and `existingOptionAddress` parameter defaults.
+- Fixed `LINEAR_CALL` max contracts calculation.
+- Fixed nonce null safety in transaction encoding.
+- Fixed `toBigInt` handling of scientific notation and negative numbers.
+- Fixed floating-point overflow in multi-leg MM pricing calculations.
+- Added support for additional underlying assets and collateral tokens in the RFQ builder.
+
+## 0.1.3 and earlier
+
+- Initial public release of the Thetanuts Finance SDK.
+- Core modules: `optionBook`, `optionFactory`, `option`, `mmPricing`, `erc20`, `api`, `utils`.
+- `buildRFQParams()` and `buildRFQRequest()` high-level builders.
+- `getFullOptionInfo()` aggregated option query.
+- `strikeToChain()` / `strikeFromChain()` precision-safe strike conversion.
+- MM pricing filter utilities: `filterExpired()`, `filterByType()`, `filterByExpiry()`, `filterByStrikeRange()`, `sortByExpiryAndStrike()`.
+- Book position PnL fields added to `Position` type.
+- Indexer method renames to clarify data source (`getUserPositionsFromIndexer()`, `getUserRFQsFromRfq()`, etc.).
