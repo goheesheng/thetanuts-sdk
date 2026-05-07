@@ -6,7 +6,21 @@ A read-only MCP (Model Context Protocol) server that exposes Thetanuts SDK funct
 
 For full details, see [mcp-server/README.md](../../mcp-server/README.md) and [mcp-server/SPEC.md](../../mcp-server/SPEC.md).
 
+> **Tip for LLM users:** if you don't need a persistent MCP connection, you can paste a one-line prompt into Claude or Cursor and have your LLM fetch the SDK context directly. See [LLM Context](../resources/llm-context.md) for the copy-paste prompt.
+
 ## Available Tools
+
+### LLM Context Tools (call these first)
+
+If you're an LLM connecting for the first time, call `get_sdk_context` once and cache the result for the session — it returns the full embedded SDK context (every module, key types, common workflows, gotchas) in ~35 KiB of markdown. Same content as the [`llms-full.txt`](https://raw.githubusercontent.com/Thetanuts-Finance/thetanuts-sdk/main/llms-full.txt) at the repo root.
+
+| Tool | Description |
+|------|-------------|
+| `get_sdk_context` | Full long-form SDK context. Call this first — covers every module and the common gotchas |
+| `get_sdk_context_index` | Curated index of canonical SDK docs (llmstxt.org spec) — links only |
+| `get_sdk_context_size` | Byte size of the embedded context — use to budget before fetching |
+
+These three handlers run before the chain client is initialized, so they don't consume an RPC call.
 
 ### Indexer API (OptionBook data)
 
@@ -137,6 +151,60 @@ For full details, see [mcp-server/README.md](../../mcp-server/README.md) and [mc
 | `build_ticker` | Build option ticker from components |
 | `get_position_info` | Position information for buyer or seller |
 | `generate_example_keypair` | Generate example ECDH keypair (demo only) |
+
+### Ranger Tools (RangerOption — zone-bound 4-strike payoff)
+
+| Tool | Description |
+|------|-------------|
+| `get_ranger_info` | Full state of a Ranger position (buyer, seller, strikes, zone, expiry) |
+| `get_ranger_zone` | Inner zone bounds where the buyer earns max payout |
+| `get_ranger_spread_width` | Per-leg spread width (s2-s1 == s4-s3) |
+| `get_ranger_twap` | Current TWAP from the option's price-feed consumer |
+| `calculate_ranger_payout` | On-chain payout at a specific settlement price |
+| `simulate_ranger_payout` | Simulate payout for hypothetical strikes/numContracts (pure) |
+| `calculate_ranger_required_collateral` | Required collateral for given strikes + numContracts |
+
+### Loan Tools (Non-liquidatable lending)
+
+| Tool | Description |
+|------|-------------|
+| `get_lending_opportunities` | Fetch unfilled loan limit orders from the loan indexer |
+| `get_loan_request` | On-chain state for a specific loan quotation |
+| `get_user_loans` | All loans for an address from the loan indexer |
+| `get_loan_option_info` | Details for a loan-issued option (strike, expiry, collateral, underlying) |
+| `is_loan_option_itm` | Whether a loan-issued option is currently in-the-money |
+| `fetch_loan_pricing` | Deribit-style option pricing (30s cache) |
+| `get_loan_strike_options` | Filtered strike options grouped by expiry |
+
+### WheelVault Tools (Ethereum mainnet — chainId 1)
+
+WheelVault is gated to chainId 1; tools throw `NETWORK_UNSUPPORTED` unless `THETANUTS_RPC_URL` points at Ethereum mainnet.
+
+| Tool | Description |
+|------|-------------|
+| `get_wheel_vault_state` | Full state of a WheelVault series (balances, shares, last price) |
+| `get_wheel_vault_series` | Raw on-chain series struct |
+| `get_wheel_vault_series_count` | Total number of series in a WheelVault |
+| `preview_wheel_deposit` | Pre-flight: expected shares minted for a paired deposit |
+| `preview_wheel_withdraw` | Pre-flight: expected base/quote returned for a share redemption |
+| `get_wheel_depth_chart` | Depth-chart data across IV buckets |
+| `get_wheel_buyer_options` | Options held by a buyer (paginated via fromId/maxCount) |
+| `get_wheel_seller_positions` | Seller exposures within a series |
+| `get_wheel_claimable_summary` | Aggregate claimable amounts across multiple series |
+
+### StrategyVault Tools (Base — Fixed-strike + CLVEX vaults)
+
+| Tool | Description |
+|------|-------------|
+| `get_strategy_vault_state` | Full vault state (assets, shares, next expiry, recovery state) |
+| `get_strategy_vault_total_assets` | Base + quote assets currently held |
+| `get_strategy_vault_share_balance` | A user's share balance in a vault |
+| `get_strategy_vault_next_expiry` | Next option-creation expiry timestamp |
+| `can_strategy_vault_create_option` | Whether `createOption()` is currently eligible |
+| `is_strategy_vault_recovery_mode` | Whether the vault is paused for emergency withdrawals |
+| `get_all_strategy_vaults` | Live state of every fixed-strike + CLVEX vault |
+| `get_fixed_strike_vaults` | Live state of fixed-strike vaults only |
+| `get_clvex_vaults` | Live state of CLVEX directional/condor vaults only |
 
 ## Setup
 

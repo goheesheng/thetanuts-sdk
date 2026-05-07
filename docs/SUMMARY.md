@@ -73,6 +73,7 @@
 
 ## Resources
 
+* [LLM Context (use with Claude/Cursor/ChatGPT)](resources/llm-context.md)
 * [Migration Guide](resources/migration-guide.md)
 * [Examples](resources/examples.md)
 * [Changelog](resources/changelog.md)
