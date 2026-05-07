@@ -37,7 +37,7 @@ export const LOAN_OPTION_ABI = [
   'function doNotExercise()',
   'function swapAndExercise(address aggregator, bytes swapData)',
   'function close()',
-  'function split(uint256 splitCollateralAmount) returns (address)',
+  'function split(uint256 splitCollateralAmount) payable returns (address)',
   'function transfer(bool isBuyer, address target)',
   'function approveTransfer(bool isBuyer, address target, bool isApproved)',
   'function buyer() view returns (address)',

@@ -330,7 +330,7 @@ export const BASE_OPTION_ABI = [
       },
     ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -366,9 +366,9 @@ export const BASE_OPTION_ABI = [
   {
     type: 'function',
     name: 'reclaimCollateral',
-    inputs: [{ name: 'recipient', type: 'address', internalType: 'address' }],
+    inputs: [{ name: 'ownedOption', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',

@@ -285,7 +285,7 @@ export const RANGER_OPTION_ABI = [
     name: 'split',
     inputs: [{ name: 'splitCollateralAmount', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -300,9 +300,9 @@ export const RANGER_OPTION_ABI = [
   {
     type: 'function',
     name: 'reclaimCollateral',
-    inputs: [{ name: 'recipient', type: 'address', internalType: 'address' }],
+    inputs: [{ name: 'ownedOption', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',
