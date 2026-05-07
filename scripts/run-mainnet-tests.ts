@@ -388,6 +388,114 @@ async function runTests() {
     fail('client.ranger module surface', e as Error);
   }
 
+  // ----- v0.2.1 codex-found fixes -----
+
+  // Zero-address guard: encodeRequestForQuotation must reject the seven
+  // PHYSICAL_*_SPREAD/FLY/CONDOR/IRON_CONDOR placeholders.
+  try {
+    const { CHAIN_CONFIGS_BY_ID } = await import('../src/chains/index.js');
+    const impls = CHAIN_CONFIGS_BY_ID[BASE_CHAIN_ID].implementations;
+    const zeroPlaceholders: Array<keyof typeof impls> = [
+      'PHYSICAL_CALL_SPREAD',
+      'PHYSICAL_PUT_SPREAD',
+      'PHYSICAL_CALL_FLY',
+      'PHYSICAL_PUT_FLY',
+      'PHYSICAL_CALL_CONDOR',
+      'PHYSICAL_PUT_CONDOR',
+      'PHYSICAL_IRON_CONDOR',
+    ];
+    for (const key of zeroPlaceholders) {
+      const impl = impls[key];
+      if (!impl || impl !== '0x0000000000000000000000000000000000000000') {
+        throw new Error(`Expected ${key} to be 0x0…0 placeholder, got ${impl}`);
+      }
+      try {
+        client.optionFactory.encodeRequestForQuotation({
+          params: {
+            requester: ADDRESSES.SAMPLE_USER,
+            existingOptionAddress: '0x0000000000000000000000000000000000000000',
+            collateral: ADDRESSES.USDC,
+            collateralPriceFeed: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70',
+            implementation: impl,
+            strikes: [1n],
+            numContracts: 1n,
+            requesterDeposit: 0n,
+            collateralAmount: 0n,
+            expiryTimestamp: Math.floor(Date.now() / 1000) + 3600,
+            offerEndTimestamp: Math.floor(Date.now() / 1000) + 60,
+            isRequestingLongPosition: true,
+            convertToLimitOrder: false,
+            extraOptionData: '0x',
+          },
+          tracking: { referralId: 0n, eventCode: 0n },
+          reservePrice: 0n,
+          requesterPublicKey: '',
+        });
+        throw new Error(`${key}: expected zero-address guard to throw`);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (!msg.includes('not yet deployed')) throw err;
+      }
+    }
+    pass('encodeRequestForQuotation rejects all 7 zero-address placeholders');
+  } catch (e) {
+    fail('encodeRequestForQuotation zero-address guard', e as Error);
+  }
+
+  // Ranger chain guard: on Ethereum (chainId 1) every method must throw
+  // NETWORK_UNSUPPORTED, not a low-level eth_call failure.
+  try {
+    const ethProvider = new ethers.JsonRpcProvider('https://eth.llamarpc.com');
+    const ethClient = new ThetanutsClient({ chainId: 1, provider: ethProvider });
+    try {
+      await ethClient.ranger.getInfo('0x0000000000000000000000000000000000000001');
+      throw new Error('expected NETWORK_UNSUPPORTED, got success');
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      if (!msg.includes('RangerOption deployed')) {
+        throw new Error(`expected NETWORK_UNSUPPORTED message, got: ${msg}`);
+      }
+    }
+    pass('client.ranger throws NETWORK_UNSUPPORTED on chains without RANGER');
+  } catch (e) {
+    fail('Ranger chain guard on Ethereum', e as Error);
+  }
+
+  // getValidNumContracts must decode as a tuple, not a single uint.
+  try {
+    await delay(500);
+    const { OPTION_BOOK_ABI } = await import('../src/abis/optionBook.js');
+    const book = new ethers.Contract(ADDRESSES.OPTION_BOOK, OPTION_BOOK_ABI, provider);
+    const result = await book.getValidNumContracts(
+      client.chainConfig.implementations.PUT,
+      [client.utils.toStrikeDecimals(2000)],
+      client.utils.toUsdcDecimals(100),
+    );
+    // ethers v6 returns a Result with both indexed and named accessors when the
+    // ABI declares named outputs.
+    const validContracts = (result as { validContracts?: bigint }).validContracts ?? (result as bigint[])[0];
+    const collateralRequired = (result as { collateralRequired?: bigint }).collateralRequired ?? (result as bigint[])[1];
+    if (typeof validContracts !== 'bigint' || typeof collateralRequired !== 'bigint') {
+      throw new Error(`Expected tuple result, got: ${JSON.stringify(result)}`);
+    }
+    pass(`getValidNumContracts decodes as tuple (validContracts=${validContracts}, collateralRequired=${collateralRequired})`);
+  } catch (e) {
+    fail('getValidNumContracts tuple shape', e as Error);
+  }
+
+  // Butterfly reverse-lookup name reconciled to CALL_FLY (was CALL_FLYS).
+  try {
+    const { getOptionImplementationInfo } = await import('../src/chains/index.js');
+    const callFly = getOptionImplementationInfo(BASE_CHAIN_ID, '0xa1d5f6b16a2e7f298f8d2cdf78f7779b4a20c4c2');
+    const putFly = getOptionImplementationInfo(BASE_CHAIN_ID, '0x4fd2c6d271cc6ff3ebd2027da9815a0608d03aa3');
+    if (callFly?.name !== 'CALL_FLY' || putFly?.name !== 'PUT_FLY') {
+      throw new Error(`Expected CALL_FLY/PUT_FLY, got ${callFly?.name}/${putFly?.name}`);
+    }
+    pass('Butterfly reverse-lookup names: CALL_FLY / PUT_FLY');
+  } catch (e) {
+    fail('Butterfly reverse-lookup naming', e as Error);
+  }
+
   // ========== Summary ==========
   log('\n========================================');
   log('  Test Summary');
