@@ -124,11 +124,14 @@ export const OPTION_BOOK_ABI = [
     type: 'function',
     name: 'getValidNumContracts',
     inputs: [
-      { name: 'collateral', type: 'address', internalType: 'address' },
+      { name: 'implementation', type: 'address', internalType: 'address' },
       { name: 'strikes', type: 'uint256[]', internalType: 'uint256[]' },
       { name: 'numContracts', type: 'uint256', internalType: 'uint256' },
     ],
-    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    outputs: [
+      { name: 'validContracts', type: 'uint256', internalType: 'uint256' },
+      { name: 'collateralRequired', type: 'uint256', internalType: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
