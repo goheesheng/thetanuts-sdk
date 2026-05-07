@@ -3,7 +3,7 @@ import type { AxiosInstance } from 'axios';
 import type { Signer, Provider } from 'ethers';
 
 import type { ThetanutsClientConfig, SupportedChainId, SupportedNetwork, Environment } from '../types/client.js';
-import { getChainConfigById, isChainIdSupported } from '../chains/index.js';
+import { CHAIN_CONFIGS_BY_ID, getChainConfigById, isChainIdSupported } from '../chains/index.js';
 import type { ChainConfig } from '../chains/index.js';
 import { Logger, noopLogger } from '../utils/logger.js';
 import { createError } from '../utils/errors.js';
@@ -231,9 +231,12 @@ export class ThetanutsClient {
 
     // Validate chainId is supported
     if (!isChainIdSupported(config.chainId)) {
+      const supported = Object.values(CHAIN_CONFIGS_BY_ID)
+        .map((c) => `${c.chainId} (${c.name})`)
+        .join(', ');
       throw createError(
         'NETWORK_UNSUPPORTED',
-        `Chain ID ${String(config.chainId)} is not supported. Supported chains: 8453 (Base)`
+        `Chain ID ${String(config.chainId)} is not supported. Supported chains: ${supported}`,
       );
     }
 

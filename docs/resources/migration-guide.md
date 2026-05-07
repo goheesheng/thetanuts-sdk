@@ -520,4 +520,4 @@ The following endpoints are live on the new indexer but do not yet have dedicate
 
 - [Changelog](./changelog.md) - Version history and release notes
 - [Examples](./examples.md) - Runnable code examples covering common patterns
-- [Error Codes](../reference/error-codes.md) - Error handling reference
+- [Error Handling](../guides/error-handling.md) — error codes and recovery patterns

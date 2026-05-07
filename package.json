@@ -1,6 +1,6 @@
 {
   "name": "@thetanuts-finance/thetanuts-client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TypeScript SDK for Thetanuts Finance - Options trading on EVM chains",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

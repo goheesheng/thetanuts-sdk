@@ -1,0 +1,66 @@
+name: Feature request
+description: Suggest a new method, helper, or behavior for the SDK.
+title: "[feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Help us understand the use case before we evaluate the API shape.
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What are you trying to do?
+      description: The user-facing goal, not the implementation. ("Compute payoff for a custom strike grid" beats "expose simulatePayout helper".)
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How are you doing it today?
+      description: If you've already worked around the gap, show us the workaround. Often the fastest path forward is to graduate the workaround into the SDK.
+      render: typescript
+
+  - type: textarea
+    id: proposed-api
+    attributes:
+      label: Proposed API (optional)
+      description: If you have a specific method shape in mind, sketch it here. Skip if you'd rather we figure that part out.
+      render: typescript
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Which module is this for?
+      multiple: true
+      options:
+        - "client.optionBook"
+        - "client.optionFactory"
+        - "client.option"
+        - "client.ranger"
+        - "client.events"
+        - "client.api"
+        - "client.utils"
+        - "client.mmPricing"
+        - "client.rfqKeys"
+        - "client.loan"
+        - "client.wheelVault"
+        - "client.strategyVault"
+        - "client.ws"
+        - "client.erc20"
+        - "Cross-cutting / new module"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: What else did you look at? Why didn't it fit?
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
