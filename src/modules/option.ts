@@ -50,7 +50,12 @@ interface OptionContract {
 
   // === r12 fee views ===
   getSplitFee(): Promise<bigint>;
-  getReclaimFee(caller: string): Promise<bigint>;
+  /**
+   * Returns the fee (in chain-native units) the contract will demand as
+   * msg.value when reclaiming collateral from the option at `ownedOption`.
+   * The fee is a property of the option being reclaimed, not the caller.
+   */
+  getReclaimFee(ownedOption: string): Promise<bigint>;
 
   // === Write Functions ===
   close(): Promise<ContractTransactionResponse>;

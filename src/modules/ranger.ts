@@ -37,7 +37,12 @@ interface RangerContract {
   calculatePayout(price: bigint): Promise<bigint>;
   simulatePayout(price: bigint, strikes: bigint[], numContracts: bigint): Promise<bigint>;
   calculateRequiredCollateral(strikes: bigint[], numContracts: bigint): Promise<bigint>;
-  getReclaimFee(caller: string): Promise<bigint>;
+  /**
+   * Returns the fee (chain-native units) the contract will demand as
+   * msg.value when reclaiming collateral from the option at `ownedOption`.
+   * The fee is a property of the option being reclaimed, not the caller.
+   */
+  getReclaimFee(ownedOption: string): Promise<bigint>;
   getSplitFee(): Promise<bigint>;
 
   // ─── Writes ───
@@ -341,7 +346,8 @@ export class RangerModule {
    *   In r12 the contract treats this as the owned position to reclaim from, not a transfer
    *   destination. The reclaimed collateral goes to the caller (the signer).
    *
-   * Sends `getReclaimFee(caller)` as msg.value (the r12 contract is payable).
+   * Sends `getReclaimFee(ownedOption)` as msg.value — the r12 contract derives the fee
+   * from the option being reclaimed, not from the caller.
    */
   async reclaimCollateral(
     rangerAddress: string,
@@ -351,11 +357,12 @@ export class RangerModule {
     validateAddress(rangerAddress, 'rangerAddress');
     validateAddress(ownedOption, 'ownedOption');
     try {
-      const signer = this.client.requireSigner();
-      const callerAddress = await signer.getAddress();
+      // Caller must hold a signer to send the tx, but the fee is keyed on
+      // the option being reclaimed, not on the caller.
+      this.client.requireSigner();
 
       const readContract = this.getReadContract(rangerAddress);
-      const reclaimFee = await readContract.getReclaimFee(callerAddress);
+      const reclaimFee = await readContract.getReclaimFee(ownedOption);
 
       const contract = this.getWriteContract(rangerAddress);
       const tx = await contract.reclaimCollateral(ownedOption, { value: reclaimFee });

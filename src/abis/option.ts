@@ -268,7 +268,7 @@ export const BASE_OPTION_ABI = [
   {
     type: 'function',
     name: 'getReclaimFee',
-    inputs: [{ name: 'caller', type: 'address', internalType: 'address' }],
+    inputs: [{ name: 'ownedOption', type: 'address', internalType: 'address' }],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
   },
