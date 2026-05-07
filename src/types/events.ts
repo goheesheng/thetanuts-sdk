@@ -254,16 +254,20 @@ export interface BaseEvent {
 // ============================================================
 
 /**
- * CollateralReturned event from BaseOption contract
- * Emitted when collateral is returned to seller
+ * ExcessCollateralReturned event from BaseOption contract.
+ * Emitted when excess collateral is returned to the seller. r12 renamed
+ * the prior `CollateralReturned` event to `ExcessCollateralReturned`
+ * and reshaped the fields: there is no `optionAddress` field on the
+ * event itself (use `BaseEvent.address` from the filter context if you
+ * need it), and the value field is named `collateralReturned`.
  */
-export interface CollateralReturnedEvent extends BaseEvent {
-  /** Option contract address */
-  optionAddress: string;
+export interface ExcessCollateralReturnedEvent extends BaseEvent {
   /** Seller address */
   seller: string;
+  /** Collateral token address */
+  collateralToken: string;
   /** Amount of collateral returned */
-  amountReturned: bigint;
+  collateralReturned: bigint;
 }
 
 /**
@@ -304,17 +308,20 @@ export interface OptionPayoutEvent extends BaseEvent {
 }
 
 /**
- * OptionSettlementFailed event from BaseOption contract
- * Emitted when settlement fails (e.g., oracle issue)
+ * OptionSettlementFailed event from BaseOption contract.
+ * Emitted when settlement fails (e.g., oracle issue). r12 emits no inputs
+ * on the event itself; the SDK populates `optionAddress` from the filter
+ * context for caller convenience.
  */
 export interface OptionSettlementFailedEvent extends BaseEvent {
-  /** Option contract address (from filter context) */
+  /** Option contract address (from filter context, not the event itself) */
   optionAddress: string;
 }
 
 /**
- * OptionSplit event from BaseOption contract
- * Emitted when option position is split
+ * OptionSplit event from BaseOption contract.
+ * Emitted when an option position is split. r12 shape adds feePaid and
+ * counterparty (indexed) fields.
  */
 export interface OptionSplitEvent extends BaseEvent {
   /** Original option address (from filter context) */
@@ -323,6 +330,10 @@ export interface OptionSplitEvent extends BaseEvent {
   newOption: string;
   /** Collateral amount split off */
   collateralAmount: bigint;
+  /** Split fee paid (in chain native units, msg.value forwarded) */
+  feePaid: bigint;
+  /** Counterparty address (indexed) */
+  counterparty: string;
 }
 
 /**

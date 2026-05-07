@@ -219,7 +219,7 @@ export type {
   PositionClosedEvent,
   PositionTransferredEvent,
   EventFilters,
-  CollateralReturnedEvent,
+  ExcessCollateralReturnedEvent,
   OptionClosedEvent,
   OptionExpiredEvent,
   OptionPayoutEvent,
