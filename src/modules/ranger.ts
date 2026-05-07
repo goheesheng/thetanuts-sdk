@@ -18,7 +18,7 @@ interface RangerContract {
   chainlinkPriceFeed(): Promise<string>;
   historicalTWAPConsumer(): Promise<string>;
   twapPeriod(): Promise<bigint>;
-  optionType(): Promise<string>;
+  optionType(): Promise<bigint>;
   optionSettled(): Promise<boolean>;
   paramsHash(): Promise<string>;
   splitGeneration(): Promise<bigint>;

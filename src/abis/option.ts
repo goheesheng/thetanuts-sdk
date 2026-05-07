@@ -136,7 +136,7 @@ export const BASE_OPTION_ABI = [
     name: 'optionType',
     inputs: [],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'view',
+    stateMutability: 'pure',
   },
   {
     type: 'function',

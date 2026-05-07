@@ -91,8 +91,8 @@ export const RANGER_OPTION_ABI = [
     type: 'function',
     name: 'optionType',
     inputs: [],
-    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view',
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'pure',
   },
   {
     type: 'function',
