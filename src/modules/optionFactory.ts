@@ -926,6 +926,7 @@ export class OptionFactoryModule {
   async registerReferral(params: QuotationParameters): Promise<TransactionReceipt> {
     validateAddress(params.requester, 'requester');
     validateAddress(params.collateral, 'collateral');
+    this.assertImplementationDeployed(params.implementation, 'registerReferral');
 
     this.client.logger.debug('Registering referral', {
       requester: params.requester,
